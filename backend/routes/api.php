@@ -23,12 +23,27 @@ use App\Http\Controllers\Api\FileTemplateController;
 use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\LeadActivityController;
 use App\Http\Controllers\Api\SalesController;
+use App\Http\Controllers\Api\QuotationController;
+use App\Http\Controllers\Api\TicketController;
+use App\Http\Controllers\Api\LeaveController;
+use App\Http\Controllers\Api\AttendanceController;
+use App\Http\Controllers\Api\EmailController;
+use App\Http\Controllers\Api\WorkflowController;
+use App\Http\Controllers\Api\ChatController;
+use App\Http\Controllers\Api\KpiController;
+use App\Http\Controllers\Api\TagController;
+use App\Http\Controllers\Api\ProjectTemplateController;
 use App\Http\Controllers\Api\TaskChecklistController;
 use App\Http\Controllers\Api\TimeEntryController;
 use App\Http\Controllers\Api\MeetingController;
 use App\Http\Controllers\Api\CalendarController;
 use App\Http\Controllers\Api\MediaLibraryController;
+use App\Http\Controllers\Api\HealthController;
+use App\Http\Controllers\Api\PushController;
 use Illuminate\Support\Facades\Route;
+
+// ========== Health Check (public) ==========
+Route::get('/health', [HealthController::class, 'check']);
 
 // ========== Public Routes ==========
 Route::middleware('throttle:5,1')->post('/auth/login', [AuthController::class, 'login']);
@@ -74,6 +89,47 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::apiResource('invoices', InvoiceController::class);
         Route::post('/invoices/{invoice}/payments', [InvoiceController::class, 'recordPayment']);
         Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'downloadPdf']);
+    });
+
+    // ========== Quotations ==========
+    Route::middleware('role:super_admin,manager,sales,accountant')->group(function () {
+        Route::apiResource('quotations', QuotationController::class);
+        Route::get('/quotations/{quotation}/pdf', [QuotationController::class, 'downloadPdf']);
+    });
+
+    // ========== Support Tickets ==========
+    Route::apiResource('tickets', TicketController::class);
+    Route::post('/tickets/{ticket}/replies', [TicketController::class, 'reply']);
+
+    // ========== Leave Management ==========
+    Route::get('/leaves', [LeaveController::class, 'index']);
+    Route::post('/leaves', [LeaveController::class, 'store']);
+    Route::post('/leaves/{leaveRequest}/approve', [LeaveController::class, 'approve']);
+    Route::post('/leaves/{leaveRequest}/reject', [LeaveController::class, 'reject']);
+    Route::delete('/leaves/{leaveRequest}', [LeaveController::class, 'destroy']);
+    Route::get('/leaves/balance', [LeaveController::class, 'balance']);
+
+    // ========== Attendance ==========
+    Route::get('/attendance', [AttendanceController::class, 'index']);
+    Route::post('/attendance', [AttendanceController::class, 'store']);
+    Route::post('/attendance/check-in', [AttendanceController::class, 'checkIn']);
+    Route::post('/attendance/check-out', [AttendanceController::class, 'checkOut']);
+    Route::get('/attendance/today', [AttendanceController::class, 'today']);
+    Route::get('/attendance/summary', [AttendanceController::class, 'summary']);
+
+    // ========== Email ==========
+    Route::middleware('role:super_admin,manager,sales,accountant')->group(function () {
+        Route::post('/email/send', [EmailController::class, 'send']);
+        Route::post('/email/invoice/{invoice}', [EmailController::class, 'sendInvoice']);
+        Route::post('/email/quotation/{quotation}', [EmailController::class, 'sendQuotation']);
+    });
+
+    // ========== Workflow Automation ==========
+    Route::middleware('role:super_admin,manager')->group(function () {
+        Route::apiResource('workflows', WorkflowController::class);
+        Route::post('/workflows/{workflow}/toggle', [WorkflowController::class, 'toggle']);
+        Route::get('/workflow-logs', [WorkflowController::class, 'logs']);
+        Route::get('/workflow-templates', [WorkflowController::class, 'templates']);
     });
 
     // ========== Employees & HR ==========
@@ -161,6 +217,10 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::get('/reports/salaries', [ReportController::class, 'salaries']);
         Route::get('/reports/treasury', [ReportController::class, 'treasury']);
         Route::get('/reports/partners', [ReportController::class, 'partners']);
+        Route::get('/reports/profit-loss', [ReportController::class, 'profitLoss']);
+        Route::get('/reports/cash-flow', [ReportController::class, 'cashFlow']);
+        Route::get('/reports/export-pdf', [ReportController::class, 'exportPdf']);
+        Route::get('/reports/kpi', [ReportController::class, 'kpiReport']);
     });
 
     // ========== Notifications ==========
@@ -189,4 +249,39 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
     // ========== Activity Log ==========
     Route::get('/activity-logs', [ActivityLogController::class, 'index']);
+
+    // ========== Internal Chat ==========
+    Route::get('/chat/channels', [ChatController::class, 'channels']);
+    Route::post('/chat/channels', [ChatController::class, 'createChannel']);
+    Route::put('/chat/channels/{channel}', [ChatController::class, 'updateChannel']);
+    Route::delete('/chat/channels/{channel}', [ChatController::class, 'deleteChannel']);
+    Route::post('/chat/channels/{channel}/members', [ChatController::class, 'addMembers']);
+    Route::delete('/chat/channels/{channel}/members/{user}', [ChatController::class, 'removeMember']);
+    Route::get('/chat/channels/{channel}/messages', [ChatController::class, 'messages']);
+    Route::post('/chat/channels/{channel}/messages', [ChatController::class, 'sendMessage']);
+    Route::delete('/chat/channels/{channel}/messages/{message}', [ChatController::class, 'deleteMessage']);
+    Route::post('/chat/channels/{channel}/read', [ChatController::class, 'markRead']);
+    Route::get('/chat/users', [ChatController::class, 'users']);
+
+    // ========== KPI Dashboard ==========
+    Route::get('/kpi/personal', [KpiController::class, 'personal']);
+    Route::middleware('role:super_admin,manager')->get('/kpi/team', [KpiController::class, 'team']);
+
+    // ========== Tags ==========
+    Route::apiResource('tags', TagController::class)->except(['show']);
+    Route::post('/tags/attach', [TagController::class, 'attach']);
+    Route::post('/tags/detach', [TagController::class, 'detach']);
+
+    // ========== Project Templates ==========
+    Route::middleware('role:super_admin,manager')->group(function () {
+        Route::apiResource('project-templates', ProjectTemplateController::class)->except(['show']);
+        Route::post('/project-templates/{projectTemplate}/apply', [ProjectTemplateController::class, 'apply']);
+    });
+
+    // ========== System Monitoring ==========
+    Route::middleware('role:super_admin')->get('/system/status', [HealthController::class, 'systemStatus']);
+
+    // ========== Push Notifications ==========
+    Route::post('/push/subscribe', [PushController::class, 'subscribe']);
+    Route::post('/push/unsubscribe', [PushController::class, 'unsubscribe']);
 });

@@ -2,11 +2,11 @@ import api from './axios';
 import type { ApiResponse, DashboardData } from '../types';
 
 export const dashboardApi = {
-  getData: () =>
-    api.get<ApiResponse<DashboardData>>('/dashboard'),
+  getData: (params?: Record<string, unknown>) =>
+    api.get<ApiResponse<DashboardData>>('/dashboard', { params }),
   
-  getRoleData: () =>
-    api.get<ApiResponse<Record<string, unknown>>>('/dashboard'),
+  getRoleData: (params?: Record<string, unknown>) =>
+    api.get<ApiResponse<Record<string, unknown>>>('/dashboard', { params }),
 };
 
 export const reportsApi = {
@@ -27,4 +27,10 @@ export const reportsApi = {
 
   partners: (params?: Record<string, unknown>) =>
     api.get<ApiResponse<unknown>>('/reports/partners', { params }),
+
+  profitLoss: (params?: Record<string, unknown>) =>
+    api.get<ApiResponse<unknown>>('/reports/profit-loss', { params }),
+
+  cashFlow: (params?: Record<string, unknown>) =>
+    api.get<ApiResponse<unknown>>('/reports/cash-flow', { params }),
 };

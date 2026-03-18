@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\HasCompany;
+use App\Traits\HasTags;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,7 +12,7 @@ use Illuminate\Support\Str;
 
 class Project extends Model
 {
-    use HasCompany, HasFactory;
+    use HasCompany, HasFactory, HasTags;
 
     public const STATUS_ACTIVE    = 'active';
     public const STATUS_COMPLETED = 'completed';
@@ -26,13 +27,15 @@ class Project extends Model
 
     protected $fillable = [
         'company_id', 'name', 'slug', 'description', 'client_id',
-        'status', 'start_date', 'end_date', 'budget', 'currency', 'created_by',
+        'status', 'start_date', 'end_date', 'budget', 'estimated_cost', 'actual_cost', 'currency', 'created_by',
     ];
 
     protected $casts = [
         'start_date' => 'datetime:Y-m-d',
         'end_date'   => 'datetime:Y-m-d',
         'budget'     => 'decimal:2',
+        'estimated_cost' => 'decimal:2',
+        'actual_cost'    => 'decimal:2',
     ];
 
     public function getRouteKeyName(): string

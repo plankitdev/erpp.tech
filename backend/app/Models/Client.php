@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\HasCompany;
+use App\Traits\HasTags;
 use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -14,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Client extends Model
 {
-    use SoftDeletes, HasCompany, HasFactory, LogsActivity;
+    use SoftDeletes, HasCompany, HasFactory, LogsActivity, HasTags;
 
     public const STATUS_ACTIVE   = 'active';
     public const STATUS_INACTIVE = 'inactive';
@@ -26,6 +27,11 @@ class Client extends Model
     protected $fillable = [
         'company_id', 'name', 'phone', 'company_name',
         'sector', 'service', 'status', 'notes',
+        'last_contact_date', 'follow_up_days',
+    ];
+
+    protected $casts = [
+        'last_contact_date' => 'date',
     ];
 
     public function company(): BelongsTo

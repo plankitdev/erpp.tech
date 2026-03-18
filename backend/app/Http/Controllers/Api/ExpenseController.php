@@ -7,6 +7,7 @@ use App\Http\Requests\StoreExpenseRequest;
 use App\Http\Requests\UpdateExpenseRequest;
 use App\Http\Resources\ExpenseResource;
 use App\Models\Expense;
+use App\Services\NotificationService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -35,6 +36,9 @@ class ExpenseController extends Controller
         $this->authorize('create', Expense::class);
 
         $expense = Expense::create($request->validated());
+
+        NotificationService::expenseCreated($expense->company_id, $expense->category ?? '', number_format($expense->amount));
+
         return $this->successResponse(new ExpenseResource($expense), 'تم تسجيل المصروف بنجاح', 201);
     }
 

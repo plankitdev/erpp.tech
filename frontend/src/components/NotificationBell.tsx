@@ -9,6 +9,15 @@ const typeIcons: Record<string, string> = {
   task_assigned: '📋',
   file_sent: '📎',
   salary_paid: '💰',
+  contract_expiring: '⏰',
+  task_overdue: '⚠️',
+  lead_new: '🎯',
+  lead_won: '🏆',
+  project_created: '📁',
+  expense_created: '💸',
+  meeting_reminder: '📅',
+  payment_received: '✅',
+  task_completed: '✔️',
 };
 
 export default function NotificationBell() {

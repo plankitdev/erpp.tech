@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 import Breadcrumbs from '../components/Breadcrumbs';
-import type { Expense } from '../types';
+import type { Expense, Currency } from '../types';
 import { useQuery } from '@tanstack/react-query';
 import { treasuryApi } from '../api/treasury';
 
@@ -126,7 +126,7 @@ export default function FinanceHub() {
                   <span className="text-sm font-bold text-gray-600">{currency}</span>
                 </div>
                 <span className={`text-xl font-bold ${(amount as number) >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                  {formatCurrency(amount as number, currency)}
+                  {formatCurrency(amount as number, currency as Currency)}
                 </span>
               </div>
             ))}

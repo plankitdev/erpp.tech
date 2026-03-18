@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { useDashboard } from '../hooks/useDashboard';
 import { formatCurrency, formatDate } from '../utils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Area, AreaChart } from 'recharts';
-import { Users, FileText, Receipt, TrendingUp, TrendingDown, Wallet, Clock, CheckCircle2, Sparkles, FolderKanban, Target, CalendarDays, Timer, AlertTriangle, Play, UserCheck, Plus, ArrowUpRight, Activity, Zap, BarChart3, Building2 } from 'lucide-react';
+import { Users, FileText, Receipt, TrendingUp, TrendingDown, Wallet, Clock, CheckCircle2, Sparkles, FolderKanban, Target, CalendarDays, Timer, AlertTriangle, Play, UserCheck, Plus, ArrowUpRight, Activity, Zap, BarChart3, Building2, Filter, RotateCcw } from 'lucide-react';
 import type { RecentInvoice, RecentTask, ExpenseCategory } from '../types';
 import { useAuthStore } from '../store/authStore';
 import { Link } from 'react-router-dom';
@@ -644,9 +645,23 @@ function EmployeeDashboard({ stats }: { stats: Record<string, any> }) {
 }
 
 export default function Dashboard() {
-  const { data: stats, isLoading } = useDashboard();
+  const currentYear = new Date().getFullYear();
+  const [year, setYear] = useState(currentYear);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+
+  const params: Record<string, any> = { year };
+  if (dateFrom && dateTo) {
+    params.date_from = dateFrom;
+    params.date_to = dateTo;
+  }
+
+  const { data: stats, isLoading } = useDashboard(params);
   const { user } = useAuthStore();
   const role = user?.role || 'employee';
+
+  const hasFilters = year !== currentYear || dateFrom || dateTo;
+  const resetFilters = () => { setYear(currentYear); setDateFrom(''); setDateTo(''); };
 
   if (isLoading) {
     return (
@@ -727,6 +742,49 @@ export default function Dashboard() {
         subtitle={subtitles[role]}
         rightContent={rightContent}
       />
+
+      {/* Dashboard Filters */}
+      <div className="animate-fade-in-up flex flex-wrap items-center gap-3 bg-white rounded-xl border border-gray-100 px-4 py-3">
+        <div className="flex items-center gap-2 text-gray-500">
+          <Filter size={16} />
+          <span className="text-sm font-medium">تصفية</span>
+        </div>
+        <select
+          value={year}
+          onChange={(e) => setYear(Number(e.target.value))}
+          className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-gray-50 focus:ring-2 focus:ring-primary-200 focus:border-primary-400 outline-none"
+        >
+          {Array.from({ length: 5 }, (_, i) => currentYear - i).map((y) => (
+            <option key={y} value={y}>{y}</option>
+          ))}
+        </select>
+        <div className="flex items-center gap-2">
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-gray-50 focus:ring-2 focus:ring-primary-200 focus:border-primary-400 outline-none"
+            placeholder="من"
+          />
+          <span className="text-gray-400 text-xs">إلى</span>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-gray-50 focus:ring-2 focus:ring-primary-200 focus:border-primary-400 outline-none"
+            placeholder="إلى"
+          />
+        </div>
+        {hasFilters && (
+          <button
+            onClick={resetFilters}
+            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary-600 transition-colors mr-auto"
+          >
+            <RotateCcw size={14} />
+            إعادة ضبط
+          </button>
+        )}
+      </div>
       <QuickActions role={role} />
       <KPIStrip stats={(stats || {}) as Record<string, any>} role={role} />
       {renderDashboard()}

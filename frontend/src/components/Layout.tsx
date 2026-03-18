@@ -8,12 +8,13 @@ import {
   CheckSquare, Kanban, Handshake, BarChart3, KeyRound, ChevronRight, ChevronLeft,
   LogOut, CreditCard, Settings, Activity, ChevronDown, Building2, User, Shield, FolderKanban, FolderOpen,
   PanelRightOpen, PanelRightClose, Search, Target, UserPlus, Menu, X,
-  CalendarDays, ImageIcon, Video, Heart,
+  CalendarDays, ImageIcon, Video, Heart, Timer, ClipboardList, Ticket, GanttChartSquare, Mail, Zap, BookOpen, MessageSquare, Tag, Monitor,
 } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import Breadcrumbs, { type BreadcrumbItem } from './Breadcrumbs';
 import GlobalSearch from './GlobalSearch';
 import FloatingActionButton from './FloatingActionButton';
+import OnboardingTour from './OnboardingTour';
 
 interface MenuItem {
   path: string;
@@ -40,6 +41,9 @@ const menuSections: MenuSection[] = [
       { path: '/sales-hub', label: 'المبيعات', icon: Target, permission: 'sales' },
       { path: '/sales', label: 'تحليلات المبيعات', icon: BarChart3, permission: 'sales' },
       { path: '/leads', label: 'العملاء المحتملين', icon: UserPlus, permission: 'sales' },
+      { path: '/quotations', label: 'عروض الأسعار', icon: ClipboardList, permission: 'sales' },
+      { path: '/tickets', label: 'تذاكر الدعم', icon: Ticket, permission: 'clients' },
+      { path: '/email', label: 'البريد الإلكتروني', icon: Mail, permission: 'sales' },
     ],
   },
   {
@@ -50,8 +54,12 @@ const menuSections: MenuSection[] = [
       { path: '/projects', label: 'المشاريع', icon: FolderKanban, permission: 'tasks' },
       { path: '/tasks', label: 'المهام', icon: CheckSquare, permission: 'tasks' },
       { path: '/tasks/board', label: 'لوحة Kanban', icon: Kanban, permission: 'tasks' },
+      { path: '/time-tracking', label: 'تتبع الوقت', icon: Timer, permission: 'tasks' },
+      { path: '/gantt', label: 'مخطط جانت', icon: GanttChartSquare, permission: 'tasks' },
       { path: '/calendar', label: 'التقويم', icon: CalendarDays, permission: 'tasks' },
       { path: '/meetings', label: 'الاجتماعات', icon: Video, permission: 'tasks' },
+      { path: '/chat', label: 'المحادثات', icon: MessageSquare, permission: null },
+      { path: '/kpi', label: 'لوحة الأداء', icon: Target, permission: null },
     ],
   },
   {
@@ -71,6 +79,7 @@ const menuSections: MenuSection[] = [
       { path: '/hr-hub', label: 'نظرة عامة', icon: LayoutDashboard, permission: 'employees' },
       { path: '/employees', label: 'الموظفين', icon: UserCog, permission: 'employees' },
       { path: '/salaries', label: 'الرواتب', icon: Wallet, permission: 'salaries' },
+      { path: '/leave-attendance', label: 'الإجازات والحضور', icon: CalendarDays, permission: 'employees' },
     ],
   },
   {
@@ -84,6 +93,10 @@ const menuSections: MenuSection[] = [
       { path: '/media', label: 'مكتبة الملفات', icon: ImageIcon, permission: 'settings' },
       { path: '/file-templates', label: 'قوالب الملفات', icon: FolderOpen, permission: 'settings' },
       { path: '/settings', label: 'الإعدادات', icon: Settings, permission: 'settings' },
+      { path: '/workflows', label: 'أتمتة العمليات', icon: Zap, permission: 'settings' },
+      { path: '/tags', label: 'العلامات', icon: Tag, permission: 'settings' },
+      { path: '/api-docs', label: 'توثيق الـ API', icon: BookOpen, permission: 'settings' },
+      { path: '/system-monitor', label: 'مراقبة النظام', icon: Monitor, permission: 'settings' },
     ],
   },
 ];
@@ -197,7 +210,7 @@ export default function Layout() {
 
       {/* Quick search (when sidebar open) */}
       {sidebarOpen && (
-        <div className="px-4 py-3">
+        <div className="px-4 py-3" data-tour="search">
           <button
             onClick={() => setSearchOpen(true)}
             className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-slate-500 text-xs cursor-pointer hover:bg-white/[0.07] transition-colors"
@@ -210,13 +223,14 @@ export default function Layout() {
       )}
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-2 px-3 space-y-0.5 sidebar-scroll">
+      <nav className="flex-1 overflow-y-auto py-2 px-3 space-y-0.5 sidebar-scroll" data-tour="sidebar">
         {/* Dashboard - standalone link */}
         <div className="mb-1">
           {sidebarOpen ? (
             <Link
               to="/"
               onClick={() => setMobileMenuOpen(false)}
+              data-tour="dashboard"
               className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 ${
                 location.pathname === '/'
                   ? 'bg-primary-500/10 text-white shadow-sm'
@@ -441,7 +455,9 @@ export default function Layout() {
             )}
 
             {/* Notifications */}
+            <div data-tour="notifications">
             <NotificationBell />
+            </div>
 
             {/* Profile Dropdown */}
             <div className="relative" ref={profileRef}>
@@ -528,7 +544,12 @@ export default function Layout() {
       <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
 
       {/* Mobile FAB */}
+      <div data-tour="fab">
       <FloatingActionButton />
+      </div>
+
+      {/* Onboarding Tour */}
+      <OnboardingTour />
     </div>
   );
 }

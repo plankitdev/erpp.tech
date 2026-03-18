@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { dashboardApi, reportsApi } from '../api/dashboard';
 
-export function useDashboard() {
+export function useDashboard(params?: Record<string, unknown>) {
   return useQuery({
-    queryKey: ['dashboard'],
-    queryFn: () => dashboardApi.getData().then(r => r.data.data),
+    queryKey: ['dashboard', params],
+    queryFn: () => dashboardApi.getData(params).then(r => r.data.data),
   });
 }
 
@@ -47,5 +47,19 @@ export function usePartnersReport(params?: Record<string, unknown>) {
   return useQuery({
     queryKey: ['reports', 'partners', params],
     queryFn: () => reportsApi.partners(params).then(r => r.data),
+  });
+}
+
+export function useProfitLossReport(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: ['reports', 'profit-loss', params],
+    queryFn: () => reportsApi.profitLoss(params).then(r => r.data),
+  });
+}
+
+export function useCashFlowReport(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: ['reports', 'cash-flow', params],
+    queryFn: () => reportsApi.cashFlow(params).then(r => r.data),
   });
 }

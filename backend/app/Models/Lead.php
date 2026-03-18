@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\HasCompany;
+use App\Traits\HasTags;
 use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Lead extends Model
 {
-    use HasCompany, SoftDeletes, HasFactory, LogsActivity;
+    use HasCompany, SoftDeletes, HasFactory, LogsActivity, HasTags;
 
     public const STAGE_NEW              = 'new';
     public const STAGE_FIRST_CONTACT    = 'first_contact';

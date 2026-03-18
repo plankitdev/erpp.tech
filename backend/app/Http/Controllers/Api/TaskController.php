@@ -8,6 +8,9 @@ use App\Http\Requests\UpdateTaskRequest;
 use App\Http\Resources\TaskCommentResource;
 use App\Http\Resources\TaskResource;
 use App\Models\Task;
+use App\Services\NotificationService;
+use App\Services\WorkflowService;
+use App\Models\WorkflowRule;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -83,6 +86,16 @@ class TaskController extends Controller
             $task->assignees()->sync($assigneeIds);
         }
 
+        // Send task assignment notifications
+        if ($task->assigned_to && $task->assigned_to !== $request->user()->id) {
+            NotificationService::taskAssigned($task->company_id, $task->assigned_to, $task->title);
+        }
+        foreach ($assigneeIds as $assigneeId) {
+            if ($assigneeId !== $request->user()->id && $assigneeId !== $task->assigned_to) {
+                NotificationService::taskAssigned($task->company_id, $assigneeId, $task->title);
+            }
+        }
+
         return $this->successResponse(
             new TaskResource($task->load(['assignedUser', 'client', 'project', 'assignees', 'subtasks'])),
             'تم إضافة المهمة بنجاح',
@@ -108,6 +121,7 @@ class TaskController extends Controller
         $this->authorize('update', $task);
 
         $data = $request->validated();
+        $wasCompleted = $task->status === Task::STATUS_DONE;
 
         $assigneeIds = null;
         if (isset($data['assignee_ids'])) {
@@ -119,6 +133,14 @@ class TaskController extends Controller
 
         if ($assigneeIds !== null) {
             $task->assignees()->sync($assigneeIds);
+        }
+
+        // Notify manager/creator when task is completed
+        if (!$wasCompleted && $task->status === Task::STATUS_DONE) {
+            if ($task->created_by && $task->created_by !== $request->user()->id) {
+                NotificationService::taskCompleted($task->company_id, $task->created_by, $task->title, $request->user()->name);
+            }
+            WorkflowService::fire(WorkflowRule::TRIGGER_TASK_COMPLETED, $task->company_id, $task);
         }
 
         return $this->successResponse(

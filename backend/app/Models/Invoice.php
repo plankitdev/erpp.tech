@@ -25,12 +25,15 @@ class Invoice extends Model
     ];
 
     protected $fillable = [
-        'contract_id', 'company_id', 'amount', 'currency',
+        'contract_id', 'company_id', 'amount', 'vat_rate', 'vat_amount', 'total_with_vat', 'currency',
         'status', 'due_date', 'paid_date',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
+        'vat_rate' => 'decimal:2',
+        'vat_amount' => 'decimal:2',
+        'total_with_vat' => 'decimal:2',
         'due_date' => 'datetime:Y-m-d',
         'paid_date' => 'datetime:Y-m-d',
     ];

@@ -8,6 +8,7 @@ use App\Http\Resources\ProjectFileResource;
 use App\Http\Resources\TaskResource;
 use App\Models\Project;
 use App\Models\ProjectFile;
+use App\Services\NotificationService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -59,6 +60,8 @@ class ProjectController extends Controller
 
         $data['created_by'] = $request->user()->id;
         $project = Project::create($data);
+
+        NotificationService::projectCreated($project->company_id, $project->name, "/projects/{$project->slug}");
 
         return $this->successResponse(
             new ProjectResource($project->load(['client', 'creator'])),

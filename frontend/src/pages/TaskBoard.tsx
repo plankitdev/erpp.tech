@@ -174,10 +174,10 @@ export default function TaskBoard() {
 
                               {/* Progress indicators */}
                               <div className="flex items-center gap-3 mt-2">
-                                {task.checklist_progress !== undefined && task.checklist_progress !== null && (
+                                {task.checklist_progress !== undefined && task.checklist_progress !== null && typeof task.checklist_progress === 'object' && (task.checklist_progress as any).total > 0 && (
                                   <div className="flex items-center gap-1 text-xs text-gray-400">
                                     <CheckSquare size={11} />
-                                    <span>{task.checklist_progress}%</span>
+                                    <span>{Math.round(((task.checklist_progress as any).completed / (task.checklist_progress as any).total) * 100)}%</span>
                                   </div>
                                 )}
                                 {task.total_time !== undefined && task.total_time > 0 && (

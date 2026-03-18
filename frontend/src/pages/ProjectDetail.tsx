@@ -8,6 +8,7 @@ import type { Employee, Task } from '../types';
 import { formatDate } from '../utils';
 import toast from 'react-hot-toast';
 import ConfirmDialog from '../components/ConfirmDialog';
+import FileDropZone from '../components/FileDropZone';
 import {
   ArrowRight, Plus, X, FolderKanban, CheckSquare, FileText, Users, Upload,
   Calendar, AlertCircle, Trash2, ChevronDown, ChevronUp, CircleDot, Download,
@@ -217,6 +218,16 @@ export default function ProjectDetail() {
       toast.error('حدث خطأ في رفع الملف');
     }
     e.target.value = '';
+  };
+
+  const handleFileDrop = async (file: File) => {
+    try {
+      await projectsApi.uploadFile(slug || '', file);
+      refetch();
+      toast.success('تم رفع الملف');
+    } catch {
+      toast.error('حدث خطأ في رفع الملف');
+    }
   };
 
   const handleDeleteFile = (fileId: number) => {
@@ -622,14 +633,17 @@ export default function ProjectDetail() {
             </label>
           </div>
           {(!project.files || project.files.length === 0) ? (
-            <div className="bg-white rounded-2xl p-12 border border-gray-100 text-center">
-              <FileText size={48} className="text-gray-200 mx-auto mb-3" />
-              <p className="text-gray-500 font-medium">لا توجد ملفات</p>
-              <p className="text-gray-400 text-sm mt-1">ارفع ملفات للمشروع</p>
-            </div>
+            <FileDropZone onFileDrop={handleFileDrop}>
+              <div className="bg-white rounded-2xl p-12 border-2 border-dashed border-gray-200 text-center hover:border-primary-300 transition-colors">
+                <Upload size={48} className="text-gray-200 mx-auto mb-3" />
+                <p className="text-gray-500 font-medium">لا توجد ملفات</p>
+                <p className="text-gray-400 text-sm mt-1">اسحب الملفات هنا أو اضغط لرفع ملف</p>
+              </div>
+            </FileDropZone>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {project.files.map(file => {
+            <FileDropZone onFileDrop={handleFileDrop} className="rounded-2xl">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {project.files.map(file => {
                 const FileIcon = getFileIcon(file.name);
                 return (
                   <div key={file.id} className="bg-white rounded-xl border border-gray-100 p-4 hover:shadow-md transition-all group">
@@ -661,7 +675,11 @@ export default function ProjectDetail() {
                   </div>
                 );
               })}
-            </div>
+              </div>
+              <div className="mt-3 border-2 border-dashed border-gray-200 rounded-xl p-4 text-center hover:border-primary-300 transition-colors">
+                <p className="text-gray-400 text-sm">اسحب ملف هنا لرفعه</p>
+              </div>
+            </FileDropZone>
           )}
         </div>
       )}

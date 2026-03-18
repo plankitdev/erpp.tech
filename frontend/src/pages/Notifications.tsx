@@ -6,6 +6,15 @@ const typeLabels: Record<string, string> = {
   task_assigned: 'مهمة جديدة',
   file_sent: 'ملف مرسل',
   salary_paid: 'راتب مُصرف',
+  contract_expiring: 'عقد ينتهي',
+  task_overdue: 'مهمة متأخرة',
+  lead_new: 'عميل محتمل جديد',
+  lead_won: 'فرصة بيع ناجحة',
+  project_created: 'مشروع جديد',
+  expense_created: 'مصروف جديد',
+  meeting_reminder: 'تذكير اجتماع',
+  payment_received: 'دفعة مستلمة',
+  task_completed: 'مهمة مكتملة',
 };
 
 const typeIcons: Record<string, string> = {
@@ -13,6 +22,15 @@ const typeIcons: Record<string, string> = {
   task_assigned: '📋',
   file_sent: '📎',
   salary_paid: '💰',
+  contract_expiring: '⏰',
+  task_overdue: '⚠️',
+  lead_new: '🎯',
+  lead_won: '🏆',
+  project_created: '📁',
+  expense_created: '💸',
+  meeting_reminder: '📅',
+  payment_received: '✅',
+  task_completed: '✔️',
 };
 
 export default function Notifications() {

@@ -9,6 +9,9 @@ use App\Http\Requests\RecordPaymentRequest;
 use App\Http\Resources\InvoiceResource;
 use App\Models\Invoice;
 use App\Models\InvoicePayment;
+use App\Services\NotificationService;
+use App\Services\WorkflowService;
+use App\Models\WorkflowRule;
 use App\Traits\ApiResponse;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
@@ -97,9 +100,13 @@ class InvoiceController extends Controller
         $totalPaid = $invoice->payments()->sum('amount');
         if ($totalPaid >= $invoice->amount) {
             $invoice->update(['status' => Invoice::STATUS_PAID, 'paid_date' => now()]);
+            WorkflowService::fire(WorkflowRule::TRIGGER_INVOICE_PAID, $invoice->company_id, $invoice);
         } else {
             $invoice->update(['status' => Invoice::STATUS_PARTIAL]);
         }
+
+        $clientName = $invoice->contract?->client?->name ?? 'غير محدد';
+        NotificationService::paymentReceived($invoice->company_id, $clientName, number_format($request->amount));
 
         return $this->successResponse(
             new InvoiceResource($invoice->fresh()->load('payments')),

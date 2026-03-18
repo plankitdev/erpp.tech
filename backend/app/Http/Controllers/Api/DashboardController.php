@@ -28,14 +28,17 @@ class DashboardController extends Controller
     {
         $user = $request->user();
         $role = $user->role;
+        $year = $request->input('year', now()->year);
+        $dateFrom = $request->input('date_from');
+        $dateTo = $request->input('date_to');
 
         $common = $this->getCommonData();
 
         $roleData = match ($role) {
-            'super_admin' => $this->getSuperAdminData(),
-            'manager' => $this->getManagerData(),
-            'accountant' => $this->getAccountantData(),
-            'sales' => $this->getSalesData(),
+            'super_admin' => $this->getSuperAdminData($year, $dateFrom, $dateTo),
+            'manager' => $this->getManagerData($year, $dateFrom, $dateTo),
+            'accountant' => $this->getAccountantData($year, $dateFrom, $dateTo),
+            'sales' => $this->getSalesData($dateFrom, $dateTo),
             'employee' => $this->getEmployeeData($user->id),
             default => [],
         };
@@ -78,18 +81,26 @@ class DashboardController extends Controller
         ];
     }
 
-    private function getSuperAdminData(): array
+    private function getSuperAdminData(int $year, ?string $dateFrom, ?string $dateTo): array
     {
-        $data = $this->getManagerData();
+        $data = $this->getManagerData($year, $dateFrom, $dateTo);
         $data['total_users'] = User::count();
         $data['total_employees'] = Employee::count();
         return $data;
     }
 
-    private function getManagerData(): array
+    private function getManagerData(int $year, ?string $dateFrom, ?string $dateTo): array
     {
-        $totalRevenue = TreasuryTransaction::where('type', TreasuryTransaction::TYPE_IN)->where('currency', 'EGP')->sum('amount');
-        $totalExpenses = TreasuryTransaction::where('type', TreasuryTransaction::TYPE_OUT)->where('currency', 'EGP')->sum('amount');
+        $revQ = TreasuryTransaction::where('type', TreasuryTransaction::TYPE_IN)->where('currency', 'EGP');
+        $expQ = TreasuryTransaction::where('type', TreasuryTransaction::TYPE_OUT)->where('currency', 'EGP');
+
+        if ($dateFrom && $dateTo) {
+            $revQ->whereBetween('date', [$dateFrom, $dateTo]);
+            $expQ->whereBetween('date', [$dateFrom, $dateTo]);
+        }
+
+        $totalRevenue = $revQ->sum('amount');
+        $totalExpenses = $expQ->sum('amount');
 
         $totalTasks = Task::count();
         $completedTasks = Task::where('status', Task::STATUS_DONE)->count();
@@ -111,10 +122,10 @@ class DashboardController extends Controller
         for ($i = 1; $i <= 12; $i++) {
             $rev = TreasuryTransaction::where('type', TreasuryTransaction::TYPE_IN)
                 ->where('currency', 'EGP')
-                ->whereMonth('date', $i)->whereYear('date', now()->year)->sum('amount');
+                ->whereMonth('date', $i)->whereYear('date', $year)->sum('amount');
             $exp = TreasuryTransaction::where('type', TreasuryTransaction::TYPE_OUT)
                 ->where('currency', 'EGP')
-                ->whereMonth('date', $i)->whereYear('date', now()->year)->sum('amount');
+                ->whereMonth('date', $i)->whereYear('date', $year)->sum('amount');
             $monthlyRevenue[] = ['month' => $i, 'revenue' => $rev, 'expenses' => $exp];
         }
 
@@ -194,19 +205,27 @@ class DashboardController extends Controller
         ];
     }
 
-    private function getAccountantData(): array
+    private function getAccountantData(int $year, ?string $dateFrom, ?string $dateTo): array
     {
-        $totalRevenue = TreasuryTransaction::where('type', TreasuryTransaction::TYPE_IN)->where('currency', 'EGP')->sum('amount');
-        $totalExpenses = TreasuryTransaction::where('type', TreasuryTransaction::TYPE_OUT)->where('currency', 'EGP')->sum('amount');
+        $revQ = TreasuryTransaction::where('type', TreasuryTransaction::TYPE_IN)->where('currency', 'EGP');
+        $expQ = TreasuryTransaction::where('type', TreasuryTransaction::TYPE_OUT)->where('currency', 'EGP');
+
+        if ($dateFrom && $dateTo) {
+            $revQ->whereBetween('date', [$dateFrom, $dateTo]);
+            $expQ->whereBetween('date', [$dateFrom, $dateTo]);
+        }
+
+        $totalRevenue = $revQ->sum('amount');
+        $totalExpenses = $expQ->sum('amount');
 
         $monthlyRevenue = [];
         for ($i = 1; $i <= 12; $i++) {
             $rev = TreasuryTransaction::where('type', TreasuryTransaction::TYPE_IN)
                 ->where('currency', 'EGP')
-                ->whereMonth('date', $i)->whereYear('date', now()->year)->sum('amount');
+                ->whereMonth('date', $i)->whereYear('date', $year)->sum('amount');
             $exp = TreasuryTransaction::where('type', TreasuryTransaction::TYPE_OUT)
                 ->where('currency', 'EGP')
-                ->whereMonth('date', $i)->whereYear('date', now()->year)->sum('amount');
+                ->whereMonth('date', $i)->whereYear('date', $year)->sum('amount');
             $monthlyRevenue[] = ['month' => $i, 'revenue' => $rev, 'expenses' => $exp];
         }
 
@@ -245,10 +264,14 @@ class DashboardController extends Controller
         ];
     }
 
-    private function getSalesData(): array
+    private function getSalesData(?string $dateFrom, ?string $dateTo): array
     {
-        $leadsCount = Lead::count();
-        $convertedLeads = Lead::where('stage', 'contract_signed')->count();
+        $leadsQuery = Lead::query();
+        if ($dateFrom && $dateTo) {
+            $leadsQuery->whereBetween('created_at', [$dateFrom, $dateTo]);
+        }
+        $leadsCount = (clone $leadsQuery)->count();
+        $convertedLeads = (clone $leadsQuery)->where('stage', 'contract_signed')->count();
         $conversionRate = $leadsCount > 0 ? round(($convertedLeads / $leadsCount) * 100, 1) : 0;
 
         $leadsByStage = Lead::selectRaw('stage, COUNT(*) as count')

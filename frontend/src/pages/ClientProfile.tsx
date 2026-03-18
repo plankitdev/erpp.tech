@@ -205,8 +205,8 @@ export default function ClientProfile() {
                       className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                       <StatusBadge status={task.status} size="sm" />
                       <span className="flex-1 text-sm text-gray-700 truncate">{task.title}</span>
-                      {task.assigned_user && (
-                        <span className="text-xs text-gray-400">{task.assigned_user.name}</span>
+                      {task.assigned_to && (
+                        <span className="text-xs text-gray-400">{task.assigned_to.name}</span>
                       )}
                       {task.due_date && (
                         <span className="text-xs text-gray-400 flex items-center gap-1">

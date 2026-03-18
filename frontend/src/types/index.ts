@@ -152,6 +152,10 @@ export interface Employee {
   bank_name: string | null;
   bank_account: string | null;
   base_salary: number;
+  salary?: number;
+  is_active?: boolean;
+  department?: string;
+  role?: string;
   join_date: string;
   contract_start: string | null;
   contract_end: string | null;
@@ -458,7 +462,7 @@ export interface Notification {
   created_at: string;
 }
 
-export type NotificationType = 'invoice_overdue' | 'task_assigned' | 'file_sent' | 'salary_paid';
+export type NotificationType = 'invoice_overdue' | 'task_assigned' | 'file_sent' | 'salary_paid' | 'contract_expiring' | 'task_overdue' | 'lead_new' | 'lead_won' | 'project_created' | 'expense_created' | 'meeting_reminder' | 'payment_received' | 'task_completed';
 
 // ========== Expense ==========
 export interface Expense {
@@ -688,4 +692,73 @@ export interface DashboardDataV2 {
   in_progress_tasks?: number;
   my_projects?: number;
   upcoming_tasks?: { id: number; title: string; status: string; priority: string; due_date: string | null; project: string | null }[];
+}
+
+// ========== Workflow Automation ==========
+export type WorkflowTrigger = 'lead_converted' | 'contract_expiring' | 'contract_expired' | 'invoice_overdue' | 'invoice_paid' | 'task_completed';
+export type WorkflowAction = 'create_invoice' | 'create_task' | 'send_notification' | 'update_status';
+
+export interface WorkflowRule {
+  id: number;
+  name: string;
+  trigger: WorkflowTrigger;
+  conditions: Record<string, unknown> | null;
+  action: WorkflowAction;
+  action_config: Record<string, unknown> | null;
+  is_active: boolean;
+  executions_count: number;
+  last_executed_at: string | null;
+  created_at: string;
+}
+
+export interface WorkflowLog {
+  id: number;
+  workflow_rule_id: number;
+  trigger: WorkflowTrigger;
+  action: WorkflowAction;
+  status: 'success' | 'failed';
+  entity_type: string | null;
+  entity_id: number | null;
+  result: string | null;
+  error: string | null;
+  rule?: { id: number; name: string };
+  created_at: string;
+}
+
+// ========== Internal Chat ==========
+export interface ChatChannel {
+  id: number;
+  name: string;
+  type: 'public' | 'private' | 'direct';
+  description: string | null;
+  created_by: number;
+  members: ChatMember[];
+  latest_message: ChatMessage | null;
+  unread_count: number;
+  created_at: string;
+}
+
+export interface ChatMember {
+  id: number;
+  name: string;
+  avatar: string | null;
+  pivot?: { last_read_at: string | null };
+}
+
+export interface ChatMessage {
+  id: number;
+  channel_id: number;
+  user_id: number;
+  body: string;
+  attachment: string | null;
+  attachment_name: string | null;
+  user?: { id: number; name: string; avatar: string | null };
+  created_at: string;
+}
+
+export interface ChatUser {
+  id: number;
+  name: string;
+  avatar: string | null;
+  role: string;
 }

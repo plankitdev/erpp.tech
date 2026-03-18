@@ -49,6 +49,18 @@ const TasksHub = lazy(() => import('./pages/TasksHub'));
 const FinanceHub = lazy(() => import('./pages/FinanceHub'));
 const HRHub = lazy(() => import('./pages/HRHub'));
 const SalesHub = lazy(() => import('./pages/SalesHub'));
+const TimeTracking = lazy(() => import('./pages/TimeTracking'));
+const Quotations = lazy(() => import('./pages/Quotations'));
+const Tickets = lazy(() => import('./pages/Tickets'));
+const LeaveAttendance = lazy(() => import('./pages/LeaveAttendance'));
+const GanttChart = lazy(() => import('./pages/GanttChart'));
+const EmailCompose = lazy(() => import('./pages/EmailCompose'));
+const WorkflowAutomation = lazy(() => import('./pages/WorkflowAutomation'));
+const ApiDocs = lazy(() => import('./pages/ApiDocs'));
+const Chat = lazy(() => import('./pages/Chat'));
+const KpiDashboard = lazy(() => import('./pages/KpiDashboard'));
+const TagsManager = lazy(() => import('./pages/TagsManager'));
+const SystemMonitor = lazy(() => import('./pages/SystemMonitor'));
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuthStore();
@@ -97,7 +109,19 @@ export default function App() {
         <Route path="tasks/board" element={<TaskBoard />} />
         <Route path="tasks/:id" element={<TaskDetail />} />
         <Route path="calendar" element={<CalendarPage />} />
+        <Route path="time-tracking" element={<TimeTracking />} />
         <Route path="meetings" element={<Meetings />} />
+        <Route path="quotations" element={<Quotations />} />
+        <Route path="tickets" element={<Tickets />} />
+        <Route path="leave-attendance" element={<LeaveAttendance />} />
+        <Route path="gantt" element={<GanttChart />} />
+        <Route path="email" element={<EmailCompose />} />
+        <Route path="workflows" element={<WorkflowAutomation />} />
+        <Route path="api-docs" element={<ApiDocs />} />
+        <Route path="chat" element={<Chat />} />
+        <Route path="kpi" element={<KpiDashboard />} />
+        <Route path="tags" element={<TagsManager />} />
+        <Route path="system-monitor" element={<SystemMonitor />} />
         <Route path="media" element={<MediaLibrary />} />
         <Route path="partners" element={<Partners />} />
         <Route path="partners/:id/statement" element={<PartnerStatement />} />

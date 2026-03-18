@@ -7,6 +7,9 @@ use App\Http\Requests\StoreLeadRequest;
 use App\Http\Requests\UpdateLeadRequest;
 use App\Http\Resources\LeadResource;
 use App\Models\Lead;
+use App\Services\NotificationService;
+use App\Services\WorkflowService;
+use App\Models\WorkflowRule;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -54,6 +57,8 @@ class LeadController extends Controller
 
         $lead = Lead::create($request->validated());
         $lead->load('assignee');
+
+        NotificationService::leadCreated($lead->company_id, $lead->company_name ?: $lead->name);
 
         return $this->successResponse(new LeadResource($lead), 'تم إضافة العميل المحتمل بنجاح', 201);
     }
@@ -104,6 +109,10 @@ class LeadController extends Controller
         }
 
         $lead->update($updateData);
+
+        if ($request->stage === Lead::STAGE_CONTRACT_SIGNED) {
+            NotificationService::leadWon($lead->company_id, $lead->company_name ?: $lead->name, number_format($lead->value ?? 0));
+        }
 
         return $this->successResponse(new LeadResource($lead), 'تم تحديث المرحلة');
     }
@@ -160,6 +169,9 @@ class LeadController extends Controller
             'converted_client_id' => $client->id,
             'final_amount'       => $request->contract_value,
         ]);
+
+        // Fire workflow automation
+        WorkflowService::fire(WorkflowRule::TRIGGER_LEAD_CONVERTED, $lead->company_id, $lead);
 
         return $this->successResponse([
             'client_id'   => $client->id,
