@@ -30,13 +30,6 @@ interface MenuSection {
 
 const menuSections: MenuSection[] = [
   {
-    title: 'الرئيسية',
-    icon: LayoutDashboard,
-    items: [
-      { path: '/', label: 'لوحة التحكم', icon: LayoutDashboard, permission: 'dashboard' },
-    ],
-  },
-  {
     title: 'العملاء والمبيعات',
     icon: Users,
     items: [
@@ -44,19 +37,13 @@ const menuSections: MenuSection[] = [
       { path: '/clients', label: 'العملاء', icon: Users, permission: 'clients' },
       { path: '/contracts', label: 'العقود', icon: FileText, permission: 'contracts' },
       { path: '/invoices', label: 'الفواتير', icon: Receipt, permission: 'invoices' },
-    ],
-  },
-  {
-    title: 'المبيعات',
-    icon: Target,
-    items: [
-      { path: '/sales-hub', label: 'نظرة عامة', icon: LayoutDashboard, permission: 'sales' },
-      { path: '/sales', label: 'لوحة المبيعات', icon: BarChart3, permission: 'sales' },
+      { path: '/sales-hub', label: 'المبيعات', icon: Target, permission: 'sales' },
+      { path: '/sales', label: 'تحليلات المبيعات', icon: BarChart3, permission: 'sales' },
       { path: '/leads', label: 'العملاء المحتملين', icon: UserPlus, permission: 'sales' },
     ],
   },
   {
-    title: 'إدارة المهام',
+    title: 'المهام والمشاريع',
     icon: CheckSquare,
     items: [
       { path: '/tasks-hub', label: 'نظرة عامة', icon: LayoutDashboard, permission: 'tasks' },
@@ -68,7 +55,7 @@ const menuSections: MenuSection[] = [
     ],
   },
   {
-    title: 'الإدارة المالية',
+    title: 'المالية',
     icon: Landmark,
     items: [
       { path: '/finance-hub', label: 'نظرة عامة', icon: LayoutDashboard, permission: 'treasury' },
@@ -87,7 +74,7 @@ const menuSections: MenuSection[] = [
     ],
   },
   {
-    title: 'التقارير والنظام',
+    title: 'النظام',
     icon: Settings,
     items: [
       { path: '/reports', label: 'التقارير', icon: BarChart3, permission: 'reports' },
@@ -101,7 +88,10 @@ const menuSections: MenuSection[] = [
   },
 ];
 
-const allMenuItems = menuSections.flatMap(s => s.items);
+const allMenuItems = [
+  { path: '/', label: 'لوحة التحكم', icon: LayoutDashboard, permission: 'dashboard' },
+  ...menuSections.flatMap(s => s.items),
+];
 
 export default function Layout() {
   const { user, logout, hasPermission } = useAuthStore();
@@ -128,10 +118,6 @@ export default function Layout() {
 
   useClickOutside(profileRef, useCallback(() => setProfileOpen(false), []));
 
-  const toggleSection = (title: string) => {
-    setCollapsedSections(prev => ({ ...prev, [title]: !prev[title] }));
-  };
-
   const filteredSections = menuSections
     .map(section => ({
       ...section,
@@ -142,14 +128,33 @@ export default function Layout() {
     }))
     .filter(section => section.items.length > 0);
 
+  // Auto-collapse: only the section containing the active page stays open
+  const isSectionOpen = (title: string, items: MenuItem[]) => {
+    if (collapsedSections[title] !== undefined) return !collapsedSections[title];
+    return items.some(i => location.pathname === i.path || location.pathname.startsWith(i.path + '/'));
+  };
+
+  const toggleSection = (title: string) => {
+    const section = filteredSections.find(s => s.title === title);
+    const currentlyOpen = isSectionOpen(title, section?.items || []);
+    setCollapsedSections(prev => ({ ...prev, [title]: currentlyOpen }));
+  };
+
   const currentPage = allMenuItems.find(m => m.path === location.pathname);
   const currentSection = menuSections.find(s => s.items.some(i => i.path === location.pathname));
 
+  // Reset manual collapse state on navigation so auto-collapse takes over
+  useEffect(() => {
+    setCollapsedSections({});
+  }, [location.pathname]);
   // Build breadcrumbs
   const breadcrumbs: BreadcrumbItem[] = [];
   if (currentSection && currentPage && currentPage.path !== '/') {
     breadcrumbs.push({ label: currentSection.title });
     breadcrumbs.push({ label: currentPage.label });
+  } else if (location.pathname === '/sales') {
+    breadcrumbs.push({ label: 'العملاء والمبيعات' });
+    breadcrumbs.push({ label: 'تحليلات المبيعات' });
   } else {
     breadcrumbs.push({ label: 'لوحة التحكم' });
   }
@@ -206,21 +211,56 @@ export default function Layout() {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-2 px-3 space-y-0.5 sidebar-scroll">
+        {/* Dashboard - standalone link */}
+        <div className="mb-1">
+          {sidebarOpen ? (
+            <Link
+              to="/"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 ${
+                location.pathname === '/'
+                  ? 'bg-primary-500/10 text-white shadow-sm'
+                  : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
+              }`}
+            >
+              {location.pathname === '/' && (
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-l-full bg-primary-400 shadow-[0_0_8px_rgba(44,159,143,0.4)]" />
+              )}
+              <LayoutDashboard size={18} strokeWidth={location.pathname === '/' ? 2.2 : 1.7} className={location.pathname === '/' ? 'text-primary-400' : 'text-slate-500 group-hover:text-slate-300'} />
+              <span className="truncate">لوحة التحكم</span>
+            </Link>
+          ) : (
+            <Link
+              to="/"
+              title="لوحة التحكم"
+              className={`group relative flex items-center justify-center px-3 py-2.5 rounded-xl transition-all duration-200 ${
+                location.pathname === '/' ? 'bg-primary-500/10 text-primary-400' : 'text-slate-500 hover:bg-white/[0.04] hover:text-slate-300'
+              }`}
+            >
+              <LayoutDashboard size={18} />
+            </Link>
+          )}
+        </div>
+
+        <div className="mx-2 mb-2 h-px bg-white/[0.05]" />
+
         {filteredSections.map((section) => {
-          const isCollapsed = collapsedSections[section.title];
-          const hasActive = section.items.some(i => i.path === location.pathname);
+          const isOpen = isSectionOpen(section.title, section.items);
+          const hasActive = section.items.some(i => location.pathname === i.path || location.pathname.startsWith(i.path + '/'));
+          const SectionIcon = section.icon;
 
           return (
-            <div key={section.title} className="mb-1">
+            <div key={section.title} className="mb-0.5">
               {sidebarOpen ? (
                 <button
                   onClick={() => toggleSection(section.title)}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-[0.12em] transition-all duration-200 ${
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-bold uppercase tracking-[0.08em] transition-all duration-200 ${
                     hasActive ? 'text-primary-400' : 'text-slate-500/80 hover:text-slate-400'
                   }`}
                 >
-                  <span>{section.title}</span>
-                  <ChevronDown size={11} className={`transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`} />
+                  <SectionIcon size={13} className={hasActive ? 'text-primary-400' : 'text-slate-600'} />
+                  <span className="flex-1 text-right">{section.title}</span>
+                  <ChevronDown size={11} className={`transition-transform duration-200 ${!isOpen ? '-rotate-90' : ''}`} />
                 </button>
               ) : (
                 <div className="flex justify-center py-2">
@@ -228,7 +268,25 @@ export default function Layout() {
                 </div>
               )}
 
-              {!isCollapsed && (
+              {!isOpen && sidebarOpen && hasActive && (
+                <div className="mr-3 mb-1">
+                  {section.items.filter(i => location.pathname === i.path || location.pathname.startsWith(i.path + '/')).map(item => {
+                    const Icon = item.icon;
+                    return (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        className="flex items-center gap-2 px-3 py-1.5 text-[12px] text-primary-400 font-medium"
+                      >
+                        <Icon size={14} />
+                        <span className="truncate">{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+
+              {isOpen && (
                 <div className={`space-y-0.5 ${sidebarOpen ? 'mr-0.5' : ''}`}>
                   {section.items.map((item) => {
                     const Icon = item.icon;
