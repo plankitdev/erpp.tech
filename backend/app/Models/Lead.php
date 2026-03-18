@@ -19,12 +19,23 @@ class Lead extends Model
     public const STAGE_PROPOSAL_SENT    = 'proposal_sent';
     public const STAGE_NEGOTIATION      = 'negotiation';
     public const STAGE_CONTRACT_SIGNED  = 'contract_signed';
+    public const STAGE_LOST             = 'lost';
     public const STAGES = [
         self::STAGE_NEW,
         self::STAGE_FIRST_CONTACT,
         self::STAGE_PROPOSAL_SENT,
         self::STAGE_NEGOTIATION,
         self::STAGE_CONTRACT_SIGNED,
+        self::STAGE_LOST,
+    ];
+
+    public const TEMP_HOT  = 'hot';
+    public const TEMP_WARM = 'warm';
+    public const TEMP_COLD = 'cold';
+    public const TEMPERATURES = [
+        self::TEMP_HOT,
+        self::TEMP_WARM,
+        self::TEMP_COLD,
     ];
 
     public const SOURCE_AD       = 'ad';
@@ -55,8 +66,8 @@ class Lead extends Model
 
     protected $fillable = [
         'company_id', 'name', 'phone', 'email', 'source',
-        'service_type', 'expected_budget', 'stage',
-        'first_contact_date', 'last_followup_date', 'notes',
+        'service_type', 'expected_budget', 'stage', 'temperature',
+        'lost_reason', 'first_contact_date', 'last_followup_date', 'notes',
         'proposal_file', 'proposed_amount', 'final_amount',
         'assigned_to', 'converted_client_id',
     ];

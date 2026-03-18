@@ -1,23 +1,31 @@
 import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useLead, useAddLeadActivity, useUpdateLead, useConvertLead } from '../hooks/useLeads';
+import { useEmployees } from '../hooks/useEmployees';
 import { formatDate } from '../utils';
-import type { LeadActivity, LeadActivityType, LeadActivityOutcome } from '../types';
+import type { Lead, LeadActivity, LeadActivityType, LeadActivityOutcome, LeadTemperature } from '../types';
 import toast from 'react-hot-toast';
 import {
   ArrowRight, Phone, Mail, Calendar, User, Target, DollarSign,
   MessageSquare, PhoneCall, Send, Video, Clock, CheckCircle2,
   AlertCircle, MinusCircle, PlusCircle, FileText, Edit3, X,
+  Flame, Sun, Snowflake, Save,
 } from 'lucide-react';
 
 const stageLabels: Record<string, string> = {
   new: 'جديد', first_contact: 'تواصل أولي', proposal_sent: 'عرض مرسل',
-  negotiation: 'تفاوض', contract_signed: 'تم التعاقد',
+  negotiation: 'تفاوض', contract_signed: 'تم التعاقد', lost: 'خسارة',
 };
 
 const stageColors: Record<string, string> = {
   new: 'badge-info', first_contact: 'badge-warning', proposal_sent: 'badge-purple',
-  negotiation: 'badge-warning', contract_signed: 'badge-success',
+  negotiation: 'badge-warning', contract_signed: 'badge-success', lost: 'badge-error',
+};
+
+const temperatureConfig: Record<string, { icon: typeof Flame; label: string; color: string; bg: string }> = {
+  hot:  { icon: Flame,    label: 'ساخن', color: 'text-red-500',   bg: 'bg-red-50' },
+  warm: { icon: Sun,      label: 'دافئ', color: 'text-amber-500', bg: 'bg-amber-50' },
+  cold: { icon: Snowflake, label: 'بارد', color: 'text-blue-400', bg: 'bg-blue-50' },
 };
 
 const sourceLabels: Record<string, string> = {
@@ -57,9 +65,18 @@ export default function LeadDetailPage() {
   const addActivityMutation = useAddLeadActivity();
   const updateMutation = useUpdateLead();
   const convertMutation = useConvertLead();
+  const { data: employeesData } = useEmployees({ per_page: 100 });
+  const employees = employeesData?.data ?? [];
 
   const [showActivity, setShowActivity] = useState(false);
   const [showConvert, setShowConvert] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: '', phone: '', email: '', source: 'other',
+    service_type: 'other', expected_budget: '', notes: '',
+    assigned_to: '', temperature: 'warm',
+    proposed_amount: '', final_amount: '',
+  });
   const [actForm, setActForm] = useState({
     type: 'call' as LeadActivityType,
     notes: '',
@@ -112,6 +129,49 @@ export default function LeadDetailPage() {
     }
   };
 
+  const openEditForm = () => {
+    if (!lead) return;
+    setEditForm({
+      name: lead.name,
+      phone: lead.phone || '',
+      email: lead.email || '',
+      source: lead.source,
+      service_type: lead.service_type,
+      expected_budget: lead.expected_budget?.toString() || '',
+      notes: lead.notes || '',
+      assigned_to: lead.assigned_to?.id?.toString() || '',
+      temperature: lead.temperature || 'warm',
+      proposed_amount: lead.proposed_amount?.toString() || '',
+      final_amount: lead.final_amount?.toString() || '',
+    });
+    setShowEdit(true);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const updateData: Record<string, unknown> = {
+        id: Number(id),
+        name: editForm.name,
+        phone: editForm.phone || null,
+        email: editForm.email || null,
+        source: editForm.source,
+        service_type: editForm.service_type,
+        expected_budget: editForm.expected_budget ? parseFloat(editForm.expected_budget) : null,
+        notes: editForm.notes || null,
+        assigned_to: editForm.assigned_to ? parseInt(editForm.assigned_to) : null,
+        temperature: editForm.temperature,
+        proposed_amount: editForm.proposed_amount ? parseFloat(editForm.proposed_amount) : null,
+        final_amount: editForm.final_amount ? parseFloat(editForm.final_amount) : null,
+      };
+      await updateMutation.mutateAsync(updateData as any);
+      setShowEdit(false);
+      toast.success('تم تحديث البيانات');
+    } catch {
+      toast.error('حدث خطأ');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -143,6 +203,15 @@ export default function LeadDetailPage() {
             <h1 className="page-title">{lead.name}</h1>
             <div className="flex items-center gap-2 mt-1">
               <span className={`badge ${stageColors[lead.stage]}`}>{stageLabels[lead.stage]}</span>
+              {lead.temperature && temperatureConfig[lead.temperature] && (() => {
+                const cfg = temperatureConfig[lead.temperature];
+                const TIcon = cfg.icon;
+                return (
+                  <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.color} font-medium`}>
+                    <TIcon size={12} /> {cfg.label}
+                  </span>
+                );
+              })()}
               <span className="text-xs text-gray-400">{serviceLabels[lead.service_type]}</span>
               <span className="text-xs text-gray-400">•</span>
               <span className="text-xs text-gray-400">{sourceLabels[lead.source]}</span>
@@ -150,6 +219,9 @@ export default function LeadDetailPage() {
           </div>
         </div>
         <div className="flex gap-2">
+          <button onClick={openEditForm} className="btn-secondary">
+            <Edit3 size={16} /> تعديل
+          </button>
           <button onClick={() => setShowActivity(true)} className="btn-secondary">
             <PlusCircle size={16} /> إضافة نشاط
           </button>
@@ -234,6 +306,13 @@ export default function LeadDetailPage() {
             <div className="card card-body">
               <h3 className="text-sm font-bold text-gray-800 border-b pb-2 mb-2">ملاحظات</h3>
               <p className="text-sm text-gray-600 whitespace-pre-wrap">{lead.notes}</p>
+            </div>
+          )}
+
+          {lead.stage === 'lost' && lead.lost_reason && (
+            <div className="card card-body border-r-4 border-red-400">
+              <h3 className="text-sm font-bold text-red-600 border-b border-red-100 pb-2 mb-2">سبب الخسارة</h3>
+              <p className="text-sm text-red-700 whitespace-pre-wrap">{lead.lost_reason}</p>
             </div>
           )}
         </div>
@@ -417,6 +496,86 @@ export default function LeadDetailPage() {
                 <button type="button" onClick={() => setShowConvert(false)} className="btn-secondary">إلغاء</button>
                 <button type="submit" disabled={convertMutation.isPending} className="btn-primary">
                   {convertMutation.isPending ? 'جاري التحويل...' : 'تحويل وإنشاء عقد'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Lead Modal */}
+      {showEdit && (
+        <div className="modal-overlay">
+          <div className="modal-backdrop" onClick={() => setShowEdit(false)} />
+          <div className="modal-content max-w-2xl">
+            <div className="modal-header">
+              <h3 className="text-lg font-bold">تعديل بيانات العميل المحتمل</h3>
+              <button onClick={() => setShowEdit(false)} className="btn-icon"><X size={18} /></button>
+            </div>
+            <form onSubmit={handleEditSubmit}>
+              <div className="modal-body space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="input-label">الاسم *</label>
+                    <input value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} className="input" required />
+                  </div>
+                  <div>
+                    <label className="input-label">الهاتف</label>
+                    <input value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} className="input" />
+                  </div>
+                  <div>
+                    <label className="input-label">البريد الإلكتروني</label>
+                    <input type="email" value={editForm.email} onChange={e => setEditForm({ ...editForm, email: e.target.value })} className="input" />
+                  </div>
+                  <div>
+                    <label className="input-label">المصدر</label>
+                    <select value={editForm.source} onChange={e => setEditForm({ ...editForm, source: e.target.value })} className="select">
+                      {Object.entries(sourceLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="input-label">نوع الخدمة</label>
+                    <select value={editForm.service_type} onChange={e => setEditForm({ ...editForm, service_type: e.target.value })} className="select">
+                      {Object.entries(serviceLabels).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="input-label">المسؤول</label>
+                    <select value={editForm.assigned_to} onChange={e => setEditForm({ ...editForm, assigned_to: e.target.value })} className="select">
+                      <option value="">بدون تعيين</option>
+                      {employees.map(emp => <option key={emp.id} value={emp.user?.id || emp.id}>{emp.user?.name || emp.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="input-label">الحرارة</label>
+                    <select value={editForm.temperature} onChange={e => setEditForm({ ...editForm, temperature: e.target.value })} className="select">
+                      <option value="hot">🔥 ساخن</option>
+                      <option value="warm">☀️ دافئ</option>
+                      <option value="cold">❄️ بارد</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="input-label">الميزانية المتوقعة</label>
+                    <input type="number" step="0.01" value={editForm.expected_budget} onChange={e => setEditForm({ ...editForm, expected_budget: e.target.value })} className="input" />
+                  </div>
+                  <div>
+                    <label className="input-label">المبلغ المعروض</label>
+                    <input type="number" step="0.01" value={editForm.proposed_amount} onChange={e => setEditForm({ ...editForm, proposed_amount: e.target.value })} className="input" />
+                  </div>
+                  <div>
+                    <label className="input-label">المبلغ النهائي</label>
+                    <input type="number" step="0.01" value={editForm.final_amount} onChange={e => setEditForm({ ...editForm, final_amount: e.target.value })} className="input" />
+                  </div>
+                </div>
+                <div>
+                  <label className="input-label">ملاحظات</label>
+                  <textarea value={editForm.notes} onChange={e => setEditForm({ ...editForm, notes: e.target.value })} className="input" rows={3} />
+                </div>
+              </div>
+              <div className="modal-footer justify-end">
+                <button type="button" onClick={() => setShowEdit(false)} className="btn-secondary">إلغاء</button>
+                <button type="submit" disabled={updateMutation.isPending} className="btn-primary">
+                  {updateMutation.isPending ? 'جاري الحفظ...' : <><Save size={16} /> حفظ التعديلات</>}
                 </button>
               </div>
             </form>

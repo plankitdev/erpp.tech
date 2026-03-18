@@ -475,7 +475,8 @@ export interface Expense {
 }
 
 // ========== Sales Pipeline ==========
-export type LeadStage = 'new' | 'first_contact' | 'proposal_sent' | 'negotiation' | 'contract_signed';
+export type LeadStage = 'new' | 'first_contact' | 'proposal_sent' | 'negotiation' | 'contract_signed' | 'lost';
+export type LeadTemperature = 'hot' | 'warm' | 'cold';
 export type LeadSource = 'ad' | 'referral' | 'website' | 'social' | 'other';
 export type LeadServiceType = 'marketing' | 'design' | 'moderation' | 'development' | 'other';
 export type LeadActivityType = 'call' | 'message' | 'email' | 'proposal_sent' | 'meeting' | 'followup';
@@ -490,6 +491,8 @@ export interface Lead {
   service_type: LeadServiceType;
   expected_budget: number | null;
   stage: LeadStage;
+  temperature: LeadTemperature;
+  lost_reason: string | null;
   first_contact_date: string | null;
   last_followup_date: string | null;
   notes: string | null;
@@ -518,6 +521,7 @@ export interface SalesDashboardData {
   total_leads: number;
   conversion_rate: number;
   stuck_leads: number;
+  lost_leads: number;
   new_this_month: number;
   pipeline: Record<string, { count: number; total_budget: number }>;
   by_source: Record<string, number>;

@@ -17,8 +17,8 @@ export const leadsApi = {
   delete: (id: number) =>
     api.delete<ApiResponse<null>>(`/leads/${id}`),
 
-  updateStage: (id: number, stage: string) =>
-    api.post<ApiResponse<Lead>>(`/leads/${id}/stage`, { stage }),
+  updateStage: (id: number, stage: string, lost_reason?: string) =>
+    api.post<ApiResponse<Lead>>(`/leads/${id}/stage`, { stage, ...(lost_reason ? { lost_reason } : {}) }),
 
   convertToClient: (id: number, data: Record<string, unknown>) =>
     api.post<ApiResponse<{ client_id: number; contract_id: number }>>(`/leads/${id}/convert`, data),

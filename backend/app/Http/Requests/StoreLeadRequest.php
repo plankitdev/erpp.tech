@@ -22,6 +22,7 @@ class StoreLeadRequest extends FormRequest
             'service_type'     => 'required|in:' . implode(',', Lead::SERVICE_TYPES),
             'expected_budget'  => 'nullable|numeric|min:0',
             'stage'            => 'sometimes|in:' . implode(',', Lead::STAGES),
+            'temperature'      => 'sometimes|in:' . implode(',', Lead::TEMPERATURES),
             'first_contact_date' => 'nullable|date',
             'notes'            => 'nullable|string|max:2000',
             'proposed_amount'  => 'nullable|numeric|min:0',

@@ -36,8 +36,11 @@ class SalesController extends Controller
                 $q->whereNull('last_followup_date')
                   ->orWhere('last_followup_date', '<', now()->subDays(3));
             })
-            ->whereNotIn('stage', [Lead::STAGE_CONTRACT_SIGNED])
+            ->whereNotIn('stage', [Lead::STAGE_CONTRACT_SIGNED, Lead::STAGE_LOST])
             ->count();
+
+        // Lost leads count
+        $lostLeads = Lead::where('stage', Lead::STAGE_LOST)->count();
 
         // New leads this month
         $newThisMonth = Lead::whereMonth('created_at', now()->month)
@@ -70,6 +73,7 @@ class SalesController extends Controller
             'total_leads'     => $totalLeads,
             'conversion_rate' => $conversionRate,
             'stuck_leads'     => $stuckLeads,
+            'lost_leads'      => $lostLeads,
             'new_this_month'  => $newThisMonth,
             'pipeline'        => $pipeline,
             'by_source'       => $bySource,

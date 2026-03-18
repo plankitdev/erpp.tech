@@ -22,6 +22,8 @@ class UpdateLeadRequest extends FormRequest
             'service_type'     => 'sometimes|in:' . implode(',', Lead::SERVICE_TYPES),
             'expected_budget'  => 'nullable|numeric|min:0',
             'stage'            => 'sometimes|in:' . implode(',', Lead::STAGES),
+            'temperature'      => 'sometimes|in:' . implode(',', Lead::TEMPERATURES),
+            'lost_reason'      => 'nullable|string|max:500',
             'first_contact_date' => 'nullable|date',
             'last_followup_date' => 'nullable|date',
             'notes'            => 'nullable|string|max:2000',

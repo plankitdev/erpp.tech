@@ -45,8 +45,8 @@ export function useDeleteLead() {
 export function useUpdateLeadStage() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, stage }: { id: number; stage: string }) =>
-      leadsApi.updateStage(id, stage).then(r => r.data),
+    mutationFn: ({ id, stage, lost_reason }: { id: number; stage: string; lost_reason?: string }) =>
+      leadsApi.updateStage(id, stage, lost_reason).then(r => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['leads'] }),
   });
 }

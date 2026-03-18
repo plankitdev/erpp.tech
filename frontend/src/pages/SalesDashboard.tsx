@@ -9,12 +9,12 @@ import {
 
 const stageLabels: Record<LeadStage, string> = {
   new: 'جديد', first_contact: 'تواصل أولي', proposal_sent: 'عرض مرسل',
-  negotiation: 'تفاوض', contract_signed: 'تم التعاقد',
+  negotiation: 'تفاوض', contract_signed: 'تم التعاقد', lost: 'خسارة',
 };
 
 const stageColors: Record<LeadStage, string> = {
   new: 'bg-blue-500', first_contact: 'bg-amber-500', proposal_sent: 'bg-purple-500',
-  negotiation: 'bg-orange-500', contract_signed: 'bg-emerald-500',
+  negotiation: 'bg-orange-500', contract_signed: 'bg-emerald-500', lost: 'bg-red-500',
 };
 
 const sourceLabels: Record<string, string> = {
@@ -25,7 +25,7 @@ const serviceLabels: Record<string, string> = {
   marketing: 'تسويق', design: 'تصميم', moderation: 'إدارة محتوى', development: 'تطوير', other: 'أخرى',
 };
 
-const stages: LeadStage[] = ['new', 'first_contact', 'proposal_sent', 'negotiation', 'contract_signed'];
+const stages: LeadStage[] = ['new', 'first_contact', 'proposal_sent', 'negotiation', 'contract_signed', 'lost'];
 
 const monthNames = [
   'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
@@ -87,7 +87,7 @@ export default function SalesDashboard() {
       {activeTab === 'dashboard' ? (
         <>
           {/* Main Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <div className="stat-card">
               <div className="flex items-center justify-between">
                 <div>
@@ -118,6 +118,17 @@ export default function SalesDashboard() {
                 </div>
                 <div className="w-11 h-11 rounded-xl bg-amber-100 flex items-center justify-center">
                   <AlertTriangle size={20} className="text-amber-600" />
+                </div>
+              </div>
+            </div>
+            <div className="stat-card">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">خسائر</p>
+                  <p className="text-2xl font-bold text-red-500 mt-1">{data.lost_leads ?? 0}</p>
+                </div>
+                <div className="w-11 h-11 rounded-xl bg-red-100 flex items-center justify-center">
+                  <AlertTriangle size={20} className="text-red-500" />
                 </div>
               </div>
             </div>

@@ -95,11 +95,16 @@ class LeadController extends Controller
 
         $request->validate([
             'stage' => 'required|in:' . implode(',', Lead::STAGES),
+            'lost_reason' => 'nullable|string|max:500',
         ]);
 
-        $lead->update(['stage' => $request->stage]);
+        $updateData = ['stage' => $request->stage];
+        if ($request->stage === Lead::STAGE_LOST && $request->lost_reason) {
+            $updateData['lost_reason'] = $request->lost_reason;
+        }
 
-        // If moved to contract_signed, allow frontend to trigger conversion
+        $lead->update($updateData);
+
         return $this->successResponse(new LeadResource($lead), 'تم تحديث المرحلة');
     }
 
