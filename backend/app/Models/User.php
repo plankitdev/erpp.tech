@@ -1,0 +1,180 @@
+<?php
+
+namespace App\Models;
+
+use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
+
+class User extends Authenticatable
+{
+    use HasApiTokens, HasFactory, Notifiable;
+
+    protected $fillable = [
+        'name', 'email', 'password', 'company_id',
+        'role', 'permissions', 'phone', 'avatar', 'is_active', 'last_login_at',
+        'force_password_change',
+    ];
+
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'last_login_at' => 'datetime',
+            'password' => 'hashed',
+            'is_active' => 'boolean',
+            'force_password_change' => 'boolean',
+            'permissions' => 'array',
+        ];
+    }
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === 'super_admin';
+    }
+
+    public function isManager(): bool
+    {
+        return $this->role === 'manager';
+    }
+
+    public function hasRole(string|array $roles): bool
+    {
+        return in_array($this->role, (array) $roles);
+    }
+
+    public function canAccess(string $permission): bool
+    {
+        if ($this->role === 'super_admin') return true;
+
+        $userPerms = $this->permissions;
+        if (is_array($userPerms) && count($userPerms) > 0) {
+            return in_array($permission, $userPerms);
+        }
+
+        return in_array($permission, self::getDefaultPermissions($this->role));
+    }
+
+    public function getEffectivePermissions(): array
+    {
+        if ($this->role === 'super_admin') {
+            return collect(self::getAllPermissions())->flatten()->all();
+        }
+
+        $userPerms = $this->permissions;
+        if (is_array($userPerms) && count($userPerms) > 0) {
+            return $userPerms;
+        }
+
+        return self::getDefaultPermissions($this->role);
+    }
+
+    public static function getDefaultPermissions(string $role): array
+    {
+        $defaults = [
+            'manager' => [
+                'dashboard.view',
+                'clients.view', 'clients.create', 'clients.edit', 'clients.delete',
+                'contracts.view', 'contracts.create', 'contracts.edit', 'contracts.delete',
+                'invoices.view', 'invoices.create', 'invoices.edit', 'invoices.delete',
+                'employees.view', 'employees.create', 'employees.edit', 'employees.delete',
+                'salaries.view', 'salaries.create',
+                'treasury.view', 'treasury.create',
+                'expenses.view', 'expenses.create', 'expenses.edit', 'expenses.delete',
+                'tasks.view', 'tasks.create', 'tasks.edit', 'tasks.delete',
+                'partners.view', 'partners.create', 'partners.edit', 'partners.delete',
+                'reports.view',
+                'users.view', 'users.create',
+                'activity_logs.view',
+                'settings.view', 'settings.edit',
+            ],
+            'accountant' => [
+                'dashboard.view',
+                'clients.view',
+                'contracts.view',
+                'invoices.view', 'invoices.create', 'invoices.edit',
+                'employees.view',
+                'salaries.view', 'salaries.create',
+                'treasury.view', 'treasury.create',
+                'expenses.view', 'expenses.create', 'expenses.edit',
+                'tasks.view', 'tasks.create', 'tasks.edit',
+                'reports.view',
+            ],
+            'sales' => [
+                'dashboard.view',
+                'clients.view', 'clients.create', 'clients.edit',
+                'contracts.view', 'contracts.create',
+                'invoices.view', 'invoices.create',
+                'tasks.view', 'tasks.create', 'tasks.edit',
+            ],
+            'employee' => [
+                'dashboard.view',
+                'tasks.view', 'tasks.create',
+            ],
+        ];
+        return $defaults[$role] ?? [];
+    }
+
+    public static function getAllPermissions(): array
+    {
+        return [
+            'dashboard' => ['dashboard.view'],
+            'clients' => ['clients.view', 'clients.create', 'clients.edit', 'clients.delete'],
+            'contracts' => ['contracts.view', 'contracts.create', 'contracts.edit', 'contracts.delete'],
+            'invoices' => ['invoices.view', 'invoices.create', 'invoices.edit', 'invoices.delete'],
+            'employees' => ['employees.view', 'employees.create', 'employees.edit', 'employees.delete'],
+            'salaries' => ['salaries.view', 'salaries.create'],
+            'treasury' => ['treasury.view', 'treasury.create'],
+            'expenses' => ['expenses.view', 'expenses.create', 'expenses.edit', 'expenses.delete'],
+            'tasks' => ['tasks.view', 'tasks.create', 'tasks.edit', 'tasks.delete'],
+            'partners' => ['partners.view', 'partners.create', 'partners.edit', 'partners.delete'],
+            'reports' => ['reports.view'],
+            'users' => ['users.view', 'users.create', 'users.edit', 'users.delete'],
+            'activity_logs' => ['activity_logs.view'],
+            'settings' => ['settings.view', 'settings.edit'],
+        ];
+    }
+
+    public static function getPermissionLabels(): array
+    {
+        return [
+            'dashboard' => 'لوحة التحكم',
+            'clients' => 'العملاء',
+            'contracts' => 'العقود',
+            'invoices' => 'الفواتير',
+            'employees' => 'الموظفين',
+            'salaries' => 'الرواتب',
+            'treasury' => 'الخزينة',
+            'expenses' => 'المصروفات',
+            'tasks' => 'المهام',
+            'partners' => 'الشركاء',
+            'reports' => 'التقارير',
+            'users' => 'المستخدمين',
+            'activity_logs' => 'سجل النشاطات',
+            'settings' => 'الإعدادات',
+        ];
+    }
+
+    public static function getActionLabels(): array
+    {
+        return [
+            'view' => 'عرض',
+            'create' => 'إضافة',
+            'edit' => 'تعديل',
+            'delete' => 'حذف',
+        ];
+    }
+}
