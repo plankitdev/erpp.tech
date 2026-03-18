@@ -56,10 +56,10 @@ class LeaveController extends Controller
 
         // Notify managers
         NotificationService::notifyRoles(
+            $request->user()->company_id,
             ['super_admin', 'manager'],
             'task_assigned',
-            "طلب إجازة جديد من {$request->user()->name} ({$data['days']} أيام)",
-            ['leave_id' => $leave->id]
+            "طلب إجازة جديد من {$request->user()->name} ({$data['days']} أيام)"
         );
 
         return $this->successResponse(
@@ -81,10 +81,10 @@ class LeaveController extends Controller
         ]);
 
         NotificationService::notify(
+            $request->user()->company_id,
             $leaveRequest->user_id,
             'task_completed',
-            'تمت الموافقة على طلب إجازتك',
-            ['leave_id' => $leaveRequest->id]
+            'تمت الموافقة على طلب إجازتك'
         );
 
         return $this->successResponse($leaveRequest->load(['user', 'approver']), 'تمت الموافقة على الإجازة');
@@ -107,10 +107,10 @@ class LeaveController extends Controller
         ]);
 
         NotificationService::notify(
+            $request->user()->company_id,
             $leaveRequest->user_id,
             'task_completed',
-            'تم رفض طلب إجازتك',
-            ['leave_id' => $leaveRequest->id]
+            'تم رفض طلب إجازتك'
         );
 
         return $this->successResponse($leaveRequest->load(['user', 'approver']), 'تم رفض الإجازة');

@@ -72,10 +72,10 @@ class TicketController extends Controller
 
         if ($ticket->assigned_to) {
             NotificationService::notify(
+                $request->user()->company_id,
                 $ticket->assigned_to,
                 'task_assigned',
-                "تم تعيين تذكرة لك: {$ticket->subject}",
-                ['ticket_id' => $ticket->id, 'reference' => $ticket->reference]
+                "تم تعيين تذكرة لك: {$ticket->subject}"
             );
         }
 
@@ -120,10 +120,10 @@ class TicketController extends Controller
         // Notify if assigned to someone new
         if (isset($data['assigned_to']) && $data['assigned_to'] != $ticket->assigned_to) {
             NotificationService::notify(
+                $request->user()->company_id,
                 $data['assigned_to'],
                 'task_assigned',
-                "تم تعيين تذكرة لك: {$ticket->subject}",
-                ['ticket_id' => $ticket->id, 'reference' => $ticket->reference]
+                "تم تعيين تذكرة لك: {$ticket->subject}"
             );
         }
 
@@ -162,10 +162,10 @@ class TicketController extends Controller
         // Notify ticket creator about reply (unless they're the replier)
         if ($reply->user_id !== $ticket->created_by && !$reply->is_internal) {
             NotificationService::notify(
+                $request->user()->company_id,
                 $ticket->created_by,
                 'task_completed',
-                "رد جديد على التذكرة: {$ticket->subject}",
-                ['ticket_id' => $ticket->id, 'reference' => $ticket->reference]
+                "رد جديد على التذكرة: {$ticket->subject}"
             );
         }
 

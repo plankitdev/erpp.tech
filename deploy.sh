@@ -8,15 +8,13 @@ BACKEND="/home/u742115549/backend"
 API_PUBLIC="/home/u742115549/domains/erpflex.online/public_html/backend"
 FRONTEND_PUBLIC="/home/u742115549/domains/erpflex.online/public_html"
 
-# 1. Clean DB - remove test users and companies
+# 1. Show DB stats (no longer deleting data)
 echo ""
-echo "[1/7] Cleaning database..."
-mysql -u u742115549_erpflex -p'Nenootorres09*' u742115549_erpflex -e "DELETE FROM users WHERE email != 'admin@erpflex.com';"
-mysql -u u742115549_erpflex -p'Nenootorres09*' u742115549_erpflex -e "DELETE FROM companies WHERE 1=1;"
-echo "  Users remaining: $(mysql -u u742115549_erpflex -p'Nenootorres09*' u742115549_erpflex -N -e 'SELECT COUNT(*) FROM users;')"
-echo "  Companies remaining: $(mysql -u u742115549_erpflex -p'Nenootorres09*' u742115549_erpflex -N -e 'SELECT COUNT(*) FROM companies;')"
+echo "[1/7] Database stats..."
+echo "  Users: $(mysql -u u742115549_erpflex -p'Nenootorres09*' u742115549_erpflex -N -e 'SELECT COUNT(*) FROM users;')"
+echo "  Companies: $(mysql -u u742115549_erpflex -p'Nenootorres09*' u742115549_erpflex -N -e 'SELECT COUNT(*) FROM companies;')"
 echo "  Currencies: $(mysql -u u742115549_erpflex -p'Nenootorres09*' u742115549_erpflex -N -e 'SELECT COUNT(*) FROM currencies;')"
-echo "  DB cleanup DONE"
+echo "  DB check DONE"
 
 # 2. Set up backend public folder
 echo ""
