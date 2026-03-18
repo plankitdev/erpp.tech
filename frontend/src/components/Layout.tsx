@@ -8,7 +8,7 @@ import {
   CheckSquare, Kanban, Handshake, BarChart3, KeyRound, ChevronRight, ChevronLeft,
   LogOut, CreditCard, Settings, Activity, ChevronDown, Building2, User, Shield, FolderKanban, FolderOpen,
   PanelRightOpen, PanelRightClose, Search, Target, UserPlus, Menu, X,
-  CalendarDays, ImageIcon,
+  CalendarDays, ImageIcon, Video,
 } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import Breadcrumbs, { type BreadcrumbItem } from './Breadcrumbs';
@@ -59,6 +59,7 @@ const menuSections: MenuSection[] = [
       { path: '/tasks', label: 'المهام', icon: CheckSquare, permission: 'tasks' },
       { path: '/tasks/board', label: 'لوحة Kanban', icon: Kanban, permission: 'tasks' },
       { path: '/calendar', label: 'التقويم', icon: CalendarDays, permission: 'tasks' },
+      { path: '/meetings', label: 'الاجتماعات', icon: Video, permission: 'tasks' },
     ],
   },
   {

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useClients, useDeleteClient } from '../hooks/useClients';
 import toast from 'react-hot-toast';
 import type { Client } from '../types';
-import { Plus, Pencil, Trash2, Eye, Download, Users } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, Download, Users, Building2 } from 'lucide-react';
 import { exportToCSV } from '../utils/exportCsv';
 import ConfirmDialog from '../components/ConfirmDialog';
 import StatusBadge from '../components/StatusBadge';
@@ -13,12 +13,14 @@ import { SkeletonTable } from '../components/Skeletons';
 export default function Clients() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
+  const [sectorFilter, setSectorFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const params: Record<string, unknown> = { page };
   if (search) params.search = search;
   if (filter !== 'all') params.status = filter;
+  if (sectorFilter !== 'all') params.sector = sectorFilter;
 
   const { data, isLoading, isError, refetch } = useClients(params);
   const deleteMutation = useDeleteClient();
@@ -77,6 +79,15 @@ export default function Clients() {
             </button>
           ))}
         </div>
+        <select value={sectorFilter}
+          onChange={e => { setSectorFilter(e.target.value); setPage(1); }}
+          className="form-input !py-1.5 !px-3 !text-xs w-40">
+          <option value="all">كل القطاعات</option>
+          {(() => {
+            const sectors = [...new Set(clients.map((c: Client) => c.sector).filter(Boolean))];
+            return sectors.map(s => <option key={s} value={s!}>{s}</option>);
+          })()}
+        </select>
       </div>
 
       {/* Table */}
@@ -88,6 +99,7 @@ export default function Clients() {
                 <th>الاسم</th>
                 <th>الموبايل</th>
                 <th>الشركة</th>
+                <th>القطاع</th>
                 <th>الخدمة</th>
                 <th>الحالة</th>
                 <th>إجراءات</th>
@@ -95,11 +107,11 @@ export default function Clients() {
             </thead>
             <tbody>
               {isLoading ? (
-                <SkeletonTable rows={5} cols={6} />
+                <SkeletonTable rows={5} cols={7} />
               ) : isError ? (
-                <tr><td colSpan={6} className="text-center py-12"><div className="text-red-400 mb-2">حدث خطأ في تحميل البيانات</div><button onClick={() => refetch()} className="text-sm text-primary-600 hover:underline">إعادة المحاولة</button></td></tr>
+                <tr><td colSpan={7} className="text-center py-12"><div className="text-red-400 mb-2">حدث خطأ في تحميل البيانات</div><button onClick={() => refetch()} className="text-sm text-primary-600 hover:underline">إعادة المحاولة</button></td></tr>
               ) : clients.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-12">
+                <tr><td colSpan={7} className="text-center py-12">
                   <Users size={40} className="mx-auto mb-3 text-gray-300" />
                   <p className="text-gray-400">لا يوجد عملاء</p>
                 </td></tr>
@@ -115,6 +127,16 @@ export default function Clients() {
                   </td>
                   <td className="text-gray-500 font-mono text-[13px]">{client.phone}</td>
                   <td>{client.company_name}</td>
+                  <td>
+                    {client.sector ? (
+                      <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full text-[11px] font-medium">
+                        <Building2 size={10} />
+                        {client.sector}
+                      </span>
+                    ) : (
+                      <span className="text-gray-300 text-xs">-</span>
+                    )}
+                  </td>
                   <td>{client.service}</td>
                   <td>
                     <StatusBadge status={client.status} size="sm" />

@@ -4,7 +4,7 @@ import { useContracts, useDeleteContract } from '../hooks/useContracts';
 import { formatCurrency, formatDate, statusLabels } from '../utils';
 import toast from 'react-hot-toast';
 import type { Contract } from '../types';
-import { Plus, Pencil, Trash2, CreditCard, FileText, Download } from 'lucide-react';
+import { Plus, Pencil, Trash2, CreditCard, FileText, Download, AlertTriangle } from 'lucide-react';
 import { exportToCSV } from '../utils/exportCsv';
 import ConfirmDialog from '../components/ConfirmDialog';
 import StatusBadge from '../components/StatusBadge';
@@ -20,7 +20,7 @@ export default function Contracts() {
 
   const params: Record<string, unknown> = { page };
   if (search) params.search = search;
-  if (filter !== 'all') params.status = filter;
+  if (filter !== 'all' && filter !== 'expiring_soon') params.status = filter;
 
   const { data, isLoading, isError, refetch } = useContracts(params);
   const deleteMutation = useDeleteContract();
@@ -39,9 +39,31 @@ export default function Contracts() {
   const statusFilters = [
     { value: 'all', label: 'الكل' },
     { value: 'active', label: 'نشط' },
+    { value: 'expiring_soon', label: '⚠️ ينتهي قريباً' },
     { value: 'completed', label: 'مكتمل' },
     { value: 'cancelled', label: 'ملغي' },
   ];
+
+  // Check if contract expires within 30 days
+  const isExpiringSoon = (endDate: string | null) => {
+    if (!endDate) return false;
+    const end = new Date(endDate);
+    const now = new Date();
+    const diffDays = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    return diffDays > 0 && diffDays <= 30;
+  };
+
+  const getDaysUntilExpiry = (endDate: string | null) => {
+    if (!endDate) return null;
+    const end = new Date(endDate);
+    const now = new Date();
+    return Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  };
+
+  // Filter expiring_soon locally
+  const displayContracts = filter === 'expiring_soon'
+    ? contracts.filter((c: Contract) => c.status === 'active' && isExpiringSoon(c.end_date))
+    : contracts;
 
   return (
     <div className="page-container">
@@ -97,12 +119,12 @@ export default function Contracts() {
                 <SkeletonTable rows={5} cols={7} />
               ) : isError ? (
                 <tr><td colSpan={7} className="text-center py-12"><div className="text-red-400 mb-2">حدث خطأ في تحميل البيانات</div><button onClick={() => refetch()} className="text-sm text-primary-600 hover:underline">إعادة المحاولة</button></td></tr>
-              ) : contracts.length === 0 ? (
+              ) : displayContracts.length === 0 ? (
                 <tr><td colSpan={7} className="text-center py-12">
                   <FileText size={40} className="mx-auto mb-3 text-gray-300" />
                   <p className="text-gray-400">لا يوجد عقود</p>
                 </td></tr>
-              ) : contracts.map((c: Contract) => (
+              ) : displayContracts.map((c: Contract) => (
                 <tr key={c.id}>
                   <td className="font-semibold text-gray-900">
                     <div>
@@ -114,7 +136,17 @@ export default function Contracts() {
                   </td>
                   <td className="font-medium">{formatCurrency(c.value, c.currency)}</td>
                   <td className="text-gray-500 text-[13px]">{formatDate(c.start_date)}</td>
-                  <td className="text-gray-500 text-[13px]">{formatDate(c.end_date)}</td>
+                  <td className="text-gray-500 text-[13px]">
+                    <div className="flex items-center gap-1.5">
+                      {formatDate(c.end_date)}
+                      {c.status === 'active' && isExpiringSoon(c.end_date) && (
+                        <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap">
+                          <AlertTriangle size={10} />
+                          {getDaysUntilExpiry(c.end_date)} يوم
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td><span className="badge badge-neutral">{statusLabels.payment_type[c.payment_type]}</span></td>
                   <td>
                     <StatusBadge status={c.status} size="sm" />

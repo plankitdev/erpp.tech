@@ -10,7 +10,7 @@ import {
   MoreVertical, Trash2, Eye, CircleDot, X, Sparkles,
   Globe, Megaphone, Palette, Smartphone, FileText, ArrowLeft,
   DollarSign, Clock, Pen, Share2, Code, ShoppingCart,
-  Video, Search, BarChart3, Layout,
+  Video, Search, BarChart3, Layout, LayoutGrid, List,
 } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import StatusBadge from '../components/StatusBadge';
@@ -163,6 +163,7 @@ const PROJECT_TEMPLATES = [
 export default function Projects() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [showModal, setShowModal] = useState(false);
   const [modalStep, setModalStep] = useState<'template' | 'form'>('template');
   const [clients, setClients] = useState<Client[]>([]);
@@ -274,10 +275,22 @@ export default function Projects() {
                 }`}>{s.label}</button>
             ))}
           </div>
+          <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-xl">
+            <button onClick={() => setViewMode('grid')}
+              className={`p-1.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+              title="عرض شبكي">
+              <LayoutGrid size={16} />
+            </button>
+            <button onClick={() => setViewMode('table')}
+              className={`p-1.5 rounded-lg transition-all ${viewMode === 'table' ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+              title="عرض جدول">
+              <List size={16} />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Projects Grid */}
+      {/* Projects Grid/Table */}
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1,2,3].map(i => (
@@ -295,6 +308,64 @@ export default function Projects() {
           <FolderKanban size={48} className="text-gray-200 mx-auto mb-3" />
           <p className="text-gray-500 font-medium">لا توجد مشاريع</p>
           <p className="text-gray-400 text-sm mt-1">اضغط "مشروع جديد" للبدء</p>
+        </div>
+      ) : viewMode === 'table' ? (
+        <div className="table-container">
+          <div className="table-wrapper">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>المشروع</th>
+                  <th>العميل</th>
+                  <th>التقدم</th>
+                  <th>المهام</th>
+                  <th>تاريخ البداية</th>
+                  <th>الحالة</th>
+                  <th>إجراءات</th>
+                </tr>
+              </thead>
+              <tbody>
+                {projects.map((project) => (
+                  <tr key={project.id}>
+                    <td className="font-semibold text-gray-900">
+                      <Link to={`/projects/${project.slug}`} className="hover:text-primary-600 transition-colors">
+                        {project.name}
+                      </Link>
+                      {project.description && (
+                        <p className="text-xs text-gray-400 font-normal truncate max-w-[200px]">{project.description}</p>
+                      )}
+                    </td>
+                    <td className="text-gray-500 text-sm">
+                      {project.client ? (project.client.company_name || project.client.name) : '-'}
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-2 min-w-[120px]">
+                        <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div className="h-full bg-gradient-to-l from-primary-500 to-primary-600 rounded-full"
+                            style={{ width: `${project.progress}%` }} />
+                        </div>
+                        <span className="text-xs text-gray-500 font-medium">{project.progress}%</span>
+                      </div>
+                    </td>
+                    <td className="text-sm text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <CircleDot size={12} />
+                        {project.completed_tasks_count}/{project.tasks_count}
+                      </span>
+                    </td>
+                    <td className="text-gray-500 text-[13px]">{formatDate(project.start_date)}</td>
+                    <td><StatusBadge status={project.status} size="sm" /></td>
+                    <td>
+                      <div className="flex gap-1">
+                        <Link to={`/projects/${project.slug}`} className="action-icon text-gray-400 hover:text-primary-600 hover:bg-primary-50"><Eye size={15} /></Link>
+                        <button onClick={() => handleDelete(project.slug)} className="action-icon text-gray-400 hover:text-red-600 hover:bg-red-50"><Trash2 size={15} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -42,6 +42,7 @@ const LeadDetailPage = lazy(() => import('./pages/LeadDetailPage'));
 const SalesDashboard = lazy(() => import('./pages/SalesDashboard'));
 const TaskDetail = lazy(() => import('./pages/TaskDetail'));
 const CalendarPage = lazy(() => import('./pages/CalendarPage'));
+const Meetings = lazy(() => import('./pages/Meetings'));
 const MediaLibrary = lazy(() => import('./pages/MediaLibrary'));
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -87,6 +88,7 @@ export default function App() {
         <Route path="tasks/board" element={<TaskBoard />} />
         <Route path="tasks/:id" element={<TaskDetail />} />
         <Route path="calendar" element={<CalendarPage />} />
+        <Route path="meetings" element={<Meetings />} />
         <Route path="media" element={<MediaLibrary />} />
         <Route path="partners" element={<Partners />} />
         <Route path="partners/:id/statement" element={<PartnerStatement />} />
