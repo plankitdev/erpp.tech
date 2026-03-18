@@ -12,6 +12,7 @@ import {
   Filter, Edit3, Flame, Snowflake, Sun,
 } from 'lucide-react';
 import SearchInput from '../components/SearchInput';
+import { calculateLeadScore, getScoreColor } from '../utils/leadScoring';
 
 const stageLabels: Record<LeadStage, string> = {
   new: 'جديد',
@@ -594,6 +595,13 @@ export default function LeadsPage() {
                         <div className="flex items-center gap-1.5">
                           <h4 className="text-sm font-bold text-gray-800 leading-tight">{lead.name}</h4>
                           <TemperatureBadge temp={lead.temperature} />
+                          {(() => {
+                            const score = calculateLeadScore(lead);
+                            const sc = getScoreColor(score);
+                            return (
+                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${sc.bg} ${sc.text}`}>{score}</span>
+                            );
+                          })()}
                         </div>
                         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button onClick={() => handleEdit(lead)} className="p-1 hover:bg-blue-50 rounded-lg">

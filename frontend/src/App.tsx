@@ -48,6 +48,7 @@ const ClientsHub = lazy(() => import('./pages/ClientsHub'));
 const TasksHub = lazy(() => import('./pages/TasksHub'));
 const FinanceHub = lazy(() => import('./pages/FinanceHub'));
 const HRHub = lazy(() => import('./pages/HRHub'));
+const SalesHub = lazy(() => import('./pages/SalesHub'));
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuthStore();
@@ -101,6 +102,7 @@ export default function App() {
         <Route path="partners" element={<Partners />} />
         <Route path="partners/:id/statement" element={<PartnerStatement />} />
         <Route path="sales" element={<SalesDashboard />} />
+        <Route path="sales-hub" element={<SalesHub />} />
         <Route path="leads" element={<LeadsPage />} />
         <Route path="leads/:id" element={<LeadDetailPage />} />
         <Route path="reports" element={<Reports />} />

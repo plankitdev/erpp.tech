@@ -145,38 +145,59 @@ export default function SalesDashboard() {
             </div>
           </div>
 
-          {/* Pipeline Funnel */}
+          {/* Pipeline Funnel with Conversion Rates */}
           <div className="card card-body">
             <h3 className="text-base font-bold text-gray-800 mb-4 flex items-center gap-2">
               <BarChart3 size={18} className="text-primary-600" />
               مسار المبيعات (Pipeline)
             </h3>
             <div className="space-y-3">
-              {stages.map(stage => {
+              {stages.map((stage, idx) => {
                 const stageData = data.pipeline[stage];
                 const count = stageData?.count ?? 0;
                 const budget = Number(stageData?.total_budget ?? 0);
                 const maxCount = Math.max(...stages.map(s => data.pipeline[s]?.count ?? 0), 1);
                 const pct = (count / maxCount) * 100;
 
+                // Conversion rate from previous stage
+                let convRate: number | null = null;
+                if (idx > 0 && stage !== 'lost') {
+                  const prevCount = data.pipeline[stages[idx - 1]]?.count ?? 0;
+                  if (prevCount > 0) convRate = Math.round((count / prevCount) * 100);
+                }
+
                 return (
-                  <div key={stage} className="flex items-center gap-4">
-                    <div className="w-28 text-sm font-medium text-gray-700 text-left">{stageLabels[stage]}</div>
-                    <div className="flex-1 bg-gray-100 rounded-full h-8 relative overflow-hidden">
-                      <div
-                        className={`${stageColors[stage]} h-full rounded-full transition-all duration-500 flex items-center justify-end px-3`}
-                        style={{ width: `${Math.max(pct, 5)}%` }}
-                      >
-                        <span className="text-white text-xs font-bold">{count}</span>
+                  <div key={stage}>
+                    <div className="flex items-center gap-4">
+                      <div className="w-28 text-sm font-medium text-gray-700 text-left">{stageLabels[stage]}</div>
+                      <div className="flex-1 bg-gray-100 rounded-full h-8 relative overflow-hidden">
+                        <div
+                          className={`${stageColors[stage]} h-full rounded-full transition-all duration-500 flex items-center justify-end px-3`}
+                          style={{ width: `${Math.max(pct, 5)}%` }}
+                        >
+                          <span className="text-white text-xs font-bold">{count}</span>
+                        </div>
                       </div>
-                    </div>
-                    <div className="w-28 text-left text-xs text-gray-500">
-                      {budget > 0 ? `${budget.toLocaleString()} ج.م` : '—'}
+                      <div className="w-28 text-left text-xs text-gray-500 flex items-center gap-2">
+                        {budget > 0 ? `${budget.toLocaleString()} ج.م` : '—'}
+                        {convRate !== null && (
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${convRate >= 50 ? 'bg-emerald-100 text-emerald-600' : convRate >= 25 ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600'}`}>
+                            {convRate}%
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
               })}
             </div>
+            {/* Overall Conversion */}
+            {data.total_leads > 0 && (
+              <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
+                <span className="text-xs text-gray-500">معدل التحويل الكلي</span>
+                <span className="text-sm font-bold text-emerald-600">{data.conversion_rate}%</span>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

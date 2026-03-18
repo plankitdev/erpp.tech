@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { statusLabels } from '../utils';
 import { useClickOutside } from '../hooks/useClickOutside';
 import {
@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import Breadcrumbs, { type BreadcrumbItem } from './Breadcrumbs';
+import GlobalSearch from './GlobalSearch';
+import FloatingActionButton from './FloatingActionButton';
 
 interface MenuItem {
   path: string;
@@ -48,6 +50,7 @@ const menuSections: MenuSection[] = [
     title: 'المبيعات',
     icon: Target,
     items: [
+      { path: '/sales-hub', label: 'نظرة عامة', icon: LayoutDashboard, permission: 'sales' },
       { path: '/sales', label: 'لوحة المبيعات', icon: BarChart3, permission: 'sales' },
       { path: '/leads', label: 'العملاء المحتملين', icon: UserPlus, permission: 'sales' },
     ],
@@ -107,8 +110,21 @@ export default function Layout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const [profileOpen, setProfileOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   const mobileOverlayRef = useRef<HTMLDivElement>(null);
+
+  // Ctrl+K global shortcut
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
 
   useClickOutside(profileRef, useCallback(() => setProfileOpen(false), []));
 
@@ -177,11 +193,14 @@ export default function Layout() {
       {/* Quick search (when sidebar open) */}
       {sidebarOpen && (
         <div className="px-4 py-3">
-          <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-slate-500 text-xs cursor-default select-none">
+          <button
+            onClick={() => setSearchOpen(true)}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-slate-500 text-xs cursor-pointer hover:bg-white/[0.07] transition-colors"
+          >
             <Search size={13} className="text-slate-500" />
             <span>بحث سريع...</span>
             <kbd className="mr-auto text-[9px] bg-white/[0.06] px-1.5 py-0.5 rounded font-inter text-slate-500">⌘K</kbd>
-          </div>
+          </button>
         </div>
       )}
 
@@ -429,6 +448,12 @@ export default function Layout() {
           <Outlet />
         </main>
       </div>
+
+      {/* Global Search */}
+      <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
+
+      {/* Mobile FAB */}
+      <FloatingActionButton />
     </div>
   );
 }

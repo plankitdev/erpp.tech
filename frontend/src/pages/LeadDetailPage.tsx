@@ -11,6 +11,7 @@ import {
   AlertCircle, MinusCircle, PlusCircle, FileText, Edit3, X,
   Flame, Sun, Snowflake, Save,
 } from 'lucide-react';
+import { calculateLeadScore, getScoreColor, getScoreLabel } from '../utils/leadScoring';
 
 const stageLabels: Record<string, string> = {
   new: 'جديد', first_contact: 'تواصل أولي', proposal_sent: 'عرض مرسل',
@@ -217,6 +218,23 @@ export default function LeadDetailPage() {
               <span className="text-xs text-gray-400">{sourceLabels[lead.source]}</span>
             </div>
           </div>
+          {/* Lead Score Badge */}
+          {(() => {
+            const score = calculateLeadScore(lead);
+            const sc = getScoreColor(score);
+            return (
+              <div className={`flex items-center gap-2 px-3 py-1.5 rounded-xl ${sc.bg} border ${sc.ring}`}>
+                <div className="relative w-8 h-8 flex items-center justify-center">
+                  <svg className="w-8 h-8 -rotate-90">
+                    <circle cx="16" cy="16" r="13" fill="none" stroke="#e2e8f0" strokeWidth="2.5" />
+                    <circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" className={sc.text} strokeWidth="2.5" strokeDasharray={`${(score / 100) * 81.7} 81.7`} strokeLinecap="round" />
+                  </svg>
+                  <span className={`absolute text-[10px] font-bold ${sc.text}`}>{score}</span>
+                </div>
+                <span className={`text-xs font-bold ${sc.text}`}>{getScoreLabel(score)}</span>
+              </div>
+            );
+          })()}
         </div>
         <div className="flex gap-2">
           <button onClick={openEditForm} className="btn-secondary">

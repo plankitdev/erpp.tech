@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useInvoice, useRecordPayment } from '../hooks/useInvoices';
 import { formatCurrency, formatDate, formatDateTime, statusLabels, statusColors } from '../utils';
 import type { InvoiceStatus } from '../types';
-import { ArrowRight, FileDown } from 'lucide-react';
+import { ArrowRight, FileDown, Printer } from 'lucide-react';
 import Breadcrumbs from '../components/Breadcrumbs';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
@@ -60,6 +60,10 @@ export default function InvoiceDetail() {
         <button onClick={handleDownloadPdf} className="mr-auto btn-primary text-sm">
           <FileDown size={16} />
           تحميل PDF
+        </button>
+        <button onClick={() => window.print()} className="btn-secondary text-sm">
+          <Printer size={16} />
+          طباعة
         </button>
       </div>
 
