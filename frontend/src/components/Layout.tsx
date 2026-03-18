@@ -38,6 +38,7 @@ const menuSections: MenuSection[] = [
     title: 'العملاء والمبيعات',
     icon: Users,
     items: [
+      { path: '/clients-hub', label: 'نظرة عامة', icon: LayoutDashboard, permission: 'clients' },
       { path: '/clients', label: 'العملاء', icon: Users, permission: 'clients' },
       { path: '/contracts', label: 'العقود', icon: FileText, permission: 'contracts' },
       { path: '/invoices', label: 'الفواتير', icon: Receipt, permission: 'invoices' },
@@ -55,6 +56,7 @@ const menuSections: MenuSection[] = [
     title: 'إدارة المهام',
     icon: CheckSquare,
     items: [
+      { path: '/tasks-hub', label: 'نظرة عامة', icon: LayoutDashboard, permission: 'tasks' },
       { path: '/projects', label: 'المشاريع', icon: FolderKanban, permission: 'tasks' },
       { path: '/tasks', label: 'المهام', icon: CheckSquare, permission: 'tasks' },
       { path: '/tasks/board', label: 'لوحة Kanban', icon: Kanban, permission: 'tasks' },
@@ -66,6 +68,7 @@ const menuSections: MenuSection[] = [
     title: 'الإدارة المالية',
     icon: Landmark,
     items: [
+      { path: '/finance-hub', label: 'نظرة عامة', icon: LayoutDashboard, permission: 'treasury' },
       { path: '/treasury', label: 'الخزينة', icon: Landmark, permission: 'treasury' },
       { path: '/expenses', label: 'المصروفات', icon: CreditCard, permission: 'expenses' },
       { path: '/partners', label: 'الشركاء', icon: Handshake, permission: 'partners' },
@@ -75,6 +78,7 @@ const menuSections: MenuSection[] = [
     title: 'الموارد البشرية',
     icon: UserCog,
     items: [
+      { path: '/hr-hub', label: 'نظرة عامة', icon: LayoutDashboard, permission: 'employees' },
       { path: '/employees', label: 'الموظفين', icon: UserCog, permission: 'employees' },
       { path: '/salaries', label: 'الرواتب', icon: Wallet, permission: 'salaries' },
     ],

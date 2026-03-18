@@ -44,6 +44,10 @@ const TaskDetail = lazy(() => import('./pages/TaskDetail'));
 const CalendarPage = lazy(() => import('./pages/CalendarPage'));
 const Meetings = lazy(() => import('./pages/Meetings'));
 const MediaLibrary = lazy(() => import('./pages/MediaLibrary'));
+const ClientsHub = lazy(() => import('./pages/ClientsHub'));
+const TasksHub = lazy(() => import('./pages/TasksHub'));
+const FinanceHub = lazy(() => import('./pages/FinanceHub'));
+const HRHub = lazy(() => import('./pages/HRHub'));
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuthStore();
@@ -63,6 +67,10 @@ export default function App() {
       <Route path="/select-company" element={<SelectCompany />} />
       <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
         <Route index element={<Dashboard />} />
+        <Route path="clients-hub" element={<ClientsHub />} />
+        <Route path="tasks-hub" element={<TasksHub />} />
+        <Route path="finance-hub" element={<FinanceHub />} />
+        <Route path="hr-hub" element={<HRHub />} />
         <Route path="clients" element={<Clients />} />
         <Route path="clients/create" element={<ClientForm />} />
         <Route path="clients/:id" element={<ClientProfile />} />
