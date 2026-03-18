@@ -15,8 +15,8 @@ class CalendarController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $from = $request->input('from', now()->startOfMonth()->toDateString());
-        $to = $request->input('to', now()->endOfMonth()->toDateString());
+        $from = $request->input('start_date', $request->input('from', now()->startOfMonth()->toDateString()));
+        $to = $request->input('end_date', $request->input('to', now()->endOfMonth()->toDateString()));
 
         $userId = $request->user()->id;
         $isEmployee = $request->user()->role === 'employee';
@@ -72,8 +72,8 @@ class CalendarController extends Controller
             'project' => $m->project?->name,
         ]);
 
-        return $this->successResponse([
-            'events' => $tasks->merge($meetings)->sortBy('start')->values(),
-        ]);
+        return $this->successResponse(
+            $tasks->merge($meetings)->sortBy('start')->values()
+        );
     }
 }

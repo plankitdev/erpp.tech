@@ -477,7 +477,7 @@ export default function ProjectDetail() {
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-5 gap-y-2 text-xs text-gray-400">
                 {project.client && (
                   <Link to={`/clients/${project.client.id || ''}`} className="flex items-center gap-1.5 hover:text-primary-600 transition-colors">
-                    <Users size={13} /><span>العميل: <strong className="text-gray-600">{project.client.name}</strong></span>
+                    <Users size={13} /><span>العميل: <strong className="text-gray-600">{project.client.company_name || project.client.name}</strong></span>
                   </Link>
                 )}
                 {project.created_by && (
@@ -674,7 +674,7 @@ export default function ProjectDetail() {
             {[
               { label: 'الاسم', value: project.name },
               { label: 'الحالة', value: pStatus.label, badge: pStatus.bg },
-              { label: 'العميل', value: project.client?.name || 'بدون عميل' },
+              { label: 'العميل', value: project.client?.company_name || project.client?.name || 'بدون عميل' },
               { label: 'الميزانية', value: project.budget ? `${Number(project.budget).toLocaleString()} ${project.currency}` : 'غير محددة' },
               { label: 'تاريخ البداية', value: project.start_date ? formatDate(project.start_date) : 'غير محدد' },
               { label: 'تاريخ النهاية', value: project.end_date ? formatDate(project.end_date) : 'غير محدد' },

@@ -9,7 +9,8 @@ import {
   Plus, FolderKanban, AlertCircle, Calendar, Users,
   MoreVertical, Trash2, Eye, CircleDot, X, Sparkles,
   Globe, Megaphone, Palette, Smartphone, FileText, ArrowLeft,
-  DollarSign, Clock,
+  DollarSign, Clock, Pen, Share2, Code, ShoppingCart,
+  Video, Search, BarChart3, Layout,
 } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import StatusBadge from '../components/StatusBadge';
@@ -26,50 +27,134 @@ const PROJECT_TEMPLATES = [
     defaults: {},
   },
   {
-    id: 'website',
-    name: 'تطوير موقع',
-    description: 'موقع شركة أو متجر إلكتروني',
-    icon: Globe,
-    color: 'from-blue-500 to-indigo-600',
+    id: 'content_plan',
+    name: 'كونتنت بلان',
+    description: 'خطة محتوى شهرية لمنصات التواصل',
+    icon: Pen,
+    color: 'from-violet-500 to-purple-600',
     defaults: {
-      description: 'مشروع تصميم وتطوير موقع إلكتروني شامل',
-      budget: '15000',
+      description: 'خطة محتوى شاملة تشمل: كتابة المحتوى، تصميم البوستات، جدولة النشر، وتحليل الأداء',
+      budget: '3000',
+      currency: 'EGP',
+    },
+  },
+  {
+    id: 'social_media',
+    name: 'إدارة سوشيال ميديا',
+    description: 'إدارة ونشر وتفاعل على المنصات',
+    icon: Share2,
+    color: 'from-pink-500 to-rose-600',
+    defaults: {
+      description: 'إدارة حسابات التواصل الاجتماعي: نشر المحتوى، الرد على التعليقات، إعداد التقارير الشهرية',
+      budget: '4000',
       currency: 'EGP',
     },
   },
   {
     id: 'marketing',
     name: 'حملة تسويقية',
-    description: 'حملة إعلانية على منصات التواصل',
+    description: 'حملة إعلانية ممولة على المنصات',
     icon: Megaphone,
     color: 'from-orange-500 to-red-500',
     defaults: {
-      description: 'حملة تسويقية متكاملة تشمل إعلانات ومحتوى',
+      description: 'حملة تسويقية متكاملة: تحديد الجمهور المستهدف، إعداد الإعلانات، المتابعة والتحسين',
       budget: '5000',
       currency: 'EGP',
     },
   },
   {
     id: 'branding',
-    name: 'تصميم هوية',
-    description: 'هوية بصرية وشعار ومطبوعات',
+    name: 'تصميم هوية بصرية',
+    description: 'شعار وألوان وخطوط ومطبوعات',
     icon: Palette,
     color: 'from-purple-500 to-pink-500',
     defaults: {
-      description: 'تصميم هوية بصرية كاملة: شعار وألوان وخطوط ومطبوعات',
+      description: 'تصميم هوية بصرية كاملة: شعار، ألوان، خطوط، بطاقات أعمال، ليتر هيد، ومطبوعات',
       budget: '8000',
       currency: 'EGP',
     },
   },
   {
-    id: 'app',
-    name: 'تطوير تطبيق',
-    description: 'تطبيق موبايل iOS أو Android',
-    icon: Smartphone,
-    color: 'from-emerald-500 to-teal-600',
+    id: 'website',
+    name: 'تطوير موقع إلكتروني',
+    description: 'موقع شركة أو متجر أو لاندنج بيج',
+    icon: Globe,
+    color: 'from-blue-500 to-indigo-600',
     defaults: {
-      description: 'تطوير تطبيق موبايل متكامل مع لوحة تحكم',
+      description: 'تصميم وتطوير موقع إلكتروني متجاوب مع جميع الأجهزة، مع لوحة تحكم ونظام إدارة محتوى',
+      budget: '15000',
+      currency: 'EGP',
+    },
+  },
+  {
+    id: 'ecommerce',
+    name: 'متجر إلكتروني',
+    description: 'متجر أونلاين مع بوابة دفع وإدارة منتجات',
+    icon: ShoppingCart,
+    color: 'from-emerald-500 to-green-600',
+    defaults: {
+      description: 'تطوير متجر إلكتروني: تصميم UI/UX، نظام سلة الشراء، بوابة دفع، إدارة المنتجات والطلبات',
+      budget: '20000',
+      currency: 'EGP',
+    },
+  },
+  {
+    id: 'app',
+    name: 'تطوير تطبيق موبايل',
+    description: 'تطبيق iOS و Android مع لوحة تحكم',
+    icon: Smartphone,
+    color: 'from-teal-500 to-cyan-600',
+    defaults: {
+      description: 'تطوير تطبيق موبايل متكامل لنظامي iOS و Android مع لوحة تحكم وAPI',
       budget: '25000',
+      currency: 'EGP',
+    },
+  },
+  {
+    id: 'software',
+    name: 'نظام برمجي / ERP',
+    description: 'برنامج مخصص أو نظام إداري',
+    icon: Code,
+    color: 'from-slate-600 to-gray-800',
+    defaults: {
+      description: 'تطوير نظام برمجي مخصص: تحليل المتطلبات، التصميم، البرمجة، الاختبار، والتسليم',
+      budget: '35000',
+      currency: 'EGP',
+    },
+  },
+  {
+    id: 'video',
+    name: 'إنتاج فيديو',
+    description: 'موشن جرافيك أو فيديو إعلاني',
+    icon: Video,
+    color: 'from-red-500 to-orange-600',
+    defaults: {
+      description: 'إنتاج فيديو احترافي: كتابة السيناريو، التصميم، الأنيميشن، المونتاج والإخراج',
+      budget: '5000',
+      currency: 'EGP',
+    },
+  },
+  {
+    id: 'seo',
+    name: 'تحسين محركات البحث SEO',
+    description: 'تحسين الظهور في جوجل وزيادة الزيارات',
+    icon: Search,
+    color: 'from-yellow-500 to-amber-600',
+    defaults: {
+      description: 'خطة SEO شاملة: تحليل الكلمات المفتاحية، تحسين المحتوى، بناء الروابط، وتقارير شهرية',
+      budget: '4000',
+      currency: 'EGP',
+    },
+  },
+  {
+    id: 'uiux',
+    name: 'تصميم UI/UX',
+    description: 'تصميم واجهات وتجربة مستخدم',
+    icon: Layout,
+    color: 'from-indigo-500 to-blue-600',
+    defaults: {
+      description: 'تصميم واجهة المستخدم وتجربة الاستخدام: بحث المستخدمين، Wireframes، تصميم الشاشات، Prototype',
+      budget: '10000',
       currency: 'EGP',
     },
   },
@@ -226,7 +311,7 @@ export default function Projects() {
                     </Link>
                     {project.client && (
                       <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
-                        <Users size={10} />{project.client.name}
+                        <Users size={10} />{project.client.company_name || project.client.name}
                       </p>
                     )}
                   </div>
@@ -309,7 +394,7 @@ export default function Projects() {
                   <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 p-1"><X size={20} /></button>
                 </div>
                 <div className="modal-body">
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[400px] overflow-y-auto">
                     {PROJECT_TEMPLATES.map(template => {
                       const Icon = template.icon;
                       return (
@@ -371,7 +456,7 @@ export default function Projects() {
                       <select value={form.client_id} onChange={e => setForm({ ...form, client_id: e.target.value })}
                         className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500/20">
                         <option value="">بدون عميل</option>
-                        {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        {clients.map(c => <option key={c.id} value={c.id}>{c.company_name || c.name}</option>)}
                       </select>
                     </div>
                     <div>
