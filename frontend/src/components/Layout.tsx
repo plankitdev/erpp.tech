@@ -8,7 +8,7 @@ import {
   CheckSquare, Kanban, Handshake, BarChart3, KeyRound, ChevronRight, ChevronLeft,
   LogOut, CreditCard, Settings, Activity, ChevronDown, Building2, User, Shield, FolderKanban, FolderOpen,
   PanelRightOpen, PanelRightClose, Search, Target, UserPlus, Menu, X,
-  CalendarDays, ImageIcon, Video,
+  CalendarDays, ImageIcon, Video, Heart,
 } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import Breadcrumbs, { type BreadcrumbItem } from './Breadcrumbs';
@@ -504,6 +504,23 @@ export default function Layout() {
         {/* Page Content */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           <Outlet />
+
+          {/* Footer */}
+          <footer className="mt-12 pb-2 text-center">
+            <div className="flex items-center justify-center gap-1.5 text-[11px] text-gray-400">
+              <span>صنع بـ</span>
+              <Heart size={11} className="text-red-400 fill-red-400 animate-pulse" />
+              <span>في مصر بواسطة</span>
+              <a
+                href="https://plankit.dev"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary-600 hover:text-primary-700 font-semibold transition-colors"
+              >
+                PlanKit
+              </a>
+            </div>
+          </footer>
         </main>
       </div>
 
