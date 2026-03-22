@@ -384,7 +384,7 @@ export default function ApiDocs() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white rounded-xl border p-4">
           <h3 className="font-medium text-gray-700 mb-1">Base URL</h3>
-          <code className="text-sm text-blue-600 bg-blue-50 px-2 py-1 rounded">https://erpflex.online/backend</code>
+          <code className="text-sm text-blue-600 bg-blue-50 px-2 py-1 rounded">https://erpp.tech/backend</code>
         </div>
         <div className="bg-white rounded-xl border p-4">
           <h3 className="font-medium text-gray-700 mb-1">المصادقة</h3>

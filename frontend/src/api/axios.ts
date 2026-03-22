@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.PROD ? 'https://erpflex.online/backend/api' : '/api',
+  baseURL: import.meta.env.PROD ? 'https://erpp.tech/backend/api' : '/api',
   headers: {
     'Accept': 'application/json',
   },

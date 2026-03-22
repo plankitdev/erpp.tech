@@ -1,4 +1,4 @@
-name: ERPFlex CI/CD
+name: ERPP CI/CD
 
 on:
   push:
@@ -15,7 +15,7 @@ jobs:
         image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: password
-          MYSQL_DATABASE: erpflex_test
+          MYSQL_DATABASE: erpp_test
         ports:
           - 3306:3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
@@ -49,7 +49,7 @@ jobs:
           cp .env.example .env 2>/dev/null || true
           php artisan key:generate --force
           sed -i 's/DB_HOST=.*/DB_HOST=127.0.0.1/' .env
-          sed -i 's/DB_DATABASE=.*/DB_DATABASE=erpflex_test/' .env
+          sed -i 's/DB_DATABASE=.*/DB_DATABASE=erpp_test/' .env
           sed -i 's/DB_USERNAME=.*/DB_USERNAME=root/' .env
           sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=password/' .env
 
@@ -109,16 +109,6 @@ jobs:
           name: frontend-dist
           path: dist
 
-      - name: Deploy frontend via SSH
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT }}
-          script: |
-            echo "Deploying frontend..."
-
       - name: Upload frontend files
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -127,7 +117,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
           source: "dist/*"
-          target: "/tmp/erpflex-deploy"
+          target: "/tmp/erpp-frontend"
           strip_components: 1
 
       - name: Deploy to server
@@ -138,14 +128,14 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            FRONTEND="/home/${{ secrets.SSH_USERNAME }}/domains/erpflex.online/public_html"
+            FRONTEND="/home/${{ secrets.SSH_USERNAME }}/domains/erpp.tech/public_html"
             BACKEND="/home/${{ secrets.SSH_USERNAME }}/backend"
 
             # Deploy frontend
             cd "$FRONTEND"
             rm -rf assets
-            cp -r /tmp/erpflex-deploy/* .
-            rm -rf /tmp/erpflex-deploy
+            cp -r /tmp/erpp-frontend/* .
+            rm -rf /tmp/erpp-frontend
 
             # Update backend
             cd "$BACKEND"

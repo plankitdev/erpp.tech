@@ -21,8 +21,8 @@ return [
 
     'allowed_origins' => [
         env('FRONTEND_URL', 'http://localhost:3000'),
-        'https://erpflex.online',
-        'https://www.erpflex.online',
+        'https://erpp.tech',
+        'https://www.erpp.tech',
     ],
 
     'allowed_origins_patterns' => [],

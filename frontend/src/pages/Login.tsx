@@ -132,7 +132,7 @@ export default function Login() {
                   className={`input pr-11 ${
                     errors.email ? 'border-red-300 bg-red-50/50 focus:ring-red-500/10 focus:border-red-400' : ''
                   }`}
-                  placeholder="example@erpflex.com"
+                  placeholder="example@erpp.tech"
                 />
               </div>
               {errors.email && (

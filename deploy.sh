@@ -1,28 +1,22 @@
 #!/bin/bash
 set -e
 echo "========================================="
-echo "  ERPFlex Deployment Script"
+echo "  ERPP Deployment Script"
 echo "========================================="
 
-BACKEND="/home/u742115549/backend"
-API_PUBLIC="/home/u742115549/domains/erpflex.online/public_html/backend"
-FRONTEND_PUBLIC="/home/u742115549/domains/erpflex.online/public_html"
+# ===== CONFIGURE THESE FOR YOUR NEW SERVER =====
+BACKEND="${ERPP_BACKEND_PATH:-/home/\$USER/backend}"
+API_PUBLIC="${ERPP_API_PUBLIC:-/home/\$USER/domains/erpp.tech/public_html/backend}"
+FRONTEND_PUBLIC="${ERPP_FRONTEND_PUBLIC:-/home/\$USER/domains/erpp.tech/public_html}"
+# ================================================
 
-# 1. Show DB stats (no longer deleting data)
+# 1. Set up backend public folder
 echo ""
-echo "[1/7] Database stats..."
-echo "  Users: $(mysql -u u742115549_erpflex -p'Nenootorres09*' u742115549_erpflex -N -e 'SELECT COUNT(*) FROM users;')"
-echo "  Companies: $(mysql -u u742115549_erpflex -p'Nenootorres09*' u742115549_erpflex -N -e 'SELECT COUNT(*) FROM companies;')"
-echo "  Currencies: $(mysql -u u742115549_erpflex -p'Nenootorres09*' u742115549_erpflex -N -e 'SELECT COUNT(*) FROM currencies;')"
-echo "  DB check DONE"
-
-# 2. Set up backend public folder
-echo ""
-echo "[2/7] Setting up backend public folder..."
+echo "[1/6] Setting up backend public folder..."
 mkdir -p "$API_PUBLIC"
 
 # Create index.php for backend
-cat > "$API_PUBLIC/index.php" << 'PHPEOF'
+cat > "$API_PUBLIC/index.php" << PHPEOF
 <?php
 
 use Illuminate\Foundation\Application;
@@ -30,19 +24,19 @@ use Illuminate\Http\Request;
 
 define('LARAVEL_START', microtime(true));
 
-$basePath = '/home/u742115549/backend';
+\$basePath = '$BACKEND';
 
-if (file_exists($maintenance = $basePath.'/storage/framework/maintenance.php')) {
-    require $maintenance;
+if (file_exists(\$maintenance = \$basePath.'/storage/framework/maintenance.php')) {
+    require \$maintenance;
 }
 
-require $basePath.'/vendor/autoload.php';
+require \$basePath.'/vendor/autoload.php';
 
-$app = require_once $basePath.'/bootstrap/app.php';
+\$app = require_once \$basePath.'/bootstrap/app.php';
 
-$app->usePublicPath(__DIR__);
+\$app->usePublicPath(__DIR__);
 
-$app->handleRequest(Request::capture());
+\$app->handleRequest(Request::capture());
 PHPEOF
 
 # Create .htaccess for backend
@@ -78,19 +72,17 @@ echo "  API index.php created"
 echo "  API .htaccess created"
 echo "  Backend public folder setup DONE"
 
-# 3. Extract frontend
+# 2. Deploy frontend
 echo ""
-echo "[3/7] Deploying frontend..."
-if [ -f /home/u742115549/frontend.tar ]; then
-    # Clean existing frontend files (except backend folder and .htaccess)
+echo "[2/6] Deploying frontend..."
+if [ -d "/tmp/erpp-frontend" ]; then
     find "$FRONTEND_PUBLIC" -maxdepth 1 -not -name 'backend' -not -name '.' -not -name '..' -not -name '.htaccess' -type f -delete 2>/dev/null || true
     rm -rf "$FRONTEND_PUBLIC/assets" 2>/dev/null || true
-    
-    # Extract frontend
-    tar -xf /home/u742115549/frontend.tar -C "$FRONTEND_PUBLIC"
-    echo "  Frontend files extracted"
+    cp -r /tmp/erpp-frontend/* "$FRONTEND_PUBLIC/"
+    rm -rf /tmp/erpp-frontend
+    echo "  Frontend files deployed"
 else
-    echo "  WARNING: frontend.tar not found at /home/u742115549/frontend.tar"
+    echo "  WARNING: /tmp/erpp-frontend not found, skipping frontend deploy"
 fi
 
 # Create frontend .htaccess for SPA routing
@@ -113,53 +105,48 @@ HTEOF
 echo "  Frontend .htaccess created"
 echo "  Frontend deploy DONE"
 
-# 4. Storage symlink
+# 3. Storage symlink
 echo ""
-echo "[4/7] Setting up storage..."
-# Create storage symlink
+echo "[3/6] Setting up storage..."
 if [ -L "$API_PUBLIC/storage" ]; then
     rm "$API_PUBLIC/storage"
 fi
 ln -sf "$BACKEND/storage/app/public" "$API_PUBLIC/storage"
 echo "  Storage symlink created"
 
-# Set permissions
 chmod -R 775 "$BACKEND/storage" 2>/dev/null || true
 chmod -R 775 "$BACKEND/bootstrap/cache" 2>/dev/null || true
 echo "  Permissions set"
 echo "  Storage setup DONE"
 
-# 5. Laravel optimization
+# 4. Laravel optimization
 echo ""
-echo "[5/7] Optimizing Laravel..."
+echo "[4/6] Optimizing Laravel..."
 cd "$BACKEND"
 php artisan config:cache 2>&1
 php artisan route:cache 2>&1
 php artisan view:cache 2>&1
 echo "  Laravel optimization DONE"
 
-# 6. Generate app key if needed
+# 5. Generate app key if needed
 echo ""
-echo "[6/7] Checking app key..."
+echo "[5/6] Checking app key..."
 php artisan key:show 2>&1 || php artisan key:generate --force 2>&1
 echo "  App key OK"
 
-# 7. Verify deployment
+# 6. Verify deployment
 echo ""
-echo "[7/7] Verifying deployment..."
+echo "[6/6] Verifying deployment..."
 echo "  API index.php: $([ -f $API_PUBLIC/index.php ] && echo 'EXISTS' || echo 'MISSING')"
 echo "  API .htaccess: $([ -f $API_PUBLIC/.htaccess ] && echo 'EXISTS' || echo 'MISSING')"
 echo "  Frontend index.html: $([ -f $FRONTEND_PUBLIC/index.html ] && echo 'EXISTS' || echo 'MISSING')"
 echo "  Frontend .htaccess: $([ -f $FRONTEND_PUBLIC/.htaccess ] && echo 'EXISTS' || echo 'MISSING')"
 echo "  Storage symlink: $([ -L $API_PUBLIC/storage ] && echo 'EXISTS' || echo 'MISSING')"
 echo "  .env file: $([ -f $BACKEND/.env ] && echo 'EXISTS' || echo 'MISSING')"
-ls -la "$API_PUBLIC/" 2>/dev/null | head -15
-echo ""
-ls -la "$FRONTEND_PUBLIC/" 2>/dev/null | head -15
 
 echo ""
 echo "========================================="
 echo "  DEPLOYMENT COMPLETE!"
-echo "  Frontend: https://erpflex.online"
-echo "  API: https://erpflex.online/backend"
+echo "  Frontend: https://erpp.tech"
+echo "  API: https://erpp.tech/backend"
 echo "========================================="

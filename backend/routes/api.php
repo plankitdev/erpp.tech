@@ -47,6 +47,8 @@ Route::get('/health', [HealthController::class, 'check']);
 
 // ========== Public Routes ==========
 Route::middleware('throttle:5,1')->post('/auth/login', [AuthController::class, 'login']);
+Route::middleware('throttle:5,1')->post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::middleware('throttle:5,1')->post('/auth/reset-password', [AuthController::class, 'resetPassword']);
 
 // ========== Authenticated Routes ==========
 Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {

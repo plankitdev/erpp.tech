@@ -22,7 +22,7 @@ class DatabaseSeeder extends Seeder
         // Super Admin
         User::create([
             'name'       => 'Ahmed Elsayed',
-            'email'      => 'admin@erpflex.com',
+            'email'      => 'admin@erpp.tech',
             'password'   => Hash::make('password'),
             'role'       => 'super_admin',
             'company_id' => null,

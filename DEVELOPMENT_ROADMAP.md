@@ -2,7 +2,7 @@
 
 > آخر تحديث: يونيو 2025  
 > الإصدار الحالي: v1.0  
-> الحالة: منصة مُنتَجة على erpflex.online
+> الحالة: منصة مُنتَجة على erpp.tech
 
 ---
 
@@ -29,7 +29,7 @@
 | **الـ API** | 76 endpoint — 23 controller — 25 form request |
 | **Multi-Tenant** | CompanyScope — company_id على كل الجداول |
 | **اللغة** | عربي كامل (RTL) |
-| **الاستضافة** | Hostinger VPS — erpflex.online |
+| **الاستضافة** | erpp.tech |
 
 ### الموديولات المكتملة (18 موديول)
 
@@ -70,7 +70,7 @@
 
 ### 1. أمان — CORS مفتوح للجميع
 - **الحالة**: `allowed_origins: ['*']` — أي موقع يستطيع إرسال طلبات للـ API
-- **الحل**: تقييد الـ origins لـ `erpflex.online` فقط
+- **الحل**: تقييد الـ origins لـ `erpp.tech` فقط
 - **التأثير**: 🔴 حرج
 
 ### 2. أمان — التوكنات لا تنتهي صلاحيتها
@@ -198,7 +198,7 @@
 
 | # | البند | الوصف | الأولوية |
 |---|-------|-------|---------|
-| SEC-1 | **تقييد CORS** | `allowed_origins` → `['https://erpflex.online']` | 🔴 فوري |
+| SEC-1 | **تقييد CORS** | `allowed_origins` → `['https://erpp.tech']` | 🔴 فوري |
 | SEC-2 | **انتهاء التوكنات** | ضبط `expiration` في Sanctum config | 🔴 فوري |
 | SEC-3 | **Rate Limiting** | `throttle:60,1` على API routes + `throttle:5,1` على login | 🔴 فوري |
 | SEC-4 | **2FA** | مصادقة ثنائية (اختياري للمستخدم) | متوسطة |
