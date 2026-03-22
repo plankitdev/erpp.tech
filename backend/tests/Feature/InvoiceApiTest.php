@@ -127,4 +127,53 @@ class InvoiceApiTest extends TestCase
         $response->assertOk();
         $this->assertCount(1, $response->json('data'));
     }
+
+    public function test_invoice_created_as_pending_by_default(): void
+    {
+        $response = $this->actingAs($this->admin)->postJson('/api/invoices', [
+            'contract_id' => $this->contract->id,
+            'amount' => 3000,
+            'currency' => 'EGP',
+            'due_date' => now()->addMonth()->toDateString(),
+        ]);
+
+        $response->assertStatus(201);
+        $invoice = Invoice::latest()->first();
+        $this->assertEquals('pending', $invoice->status);
+        $this->assertNull($invoice->paid_date);
+        $this->assertEquals(0, $invoice->payments()->count());
+    }
+
+    public function test_invoice_created_as_paid_when_is_paid_true(): void
+    {
+        $response = $this->actingAs($this->admin)->postJson('/api/invoices', [
+            'contract_id' => $this->contract->id,
+            'amount' => 3000,
+            'currency' => 'EGP',
+            'due_date' => now()->addMonth()->toDateString(),
+            'is_paid' => true,
+        ]);
+
+        $response->assertStatus(201);
+        $invoice = Invoice::latest()->first();
+        $this->assertEquals('paid', $invoice->status);
+        $this->assertNotNull($invoice->paid_date);
+        $this->assertEquals(1, $invoice->payments()->count());
+    }
+
+    public function test_admin_can_batch_delete_invoices(): void
+    {
+        $invoices = Invoice::factory()->count(3)->create([
+            'company_id' => $this->company->id,
+            'contract_id' => $this->contract->id,
+        ]);
+
+        $ids = $invoices->pluck('id')->toArray();
+        $response = $this->actingAs($this->admin)->postJson('/api/invoices/batch-delete', [
+            'ids' => $ids,
+        ]);
+
+        $response->assertOk();
+        $this->assertEquals(0, Invoice::whereIn('id', $ids)->count());
+    }
 }

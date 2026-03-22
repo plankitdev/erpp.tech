@@ -27,6 +27,8 @@ class Employee extends Model
         'join_date' => 'datetime:Y-m-d',
         'contract_start' => 'datetime:Y-m-d',
         'contract_end' => 'datetime:Y-m-d',
+        'national_id' => 'encrypted',
+        'bank_account' => 'encrypted',
     ];
 
     public function company(): BelongsTo

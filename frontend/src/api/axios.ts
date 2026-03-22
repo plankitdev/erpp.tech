@@ -1,4 +1,5 @@
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 const api = axios.create({
   baseURL: import.meta.env.PROD ? 'https://erpp.tech/backend/api' : '/api',
@@ -26,6 +27,13 @@ api.interceptors.response.use(
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
+
+    // Show server-side validation errors
+    if (error.response?.status === 422 && error.response?.data?.errors) {
+      const errors = error.response.data.errors as Record<string, string[]>;
+      Object.values(errors).flat().slice(0, 3).forEach(msg => toast.error(msg));
+    }
+
     return Promise.reject(error);
   }
 );

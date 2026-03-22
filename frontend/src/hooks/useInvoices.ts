@@ -42,6 +42,14 @@ export function useDeleteInvoice() {
   });
 }
 
+export function useBatchDeleteInvoices() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: number[]) => invoicesApi.batchDelete(ids).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['invoices'] }),
+  });
+}
+
 export function useRecordPayment() {
   const qc = useQueryClient();
   return useMutation({

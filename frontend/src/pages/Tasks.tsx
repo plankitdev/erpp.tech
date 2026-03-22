@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useTasks, useCreateTask, useUpdateTask, useDeleteTask } from '../hooks/useTasks';
+import { useUrlFilters } from '../hooks/useUrlFilters';
 import TaskDetailDrawer from '../components/TaskDetailDrawer';
 import { employeesApi } from '../api/employees';
 import { clientsApi } from '../api/clients';
@@ -30,8 +31,9 @@ const statusConfig: Record<string, { label: string; color: string; bg: string; d
 };
 
 export default function Tasks() {
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [priorityFilter, setPriorityFilter] = useState('all');
+  const { getParam, setParam } = useUrlFilters({ statusFilter: 'all', priorityFilter: 'all' });
+  const statusFilter = getParam('statusFilter') || 'all';
+  const priorityFilter = getParam('priorityFilter') || 'all';
   const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
@@ -201,7 +203,7 @@ export default function Tasks() {
             ].map(s => (
               <button
                 key={s.key}
-                onClick={() => setStatusFilter(s.key)}
+                onClick={() => setParam('statusFilter', s.key)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                   statusFilter === s.key
                     ? 'bg-white text-primary-700 shadow-sm'
@@ -218,7 +220,7 @@ export default function Tasks() {
             <ListFilter size={14} className="text-gray-400" />
             <select
               value={priorityFilter}
-              onChange={e => setPriorityFilter(e.target.value)}
+              onChange={e => setParam('priorityFilter', e.target.value)}
               className="border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-primary-500/20"
             >
               <option value="all">كل الأولويات</option>

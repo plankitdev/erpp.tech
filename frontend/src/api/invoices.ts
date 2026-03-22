@@ -17,6 +17,9 @@ export const invoicesApi = {
   delete: (id: number) =>
     api.delete<ApiResponse<null>>(`/invoices/${id}`),
 
+  batchDelete: (ids: number[]) =>
+    api.post<ApiResponse<null>>('/invoices/batch-delete', { ids }),
+
   recordPayment: (invoiceId: number, data: { amount: number; paid_at?: string; notes?: string }) =>
     api.post<ApiResponse<InvoicePayment>>(`/invoices/${invoiceId}/payments`, data),
 };

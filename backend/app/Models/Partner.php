@@ -21,6 +21,7 @@ class Partner extends Model
         'share_percentage' => 'decimal:2',
         'capital' => 'decimal:2',
         'is_active' => 'boolean',
+        'bank_account' => 'encrypted',
     ];
 
     public function company(): BelongsTo

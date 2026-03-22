@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
+import { useSessionTimeout } from './hooks/useSessionTimeout';
 import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
 import PageLoader from './components/PageLoader';
@@ -71,6 +72,8 @@ function PrivateRoute({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  useSessionTimeout();
+
   return (
     <ErrorBoundary>
     <Suspense fallback={<PageLoader />}>

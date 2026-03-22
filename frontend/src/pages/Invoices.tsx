@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useInvoices, useRecordPayment, useDeleteInvoice } from '../hooks/useInvoices';
+import { useUrlFilters } from '../hooks/useUrlFilters';
 import { formatCurrency, formatDate, statusLabels } from '../utils';
 import type { Invoice } from '../types';
 import toast from 'react-hot-toast';
@@ -12,10 +13,11 @@ import Breadcrumbs from '../components/Breadcrumbs';
 import { SkeletonTable } from '../components/Skeletons';
 
 export default function Invoices() {
-  const [filter, setFilter] = useState('all');
-  const [page, setPage] = useState(1);
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const { getParam, setParam, getPage, setPage } = useUrlFilters({ filter: 'all' });
+  const filter = getParam('filter') || 'all';
+  const page = getPage();
+  const dateFrom = getParam('dateFrom');
+  const dateTo = getParam('dateTo');
   const [paymentModal, setPaymentModal] = useState<{ invoiceId: number; remaining: number; currency: 'EGP' | 'USD' | 'SAR' } | null>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
   const paymentInputRef = useRef<HTMLInputElement>(null);
@@ -92,7 +94,7 @@ export default function Invoices() {
       <div className="card card-body !py-4 flex items-center gap-4 flex-wrap">
         <div className="filter-bar">
           {statusFilters.map(s => (
-            <button key={s.value} onClick={() => { setFilter(s.value); setPage(1); }}
+            <button key={s.value} onClick={() => setParam('filter', s.value)}
               className={`filter-pill ${filter === s.value ? 'active' : ''}`}>
               {s.label}
             </button>
@@ -101,14 +103,14 @@ export default function Invoices() {
         <div className="flex items-center gap-2">
           <CalendarDays size={14} className="text-gray-400" />
           <input type="date" value={dateFrom}
-            onChange={e => { setDateFrom(e.target.value); setPage(1); }}
+            onChange={e => setParam('dateFrom', e.target.value)}
             className="form-input !py-1.5 !px-2.5 !text-xs w-36" placeholder="من تاريخ" />
           <span className="text-gray-300 text-xs">—</span>
           <input type="date" value={dateTo}
-            onChange={e => { setDateTo(e.target.value); setPage(1); }}
+            onChange={e => setParam('dateTo', e.target.value)}
             className="form-input !py-1.5 !px-2.5 !text-xs w-36" placeholder="إلى تاريخ" />
           {(dateFrom || dateTo) && (
-            <button onClick={() => { setDateFrom(''); setDateTo(''); setPage(1); }}
+            <button onClick={() => { setParam('dateFrom', ''); setParam('dateTo', ''); }}
               className="text-gray-400 hover:text-red-500 p-1 rounded transition-colors">
               <X size={14} />
             </button>

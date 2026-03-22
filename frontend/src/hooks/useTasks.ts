@@ -42,6 +42,14 @@ export function useDeleteTask() {
   });
 }
 
+export function useBatchDeleteTasks() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: number[]) => tasksApi.batchDelete(ids).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks'] }),
+  });
+}
+
 export function useAddComment() {
   const qc = useQueryClient();
   return useMutation({

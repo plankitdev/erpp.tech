@@ -75,6 +75,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     // ========== Clients & Contracts ==========
     Route::middleware('role:super_admin,manager,sales')->group(function () {
         Route::apiResource('clients', ClientController::class);
+        Route::post('clients/batch-delete', [ClientController::class, 'batchDelete']);
         Route::apiResource('clients.contracts', ContractController::class);
     });
 
@@ -89,6 +90,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     // ========== Invoices & Payments ==========
     Route::middleware('role:super_admin,manager,accountant')->group(function () {
         Route::apiResource('invoices', InvoiceController::class);
+        Route::post('invoices/batch-delete', [InvoiceController::class, 'batchDelete']);
         Route::post('/invoices/{invoice}/payments', [InvoiceController::class, 'recordPayment']);
         Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'downloadPdf']);
     });
@@ -155,6 +157,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
     // ========== Tasks (all authenticated) ==========
     Route::apiResource('tasks', TaskController::class);
+    Route::post('tasks/batch-delete', [TaskController::class, 'batchDelete']);
     Route::post('/tasks/{task}/comments', [TaskController::class, 'addComment']);
 
     // Task Checklists

@@ -119,4 +119,21 @@ class TaskApiTest extends TestCase
         $response->assertOk();
         $this->assertCount(0, $response->json('data'));
     }
+
+    public function test_manager_can_batch_delete_tasks(): void
+    {
+        $tasks = Task::factory()->count(3)->create([
+            'company_id' => $this->company->id,
+            'assigned_to' => $this->manager->id,
+            'created_by' => $this->manager->id,
+        ]);
+
+        $ids = $tasks->pluck('id')->toArray();
+        $response = $this->actingAs($this->manager)->postJson('/api/tasks/batch-delete', [
+            'ids' => $ids,
+        ]);
+
+        $response->assertOk();
+        $this->assertEquals(0, Task::whereIn('id', $ids)->count());
+    }
 }

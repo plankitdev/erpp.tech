@@ -94,4 +94,19 @@ class ClientApiTest extends TestCase
         $response->assertUnprocessable();
         $response->assertJsonValidationErrors('name');
     }
+
+    public function test_admin_can_batch_delete_clients(): void
+    {
+        $clients = Client::factory()->count(3)->create(['company_id' => $this->company->id]);
+
+        $ids = $clients->pluck('id')->toArray();
+        $response = $this->actingAs($this->admin)->postJson('/api/clients/batch-delete', [
+            'ids' => $ids,
+        ]);
+
+        $response->assertOk();
+        foreach ($ids as $id) {
+            $this->assertSoftDeleted('clients', ['id' => $id]);
+        }
+    }
 }

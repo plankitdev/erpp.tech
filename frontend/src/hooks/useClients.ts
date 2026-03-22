@@ -41,3 +41,11 @@ export function useDeleteClient() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['clients'] }),
   });
 }
+
+export function useBatchDeleteClients() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: number[]) => clientsApi.batchDelete(ids).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['clients'] }),
+  });
+}

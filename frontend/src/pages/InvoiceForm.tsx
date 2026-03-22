@@ -15,6 +15,7 @@ const invoiceSchema = z.object({
   amount: z.coerce.number().min(0.01, 'المبلغ مطلوب'),
   currency: z.enum(['EGP', 'USD', 'SAR']).default('EGP'),
   due_date: z.string().min(1, 'تاريخ الاستحقاق مطلوب'),
+  is_paid: z.boolean().optional().default(false),
 });
 
 type InvoiceFormData = z.infer<typeof invoiceSchema>;
@@ -30,7 +31,7 @@ export default function InvoiceForm() {
 
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<InvoiceFormData>({
     resolver: zodResolver(invoiceSchema) as any,
-    defaultValues: { currency: 'EGP' },
+    defaultValues: { currency: 'EGP', is_paid: false },
   });
 
   useEffect(() => {
@@ -55,7 +56,7 @@ export default function InvoiceForm() {
         toast.success('تم تعديل الفاتورة');
       } else {
         await createMutation.mutateAsync(data);
-        toast.success('تم إضافة الفاتورة وتسجيل الدفع');
+        toast.success(data.is_paid ? 'تم إضافة الفاتورة وتسجيل الدفع' : 'تم إضافة الفاتورة');
       }
       navigate('/invoices');
     } catch (err: any) {
@@ -98,6 +99,13 @@ export default function InvoiceForm() {
           <input type="date" {...register('due_date')} className="input" />
           {errors.due_date && <p className="text-red-500 text-xs mt-1">{errors.due_date.message}</p>}
         </div>
+
+        {!editId && (
+          <div className="flex items-center gap-2">
+            <input type="checkbox" id="is_paid" {...register('is_paid')} className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+            <label htmlFor="is_paid" className="text-sm text-gray-700">تسجيل كمدفوعة بالكامل</label>
+          </div>
+        )}
 
         <div className="flex gap-3">
           <button type="submit" disabled={isSubmitting} className="btn-primary">

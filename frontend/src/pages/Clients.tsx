@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useClients, useDeleteClient } from '../hooks/useClients';
+import { useClients, useDeleteClient, useBatchDeleteClients } from '../hooks/useClients';
+import { useUrlFilters } from '../hooks/useUrlFilters';
 import toast from 'react-hot-toast';
 import type { Client } from '../types';
 import { Plus, Pencil, Trash2, Eye, Download, Users, Building2 } from 'lucide-react';
@@ -11,11 +12,14 @@ import SearchInput from '../components/SearchInput';
 import { SkeletonTable } from '../components/Skeletons';
 
 export default function Clients() {
-  const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState('all');
-  const [sectorFilter, setSectorFilter] = useState('all');
-  const [page, setPage] = useState(1);
+  const { getParam, setParam, getPage, setPage } = useUrlFilters({ filter: 'all', sectorFilter: 'all' });
+  const search = getParam('search');
+  const filter = getParam('filter') || 'all';
+  const sectorFilter = getParam('sectorFilter') || 'all';
+  const page = getPage();
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [showBatchConfirm, setShowBatchConfirm] = useState(false);
 
   const params: Record<string, unknown> = { page };
   if (search) params.search = search;
@@ -24,6 +28,7 @@ export default function Clients() {
 
   const { data, isLoading, isError, refetch } = useClients(params);
   const deleteMutation = useDeleteClient();
+  const batchDeleteMutation = useBatchDeleteClients();
 
   const handleDelete = () => {
     if (!deleteId) return;
@@ -31,6 +36,23 @@ export default function Clients() {
       onSuccess: () => { toast.success('تم حذف العميل'); setDeleteId(null); },
       onError: () => toast.error('حدث خطأ أثناء الحذف'),
     });
+  };
+
+  const handleBatchDelete = () => {
+    if (selectedIds.length === 0) return;
+    batchDeleteMutation.mutate(selectedIds, {
+      onSuccess: () => { toast.success(`تم حذف ${selectedIds.length} عميل`); setSelectedIds([]); setShowBatchConfirm(false); },
+      onError: () => toast.error('حدث خطأ أثناء الحذف'),
+    });
+  };
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === clients.length) setSelectedIds([]);
+    else setSelectedIds(clients.map((c: Client) => c.id));
   };
 
   const clients = data?.data || [];
@@ -64,7 +86,7 @@ export default function Clients() {
       <div className="card card-body !py-4 flex items-center gap-4 flex-wrap">
         <SearchInput
           value={search}
-          onChange={(v) => { setSearch(v); setPage(1); }}
+          onChange={(v) => setParam('search', v)}
           placeholder="بحث بالاسم أو الموبايل..."
           className="flex-1 min-w-[220px]"
         />
@@ -72,7 +94,7 @@ export default function Clients() {
           {statusFilters.map((s) => (
             <button
               key={s.value}
-              onClick={() => { setFilter(s.value); setPage(1); }}
+              onClick={() => setParam('filter', s.value)}
               className={`filter-pill ${filter === s.value ? 'active' : ''}`}
             >
               {s.label}
@@ -80,7 +102,7 @@ export default function Clients() {
           ))}
         </div>
         <select value={sectorFilter}
-          onChange={e => { setSectorFilter(e.target.value); setPage(1); }}
+          onChange={e => setParam('sectorFilter', e.target.value)}
           className="form-input !py-1.5 !px-3 !text-xs w-40">
           <option value="all">كل القطاعات</option>
           {(() => {
@@ -90,12 +112,24 @@ export default function Clients() {
         </select>
       </div>
 
+      {/* Batch Actions */}
+      {selectedIds.length > 0 && (
+        <div className="card card-body !py-3 flex items-center gap-4 bg-red-50 border-red-200">
+          <span className="text-sm text-red-700 font-medium">تم تحديد {selectedIds.length} عميل</span>
+          <button onClick={() => setShowBatchConfirm(true)} className="btn-danger text-xs !py-1.5 !px-3 flex items-center gap-1">
+            <Trash2 size={14} /> حذف المحدد
+          </button>
+          <button onClick={() => setSelectedIds([])} className="text-xs text-gray-500 hover:text-gray-700">إلغاء التحديد</button>
+        </div>
+      )}
+
       {/* Table */}
       <div className="table-container">
         <div className="table-wrapper">
           <table className="data-table">
             <thead>
               <tr>
+                <th className="w-10"><input type="checkbox" checked={clients.length > 0 && selectedIds.length === clients.length} onChange={toggleSelectAll} className="w-4 h-4 rounded border-gray-300" /></th>
                 <th>الاسم</th>
                 <th>الموبايل</th>
                 <th>الشركة</th>
@@ -107,16 +141,17 @@ export default function Clients() {
             </thead>
             <tbody>
               {isLoading ? (
-                <SkeletonTable rows={5} cols={7} />
+                <SkeletonTable rows={5} cols={8} />
               ) : isError ? (
-                <tr><td colSpan={7} className="text-center py-12"><div className="text-red-400 mb-2">حدث خطأ في تحميل البيانات</div><button onClick={() => refetch()} className="text-sm text-primary-600 hover:underline">إعادة المحاولة</button></td></tr>
+                <tr><td colSpan={8} className="text-center py-12"><div className="text-red-400 mb-2">حدث خطأ في تحميل البيانات</div><button onClick={() => refetch()} className="text-sm text-primary-600 hover:underline">إعادة المحاولة</button></td></tr>
               ) : clients.length === 0 ? (
-                <tr><td colSpan={7} className="text-center py-12">
+                <tr><td colSpan={8} className="text-center py-12">
                   <Users size={40} className="mx-auto mb-3 text-gray-300" />
                   <p className="text-gray-400">لا يوجد عملاء</p>
                 </td></tr>
               ) : clients.map((client: Client) => (
-                <tr key={client.id}>
+                <tr key={client.id} className={selectedIds.includes(client.id) ? 'bg-blue-50/50' : ''}>
+                  <td><input type="checkbox" checked={selectedIds.includes(client.id)} onChange={() => toggleSelect(client.id)} className="w-4 h-4 rounded border-gray-300" /></td>
                   <td className="font-semibold text-gray-900">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-xs ring-1 ring-blue-100">
@@ -174,6 +209,15 @@ export default function Clients() {
         confirmText="حذف"
         onConfirm={handleDelete}
         onCancel={() => setDeleteId(null)}
+      />
+
+      <ConfirmDialog
+        open={showBatchConfirm}
+        title="حذف عملاء متعددين"
+        message={`هل أنت متأكد من حذف ${selectedIds.length} عميل؟ لا يمكن التراجع عن هذا الإجراء.`}
+        confirmText="حذف الكل"
+        onConfirm={handleBatchDelete}
+        onCancel={() => setShowBatchConfirm(false)}
       />
     </div>
   );

@@ -69,4 +69,13 @@ class ClientController extends Controller
         $client->delete();
         return $this->successResponse(null, 'تم حذف العميل');
     }
+
+    public function batchDelete(Request $request): JsonResponse
+    {
+        $this->authorize('delete', Client::class);
+
+        $request->validate(['ids' => 'required|array|min:1', 'ids.*' => 'integer|exists:clients,id']);
+        Client::whereIn('id', $request->ids)->delete();
+        return $this->successResponse(null, 'تم حذف العملاء المحددين');
+    }
 }

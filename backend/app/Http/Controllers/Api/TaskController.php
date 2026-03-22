@@ -157,6 +157,15 @@ class TaskController extends Controller
         return $this->successResponse(null, 'تم حذف المهمة');
     }
 
+    public function batchDelete(Request $request): JsonResponse
+    {
+        $this->authorize('delete', Task::class);
+
+        $request->validate(['ids' => 'required|array|min:1', 'ids.*' => 'integer|exists:tasks,id']);
+        Task::whereIn('id', $request->ids)->delete();
+        return $this->successResponse(null, 'تم حذف المهام المحددة');
+    }
+
     public function addComment(Request $request, Task $task): JsonResponse
     {
         $request->validate([

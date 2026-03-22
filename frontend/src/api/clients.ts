@@ -16,4 +16,7 @@ export const clientsApi = {
 
   delete: (id: number) =>
     api.delete<ApiResponse<null>>(`/clients/${id}`),
+
+  batchDelete: (ids: number[]) =>
+    api.post<ApiResponse<null>>('/clients/batch-delete', { ids }),
 };

@@ -26,6 +26,9 @@ Schedule::command('clients:check-follow-ups')->dailyAt('10:00');
 // تشغيل قواعد الأتمتة يومياً
 Schedule::command('workflows:run')->dailyAt('08:30');
 
+// معالجة المهام المتكررة يومياً
+Schedule::command('tasks:process-recurring')->dailyAt('07:30');
+
 // نسخ احتياطي يومي للداتابيز والملفات
 Schedule::command('backup:run')->dailyAt('02:00');
 

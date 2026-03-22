@@ -44,21 +44,30 @@ class InvoiceController extends Controller
         $this->authorize('create', Invoice::class);
 
         $data = $request->validated();
+        $isPaid = !empty($data['is_paid']);
         unset($data['is_paid']);
 
-        $data['status'] = Invoice::STATUS_PAID;
-        $data['paid_date'] = now();
+        if ($isPaid) {
+            $data['status'] = Invoice::STATUS_PAID;
+            $data['paid_date'] = now();
+        } else {
+            $data['status'] = Invoice::STATUS_PENDING;
+        }
+
         $invoice = Invoice::create($data);
 
-        $invoice->payments()->create([
-            'amount'  => $invoice->amount,
-            'paid_at' => now(),
-            'notes'   => 'دفع كامل عند إنشاء الفاتورة',
-        ]);
+        if ($isPaid) {
+            $invoice->payments()->create([
+                'amount'  => $invoice->amount,
+                'paid_at' => now(),
+                'notes'   => 'دفع كامل عند إنشاء الفاتورة',
+            ]);
+        }
 
+        $message = $isPaid ? 'تم إنشاء الفاتورة وتسجيل الدفع بنجاح' : 'تم إنشاء الفاتورة بنجاح';
         return $this->successResponse(
             new InvoiceResource($invoice->load(['contract.client', 'payments'])),
-            'تم إنشاء الفاتورة وتسجيل الدفع بنجاح', 201
+            $message, 201
         );
     }
 
@@ -85,6 +94,16 @@ class InvoiceController extends Controller
         $invoice->payments()->delete();
         $invoice->delete();
         return $this->successResponse(null, 'تم حذف الفاتورة');
+    }
+
+    public function batchDelete(Request $request): JsonResponse
+    {
+        $this->authorize('delete', Invoice::class);
+
+        $request->validate(['ids' => 'required|array|min:1', 'ids.*' => 'integer|exists:invoices,id']);
+        InvoicePayment::whereIn('invoice_id', $request->ids)->delete();
+        Invoice::whereIn('id', $request->ids)->delete();
+        return $this->successResponse(null, 'تم حذف الفواتير المحددة');
     }
 
     public function recordPayment(RecordPaymentRequest $request, Invoice $invoice): JsonResponse
