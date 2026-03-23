@@ -2,7 +2,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 
 const api = axios.create({
-  baseURL: import.meta.env.PROD ? 'https://erpp.tech/backend/api' : '/api',
+  baseURL: '/api',
   headers: {
     'Accept': 'application/json',
   },
