@@ -1,11 +1,12 @@
-import { useState } from 'react';
-import { useAnnouncements, useCreateAnnouncement, useUpdateAnnouncement, useDeleteAnnouncement } from '../hooks/useAnnouncements';
+import { useState, useEffect } from 'react';
+import { useAnnouncements, useCreateAnnouncement, useUpdateAnnouncement, useDeleteAnnouncement, useToggleLike, useMarkAnnouncementsRead } from '../hooks/useAnnouncements';
 import type { Announcement } from '../api/announcements';
 import { useAuthStore } from '../store/authStore';
 import { formatDateTime } from '../utils';
 import toast from 'react-hot-toast';
 import {
   Megaphone, Plus, X, Pencil, Trash2, Pin, AlertTriangle, AlertCircle, Info,
+  ThumbsUp,
 } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import Breadcrumbs from '../components/Breadcrumbs';
@@ -28,6 +29,13 @@ export default function Announcements() {
   const createMutation = useCreateAnnouncement();
   const updateMutation = useUpdateAnnouncement();
   const deleteMutation = useDeleteAnnouncement();
+  const toggleLike = useToggleLike();
+  const markRead = useMarkAnnouncementsRead();
+
+  // Mark announcements as read when page is visited
+  useEffect(() => {
+    markRead.mutate();
+  }, []);
 
   const announcements = data?.data || [];
   const meta = data?.meta;
@@ -128,6 +136,19 @@ export default function Announcements() {
                       <span>{a.creator?.name || 'الإدارة'}</span>
                       <span>•</span>
                       <span>{formatDateTime(a.created_at)}</span>
+                    </div>
+                    <div className="flex items-center gap-3 mt-3">
+                      <button
+                        onClick={() => toggleLike.mutate(a.id)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium transition-all ${
+                          a.is_liked
+                            ? 'bg-blue-100 text-blue-600'
+                            : 'bg-gray-100 text-gray-500 hover:bg-blue-50 hover:text-blue-500'
+                        }`}
+                      >
+                        <ThumbsUp size={14} />
+                        {a.likes_count > 0 && <span>{a.likes_count}</span>}
+                      </button>
                     </div>
                   </div>
                   {isSuperAdmin && (

@@ -375,7 +375,7 @@ class TenantIsolationTest extends TestCase
         $response->assertStatus(403);
     }
 
-    public function test_employee_cannot_access_clients(): void
+    public function test_employee_can_view_clients(): void
     {
         $employee = User::factory()->create([
             'company_id' => $this->companyA->id,
@@ -385,6 +385,6 @@ class TenantIsolationTest extends TestCase
 
         $response = $this->actingAs($employee)->getJson('/api/clients');
 
-        $response->assertStatus(403);
+        $response->assertStatus(200);
     }
 }

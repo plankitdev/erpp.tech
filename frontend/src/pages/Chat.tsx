@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
-import { MessageSquare, Plus, Send, Paperclip, Trash2, Users, Hash, X, Search, ArrowRight } from 'lucide-react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { MessageSquare, Plus, Send, Paperclip, Trash2, Users, Hash, X, Search, ArrowRight, Building2 } from 'lucide-react';
 import { useChatChannels, useChatMessages, useChatUsers, useCreateChannel, useSendMessage, useDeleteMessage, useDeleteChannel, useMarkRead } from '../hooks/useChat';
 import { useAuthStore } from '../store/authStore';
 import type { ChatChannel, ChatMessage } from '../types';
@@ -58,6 +58,19 @@ export default function Chat() {
       : c.name;
     return name.toLowerCase().includes(searchQuery.toLowerCase());
   });
+
+  const isSuperAdmin = user?.role === 'super_admin';
+
+  const groupedChannels = useMemo(() => {
+    if (!isSuperAdmin) return null;
+    const groups: Record<string, ChatChannel[]> = {};
+    filteredChannels.forEach((ch: ChatChannel) => {
+      const companyName = ch.company?.name || 'بدون شركة';
+      if (!groups[companyName]) groups[companyName] = [];
+      groups[companyName].push(ch);
+    });
+    return groups;
+  }, [filteredChannels, isSuperAdmin]);
 
   const getChannelName = (ch: ChatChannel) => {
     if (ch.type === 'direct') {
@@ -119,33 +132,22 @@ export default function Chat() {
             <div className="p-4 text-center text-gray-400">جاري التحميل...</div>
           ) : filteredChannels.length === 0 ? (
             <div className="p-4 text-center text-gray-400 text-sm">لا توجد محادثات</div>
+          ) : isSuperAdmin && groupedChannels ? (
+            Object.entries(groupedChannels).map(([companyName, companyChannels]) => (
+              <div key={companyName}>
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 border-b border-gray-200 sticky top-0">
+                  <Building2 size={14} className="text-gray-500" />
+                  <span className="text-xs font-bold text-gray-600">{companyName}</span>
+                  <span className="text-[10px] text-gray-400 mr-auto">{companyChannels.length}</span>
+                </div>
+                {companyChannels.map((ch: ChatChannel) => (
+                  <ChannelItem key={ch.id} ch={ch} activeChannelId={activeChannelId} onClick={() => setActiveChannelId(ch.id)} getChannelIcon={getChannelIcon} getChannelName={getChannelName} formatTime={formatTime} user={user} />
+                ))}
+              </div>
+            ))
           ) : (
             filteredChannels.map((ch: ChatChannel) => (
-              <button
-                key={ch.id}
-                onClick={() => setActiveChannelId(ch.id)}
-                className={`w-full flex items-center gap-3 p-3 hover:bg-gray-100 transition text-right ${activeChannelId === ch.id ? 'bg-blue-50 border-r-2 border-blue-500' : ''}`}
-              >
-                {getChannelIcon(ch)}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium text-sm text-gray-800 truncate">{getChannelName(ch)}</span>
-                    {ch.latest_message && (
-                      <span className="text-xs text-gray-400">{formatTime(ch.latest_message.created_at)}</span>
-                    )}
-                  </div>
-                  {ch.latest_message && (
-                    <p className="text-xs text-gray-500 truncate mt-0.5">
-                      {ch.latest_message.user?.name}: {ch.latest_message.body || '📎 مرفق'}
-                    </p>
-                  )}
-                </div>
-                {ch.unread_count > 0 && (
-                  <span className="bg-blue-500 text-white text-xs rounded-full min-w-[20px] h-5 flex items-center justify-center px-1">
-                    {ch.unread_count}
-                  </span>
-                )}
-              </button>
+              <ChannelItem key={ch.id} ch={ch} activeChannelId={activeChannelId} onClick={() => setActiveChannelId(ch.id)} getChannelIcon={getChannelIcon} getChannelName={getChannelName} formatTime={formatTime} user={user} />
             ))
           )}
         </div>
@@ -266,6 +268,39 @@ export default function Chat() {
       {/* DM Modal */}
       {showDM && <DMModal users={chatUsers} onClose={() => setShowDM(false)} onCreate={(data) => { createChannel.mutate(data, { onSuccess: (ch) => { setActiveChannelId(ch.id); } }); setShowDM(false); }} />}
     </div>
+  );
+}
+
+function ChannelItem({ ch, activeChannelId, onClick, getChannelIcon, getChannelName, formatTime, user }: {
+  ch: ChatChannel; activeChannelId: number | null; onClick: () => void;
+  getChannelIcon: (ch: ChatChannel) => React.ReactNode; getChannelName: (ch: ChatChannel) => string;
+  formatTime: (d: string) => string; user: any;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center gap-3 p-3 hover:bg-gray-100 transition text-right ${activeChannelId === ch.id ? 'bg-blue-50 border-r-2 border-blue-500' : ''}`}
+    >
+      {getChannelIcon(ch)}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between">
+          <span className="font-medium text-sm text-gray-800 truncate">{getChannelName(ch)}</span>
+          {ch.latest_message && (
+            <span className="text-xs text-gray-400">{formatTime(ch.latest_message.created_at)}</span>
+          )}
+        </div>
+        {ch.latest_message && (
+          <p className="text-xs text-gray-500 truncate mt-0.5">
+            {ch.latest_message.user?.name}: {ch.latest_message.body || '📎 مرفق'}
+          </p>
+        )}
+      </div>
+      {ch.unread_count > 0 && (
+        <span className="bg-blue-500 text-white text-xs rounded-full min-w-[20px] h-5 flex items-center justify-center px-1">
+          {ch.unread_count}
+        </span>
+      )}
+    </button>
   );
 }
 

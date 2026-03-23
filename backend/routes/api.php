@@ -195,6 +195,9 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
     // ========== Announcements ==========
     Route::get('/announcements', [AnnouncementController::class, 'index']);
+    Route::get('/announcements/unread-count', [AnnouncementController::class, 'unreadCount']);
+    Route::post('/announcements/mark-read', [AnnouncementController::class, 'markRead']);
+    Route::post('/announcements/{announcement}/toggle-like', [AnnouncementController::class, 'toggleLike']);
     Route::middleware('role:super_admin')->group(function () {
         Route::post('/announcements', [AnnouncementController::class, 'store']);
         Route::put('/announcements/{announcement}', [AnnouncementController::class, 'update']);

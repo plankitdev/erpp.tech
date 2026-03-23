@@ -30,6 +30,11 @@ class ChatChannel extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
+
     public function members(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'chat_channel_members', 'channel_id')

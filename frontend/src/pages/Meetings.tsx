@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useMeetings, useCreateMeeting, useUpdateMeeting, useDeleteMeeting, useRespondMeeting } from '../hooks/useMeetings';
+import { useUsers } from '../hooks/useUsers';
 import { formatDateTime } from '../utils';
 import { useAuthStore } from '../store/authStore';
 import type { Meeting } from '../types';
@@ -55,6 +56,8 @@ export default function Meetings() {
   if (statusFilter !== 'all') params.status = statusFilter;
 
   const { data, isLoading, isError, refetch } = useMeetings(params);
+  const { data: usersData } = useUsers({ per_page: 1000 });
+  const allUsers = usersData?.data || [];
   const createMutation = useCreateMeeting();
   const updateMutation = useUpdateMeeting();
   const deleteMutation = useDeleteMeeting();
@@ -72,11 +75,12 @@ export default function Meetings() {
   const [form, setForm] = useState({
     title: '', description: '', start_time: '', end_time: '',
     location: '', meeting_link: '', type: 'team' as string, status: 'scheduled' as string,
+    participant_ids: [] as number[],
   });
 
   const openCreateModal = () => {
     setEditMeeting(null);
-    setForm({ title: '', description: '', start_time: '', end_time: '', location: '', meeting_link: '', type: 'team', status: 'scheduled' });
+    setForm({ title: '', description: '', start_time: '', end_time: '', location: '', meeting_link: '', type: 'team', status: 'scheduled', participant_ids: [] });
     setShowModal(true);
   };
 
@@ -91,6 +95,7 @@ export default function Meetings() {
       meeting_link: m.meeting_link || '',
       type: m.type,
       status: m.status,
+      participant_ids: m.participants?.map(p => p.id) || [],
     });
     setShowModal(true);
   };
@@ -445,6 +450,35 @@ export default function Meetings() {
                   <input type="url" value={form.meeting_link}
                     onChange={e => setForm(f => ({ ...f, meeting_link: e.target.value }))}
                     className="form-input" placeholder="مثال: https://meet.google.com/..." dir="ltr" />
+                </div>
+                <div>
+                  <label className="form-label flex items-center gap-1.5">
+                    <Users size={14} /> المشاركون
+                  </label>
+                  <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-xl p-2 space-y-1">
+                    {allUsers.length === 0 ? (
+                      <p className="text-xs text-gray-400 text-center py-2">لا يوجد مستخدمين</p>
+                    ) : allUsers.map((u: any) => (
+                      <label key={u.id} className="flex items-center gap-2 p-1.5 hover:bg-gray-50 rounded-lg cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={form.participant_ids.includes(u.id)}
+                          onChange={() => setForm(f => ({
+                            ...f,
+                            participant_ids: f.participant_ids.includes(u.id)
+                              ? f.participant_ids.filter(id => id !== u.id)
+                              : [...f.participant_ids, u.id],
+                          }))}
+                          className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                        />
+                        <span className="text-sm text-gray-700">{u.name}</span>
+                        <span className="text-xs text-gray-400 mr-auto">{u.role}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {form.participant_ids.length > 0 && (
+                    <p className="text-xs text-gray-400 mt-1">{form.participant_ids.length} مشارك محدد</p>
+                  )}
                 </div>
               </div>
               <div className="modal-footer">

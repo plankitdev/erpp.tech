@@ -7,6 +7,8 @@ export interface Announcement {
   body: string;
   priority: 'normal' | 'important' | 'urgent';
   is_pinned: boolean;
+  likes_count: number;
+  is_liked: boolean;
   creator?: { id: number; name: string };
   created_at: string;
 }
@@ -23,4 +25,13 @@ export const announcementsApi = {
 
   delete: (id: number) =>
     api.delete<ApiResponse<null>>(`/announcements/${id}`),
+
+  toggleLike: (id: number) =>
+    api.post<ApiResponse<{ likes_count: number; is_liked: boolean }>>(`/announcements/${id}/toggle-like`),
+
+  getUnreadCount: () =>
+    api.get<ApiResponse<{ count: number }>>('/announcements/unread-count'),
+
+  markRead: () =>
+    api.post<ApiResponse<null>>('/announcements/mark-read'),
 };

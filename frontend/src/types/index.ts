@@ -735,6 +735,8 @@ export interface ChatChannel {
   type: 'public' | 'private' | 'direct';
   description: string | null;
   created_by: number;
+  company_id?: number;
+  company?: { id: number; name: string };
   members: ChatMember[];
   latest_message: ChatMessage | null;
   unread_count: number;

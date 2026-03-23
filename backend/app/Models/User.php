@@ -17,7 +17,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name', 'email', 'password', 'company_id',
         'role', 'permissions', 'phone', 'avatar', 'is_active', 'last_login_at',
-        'force_password_change',
+        'force_password_change', 'last_announcement_read_at',
     ];
 
     protected $hidden = [
@@ -30,6 +30,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'last_login_at' => 'datetime',
+            'last_announcement_read_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
             'force_password_change' => 'boolean',
@@ -139,6 +140,7 @@ class User extends Authenticatable
                 'dashboard.view',
                 'tasks.view', 'tasks.create',
                 'projects.view',
+                'clients.view',
             ],
         ];
         return $defaults[$role] ?? [];
@@ -151,6 +153,7 @@ class User extends Authenticatable
             'clients' => ['clients.view', 'clients.create', 'clients.edit', 'clients.delete'],
             'contracts' => ['contracts.view', 'contracts.create', 'contracts.edit', 'contracts.delete'],
             'invoices' => ['invoices.view', 'invoices.create', 'invoices.edit', 'invoices.delete'],
+            'projects' => ['projects.view', 'projects.create', 'projects.edit', 'projects.delete'],
             'employees' => ['employees.view', 'employees.create', 'employees.edit', 'employees.delete'],
             'salaries' => ['salaries.view', 'salaries.create'],
             'treasury' => ['treasury.view', 'treasury.create'],
@@ -171,6 +174,7 @@ class User extends Authenticatable
             'clients' => 'العملاء',
             'contracts' => 'العقود',
             'invoices' => 'الفواتير',
+            'projects' => 'المشاريع',
             'employees' => 'الموظفين',
             'salaries' => 'الرواتب',
             'treasury' => 'الخزينة',

@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useTask, useUpdateTask, useAddComment } from '../hooks/useTasks';
 import { useChecklists, useCreateChecklist, useUpdateChecklist, useDeleteChecklist } from '../hooks/useChecklists';
 import { useRunningTimer, useStartTimer, useStopTimer } from '../hooks/useTimeEntries';
+import { useUsers } from '../hooks/useUsers';
 import { formatDate, formatDateTime } from '../utils';
 import type { Task, TaskStatus, TaskPriority, TaskChecklist } from '../types';
 import StatusBadge from '../components/StatusBadge';
@@ -10,6 +11,7 @@ import toast from 'react-hot-toast';
 import {
   ArrowRight, Paperclip, Send, Download, Clock, Calendar, User, FolderKanban,
   CheckSquare, Plus, Trash2, Timer, Play, Square, GripVertical, Pencil, X,
+  Users as UsersIcon,
 } from 'lucide-react';
 
 const statusOptions: { value: TaskStatus; label: string }[] = [
@@ -26,6 +28,8 @@ export default function TaskDetail() {
   const taskId = Number(id);
   const { data: task, isLoading } = useTask(taskId);
   const { data: checklists = [] } = useChecklists(taskId);
+  const { data: usersData } = useUsers({ per_page: 1000 });
+  const allUsers = usersData?.data || [];
   const updateTask = useUpdateTask();
   const addComment = useAddComment();
   const createChecklist = useCreateChecklist();
@@ -42,7 +46,7 @@ export default function TaskDetail() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editForm, setEditForm] = useState({
     title: '', description: '', priority: 'medium' as string,
-    start_date: '', due_date: '',
+    start_date: '', due_date: '', assignee_ids: [] as number[],
   });
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -106,6 +110,7 @@ export default function TaskDetail() {
       priority: task.priority,
       start_date: task.start_date?.slice(0, 10) || '',
       due_date: task.due_date?.slice(0, 10) || '',
+      assignee_ids: task.assignees?.map(u => u.id) || (task.assigned_to ? [task.assigned_to.id] : []),
     });
     setShowEditModal(true);
   };
@@ -122,6 +127,7 @@ export default function TaskDetail() {
           priority: editForm.priority as TaskPriority,
           start_date: editForm.start_date || null,
           due_date: editForm.due_date || null,
+          assignee_ids: editForm.assignee_ids,
         } as Partial<Task>,
       });
       setShowEditModal(false);
@@ -578,6 +584,30 @@ export default function TaskDetail() {
                     <input type="date" value={editForm.due_date}
                       onChange={e => setEditForm(f => ({ ...f, due_date: e.target.value }))}
                       className="form-input" />
+                  </div>
+                </div>
+                <div>
+                  <label className="form-label flex items-center gap-1.5">
+                    <UsersIcon size={14} /> المكلفين
+                  </label>
+                  <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-xl p-2 space-y-1">
+                    {allUsers.map((u: any) => (
+                      <label key={u.id} className="flex items-center gap-2 p-1.5 hover:bg-gray-50 rounded-lg cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={editForm.assignee_ids.includes(u.id)}
+                          onChange={() => setEditForm(f => ({
+                            ...f,
+                            assignee_ids: f.assignee_ids.includes(u.id)
+                              ? f.assignee_ids.filter(id => id !== u.id)
+                              : [...f.assignee_ids, u.id],
+                          }))}
+                          className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                        />
+                        <span className="text-sm text-gray-700">{u.name}</span>
+                        <span className="text-xs text-gray-400 mr-auto">{u.role}</span>
+                      </label>
+                    ))}
                   </div>
                 </div>
               </div>

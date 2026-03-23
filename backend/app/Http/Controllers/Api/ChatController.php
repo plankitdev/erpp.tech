@@ -21,19 +21,28 @@ class ChatController extends Controller
     {
         $user = Auth::user();
 
-        $channels = ChatChannel::whereHas('members', function ($q) use ($user) {
-                $q->where('user_id', $user->id);
-            })
-            ->with(['latestMessage.user:id,name', 'members:id,name,avatar'])
-            ->withCount(['messages as unread_count' => function ($q) use ($user) {
+        $query = ChatChannel::query();
+
+        if ($user->isSuperAdmin()) {
+            // Super admin sees all channels, with company info
+            $query->with(['latestMessage.user:id,name', 'members:id,name,avatar', 'company:id,name']);
+        } else {
+            $query->whereHas('members', function ($q) use ($user) {
+                    $q->where('user_id', $user->id);
+                })
+                ->with(['latestMessage.user:id,name', 'members:id,name,avatar']);
+        }
+
+        $query->withCount(['messages as unread_count' => function ($q) use ($user) {
                 $q->where('chat_messages.created_at', '>', function ($sub) use ($user) {
                     $sub->select('last_read_at')
                         ->from('chat_channel_members')
                         ->whereColumn('chat_channel_members.channel_id', 'chat_messages.channel_id')
                         ->where('chat_channel_members.user_id', $user->id);
                 });
-            }])
-            ->orderByDesc(
+            }]);
+
+        $channels = $query->orderByDesc(
                 ChatMessage::select('created_at')
                     ->whereColumn('channel_id', 'chat_channels.id')
                     ->latest()
@@ -154,8 +163,8 @@ class ChatController extends Controller
     {
         $user = Auth::user();
 
-        // Verify membership
-        if (!$channel->members()->where('user_id', $user->id)->exists()) {
+        // Super admin can view any channel; others must be members
+        if (!$user->isSuperAdmin() && !$channel->members()->where('user_id', $user->id)->exists()) {
             return $this->errorResponse('غير مسموح', 403);
         }
 
@@ -164,8 +173,10 @@ class ChatController extends Controller
             ->orderByDesc('created_at')
             ->paginate(50);
 
-        // Mark as read
-        $channel->members()->updateExistingPivot($user->id, ['last_read_at' => now()]);
+        // Mark as read if member
+        if ($channel->members()->where('user_id', $user->id)->exists()) {
+            $channel->members()->updateExistingPivot($user->id, ['last_read_at' => now()]);
+        }
 
         return $this->paginatedResponse($messages);
     }
@@ -174,7 +185,7 @@ class ChatController extends Controller
     {
         $user = Auth::user();
 
-        if (!$channel->members()->where('user_id', $user->id)->exists()) {
+        if (!$user->isSuperAdmin() && !$channel->members()->where('user_id', $user->id)->exists()) {
             return $this->errorResponse('غير مسموح', 403);
         }
 
@@ -233,12 +244,15 @@ class ChatController extends Controller
     {
         $user = Auth::user();
 
-        $users = User::where('company_id', $user->company_id)
-            ->where('id', '!=', $user->id)
+        $query = User::where('id', '!=', $user->id)
             ->where('is_active', true)
-            ->select('id', 'name', 'avatar', 'role')
-            ->orderBy('name')
-            ->get();
+            ->select('id', 'name', 'avatar', 'role', 'company_id');
+
+        if (!$user->isSuperAdmin()) {
+            $query->where('company_id', $user->company_id);
+        }
+
+        $users = $query->orderBy('name')->get();
 
         return $this->successResponse($users);
     }

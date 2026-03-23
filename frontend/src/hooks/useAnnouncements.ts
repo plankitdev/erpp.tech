@@ -32,3 +32,27 @@ export function useDeleteAnnouncement() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['announcements'] }),
   });
 }
+
+export function useToggleLike() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => announcementsApi.toggleLike(id).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['announcements'] }),
+  });
+}
+
+export function useAnnouncementUnreadCount() {
+  return useQuery({
+    queryKey: ['announcements-unread'],
+    queryFn: () => announcementsApi.getUnreadCount().then(r => r.data.data.count),
+    refetchInterval: 30000,
+  });
+}
+
+export function useMarkAnnouncementsRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => announcementsApi.markRead().then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['announcements-unread'] }),
+  });
+}

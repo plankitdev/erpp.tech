@@ -14,7 +14,13 @@ class AnnouncementController extends Controller
 
     public function index(Request $request): JsonResponse
     {
+        $userId = $request->user()->id;
+
         $announcements = Announcement::with('creator')
+            ->withCount('likes')
+            ->withExists(['likes as is_liked' => function ($q) use ($userId) {
+                $q->where('user_id', $userId);
+            }])
             ->orderByDesc('is_pinned')
             ->orderByDesc('created_at')
             ->paginate($this->getPerPage());
@@ -64,5 +70,42 @@ class AnnouncementController extends Controller
         $announcement->delete();
 
         return $this->successResponse(null, 'تم حذف الإعلان');
+    }
+
+    public function toggleLike(Request $request, Announcement $announcement): JsonResponse
+    {
+        $userId = $request->user()->id;
+
+        if ($announcement->likes()->where('user_id', $userId)->exists()) {
+            $announcement->likes()->detach($userId);
+            $message = 'تم إزالة الإعجاب';
+        } else {
+            $announcement->likes()->attach($userId);
+            $message = 'تم الإعجاب';
+        }
+
+        return $this->successResponse([
+            'likes_count' => $announcement->likes()->count(),
+            'is_liked' => $announcement->likes()->where('user_id', $userId)->exists(),
+        ], $message);
+    }
+
+    public function unreadCount(Request $request): JsonResponse
+    {
+        $lastRead = $request->user()->last_announcement_read_at;
+
+        $query = Announcement::query();
+        if ($lastRead) {
+            $query->where('created_at', '>', $lastRead);
+        }
+
+        return $this->successResponse(['count' => $query->count()]);
+    }
+
+    public function markRead(Request $request): JsonResponse
+    {
+        $request->user()->update(['last_announcement_read_at' => now()]);
+
+        return $this->successResponse(null, 'تم التحديث');
     }
 }
