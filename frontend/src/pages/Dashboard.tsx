@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useDashboard } from '../hooks/useDashboard';
 import { formatCurrency, formatDate } from '../utils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Area, AreaChart } from 'recharts';
-import { Users, FileText, Receipt, TrendingUp, TrendingDown, Wallet, Clock, CheckCircle2, Sparkles, FolderKanban, Target, CalendarDays, Timer, AlertTriangle, Play, UserCheck, Plus, ArrowUpRight, Activity, Zap, BarChart3, Building2, Filter, RotateCcw } from 'lucide-react';
+import { Users, FileText, Receipt, TrendingUp, TrendingDown, Wallet, Clock, CheckCircle2, Sparkles, FolderKanban, Target, CalendarDays, Timer, AlertTriangle, Play, UserCheck, Plus, ArrowUpRight, Activity, Zap, BarChart3, Building2, ChevronDown } from 'lucide-react';
 import type { RecentInvoice, RecentTask, ExpenseCategory } from '../types';
 import { useAuthStore } from '../store/authStore';
 import { Link } from 'react-router-dom';
@@ -46,7 +46,11 @@ function StatCardGrid({ cards }: { cards: StatCard[] }) {
   );
 }
 
-function WelcomeBanner({ userName, subtitle, rightContent }: { userName: string; subtitle: string; rightContent?: React.ReactNode }) {
+function WelcomeBanner({ userName, subtitle, rightContent, year, onYearChange, quickActions }: {
+  userName: string; subtitle: string; rightContent?: React.ReactNode;
+  year: number; onYearChange: (y: number) => void;
+  quickActions?: React.ReactNode;
+}) {
   const getGreeting = () => {
     const h = new Date().getHours();
     if (h < 12) return 'صباح الخير';
@@ -54,6 +58,7 @@ function WelcomeBanner({ userName, subtitle, rightContent }: { userName: string;
   };
 
   const today = new Date();
+  const currentYear = today.getFullYear();
   const dayNames = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
   const monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
   const dateStr = `${dayNames[today.getDay()]}، ${today.getDate()} ${monthNames[today.getMonth()]} ${today.getFullYear()}`;
@@ -64,21 +69,40 @@ function WelcomeBanner({ userName, subtitle, rightContent }: { userName: string;
       <div className="absolute bottom-0 right-0 w-56 h-56 bg-white/[0.03] rounded-full translate-x-1/4 translate-y-1/4" />
       <div className="absolute top-1/2 left-1/3 w-32 h-32 bg-primary-400/10 rounded-full blur-2xl" />
       <div className="absolute top-4 left-4 w-20 h-20 bg-white/[0.02] rounded-full" />
-      <div className="relative z-10 flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="flex items-center gap-2">
-              <Sparkles size={18} className="text-primary-300" />
-              <span className="text-primary-200 text-sm font-medium">{getGreeting()}</span>
+      <div className="relative z-10">
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center gap-2">
+                <Sparkles size={18} className="text-primary-300" />
+                <span className="text-primary-200 text-sm font-medium">{getGreeting()}</span>
+              </div>
+              <span className="text-primary-300/50">|</span>
+              <span className="text-primary-300/80 text-xs">{dateStr}</span>
             </div>
-            <span className="text-primary-300/50">|</span>
-            <span className="text-primary-300/80 text-xs">{dateStr}</span>
+            <h1 className="text-2xl font-bold text-white mb-1">مرحباً، {userName} 👋</h1>
+            <p className="text-primary-200/80 text-sm">{subtitle}</p>
           </div>
-          <h1 className="text-2xl font-bold text-white mb-1">مرحباً، {userName} 👋</h1>
-          <p className="text-primary-200/80 text-sm">{subtitle}</p>
+          <div className="hidden md:flex items-center gap-3">
+            {rightContent}
+            <div className="relative">
+              <select
+                value={year}
+                onChange={(e) => onYearChange(Number(e.target.value))}
+                className="appearance-none bg-white/10 backdrop-blur-sm text-white text-sm font-medium rounded-xl px-4 py-2.5 pl-8 border border-white/15 cursor-pointer hover:bg-white/15 transition-colors focus:outline-none focus:ring-2 focus:ring-white/20"
+              >
+                {Array.from({ length: 5 }, (_, i) => currentYear - i).map((y) => (
+                  <option key={y} value={y} className="text-gray-900">{y}</option>
+                ))}
+              </select>
+              <ChevronDown size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/60 pointer-events-none" />
+            </div>
+          </div>
         </div>
-        {rightContent && (
-          <div className="hidden md:flex items-center gap-3">{rightContent}</div>
+        {quickActions && (
+          <div className="flex flex-wrap gap-2 mt-5 pt-5 border-t border-white/10">
+            {quickActions}
+          </div>
         )}
       </div>
     </div>
@@ -280,33 +304,35 @@ function TaskStatusChart({ data }: { data: Array<{ name: string; value: number }
 }
 
 // ========== Quick Actions ==========
-function QuickActions({ role }: { role: string }) {
-  const actions: Array<{ label: string; icon: typeof Plus; to: string; color: string; roles: string[] }> = [
-    { label: 'مشروع جديد', icon: FolderKanban, to: '/projects', color: 'bg-violet-500 hover:bg-violet-600', roles: ['super_admin', 'manager'] },
-    { label: 'فاتورة جديدة', icon: Receipt, to: '/invoices', color: 'bg-emerald-500 hover:bg-emerald-600', roles: ['super_admin', 'accountant', 'sales'] },
-    { label: 'عميل جديد', icon: Building2, to: '/clients', color: 'bg-blue-500 hover:bg-blue-600', roles: ['super_admin', 'sales'] },
-    { label: 'مهمة جديدة', icon: CheckCircle2, to: '/tasks/board', color: 'bg-amber-500 hover:bg-amber-600', roles: ['super_admin', 'manager', 'employee'] },
-    { label: 'عميل محتمل', icon: Target, to: '/leads', color: 'bg-orange-500 hover:bg-orange-600', roles: ['super_admin', 'sales'] },
-    { label: 'التقويم', icon: CalendarDays, to: '/calendar', color: 'bg-indigo-500 hover:bg-indigo-600', roles: ['super_admin', 'manager', 'employee'] },
+function getQuickActions(role: string) {
+  const actions: Array<{ label: string; icon: typeof Plus; to: string; roles: string[] }> = [
+    { label: 'مشروع جديد', icon: FolderKanban, to: '/projects', roles: ['super_admin', 'manager'] },
+    { label: 'فاتورة جديدة', icon: Receipt, to: '/invoices', roles: ['super_admin', 'accountant', 'sales'] },
+    { label: 'عميل جديد', icon: Building2, to: '/clients', roles: ['super_admin', 'sales'] },
+    { label: 'مهمة جديدة', icon: CheckCircle2, to: '/tasks/board', roles: ['super_admin', 'manager', 'employee'] },
+    { label: 'عميل محتمل', icon: Target, to: '/leads', roles: ['super_admin', 'sales'] },
+    { label: 'التقويم', icon: CalendarDays, to: '/calendar', roles: ['super_admin', 'manager', 'employee'] },
   ];
+  return actions.filter(a => a.roles.includes(role));
+}
 
-  const filtered = actions.filter(a => a.roles.includes(role));
+function QuickActionButtons({ role }: { role: string }) {
+  const filtered = getQuickActions(role);
   if (filtered.length === 0) return null;
-
   return (
-    <div className="animate-fade-in-up flex flex-wrap gap-2">
+    <>
       {filtered.map((action, i) => {
         const Icon = action.icon;
         return (
           <Link key={i} to={action.to}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-medium ${action.color} transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5`}>
-            <Icon size={16} />
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-all duration-200 border border-white/10 hover:border-white/20">
+            <Icon size={15} />
             {action.label}
-            <ArrowUpRight size={13} className="opacity-60" />
+            <ArrowUpRight size={12} className="opacity-50" />
           </Link>
         );
       })}
-    </div>
+    </>
   );
 }
 
@@ -647,21 +673,10 @@ function EmployeeDashboard({ stats }: { stats: Record<string, any> }) {
 export default function Dashboard() {
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
 
-  const params: Record<string, any> = { year };
-  if (dateFrom && dateTo) {
-    params.date_from = dateFrom;
-    params.date_to = dateTo;
-  }
-
-  const { data: stats, isLoading } = useDashboard(params);
+  const { data: stats, isLoading } = useDashboard({ year });
   const { user } = useAuthStore();
   const role = user?.role || 'employee';
-
-  const hasFilters = year !== currentYear || dateFrom || dateTo;
-  const resetFilters = () => { setYear(currentYear); setDateFrom(''); setDateTo(''); };
 
   if (isLoading) {
     return (
@@ -741,59 +756,10 @@ export default function Dashboard() {
         userName={user?.name || ''}
         subtitle={subtitles[role]}
         rightContent={rightContent}
+        year={year}
+        onYearChange={setYear}
+        quickActions={<QuickActionButtons role={role} />}
       />
-
-      {/* Dashboard Filters */}
-      <div className="animate-fade-in-up card card-body !py-4">
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2.5 text-gray-600 border-l border-gray-200 pl-4">
-            <div className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center">
-              <Filter size={15} className="text-primary-600" />
-            </div>
-            <span className="text-sm font-semibold">تصفية البيانات</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="text-xs text-gray-400 font-medium">السنة</label>
-            <select
-              value={year}
-              onChange={(e) => setYear(Number(e.target.value))}
-              className="select !py-2 !min-h-0 max-w-[110px]"
-            >
-              {Array.from({ length: 5 }, (_, i) => currentYear - i).map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="text-xs text-gray-400 font-medium">من</label>
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="input !py-2 !min-h-0 max-w-[160px] text-sm"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <label className="text-xs text-gray-400 font-medium">إلى</label>
-            <input
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="input !py-2 !min-h-0 max-w-[160px] text-sm"
-            />
-          </div>
-          {hasFilters && (
-            <button
-              onClick={resetFilters}
-              className="btn-ghost !py-2 !px-3 !min-h-0 text-xs mr-auto"
-            >
-              <RotateCcw size={13} />
-              إعادة ضبط
-            </button>
-          )}
-        </div>
-      </div>
-      <QuickActions role={role} />
       <KPIStrip stats={(stats || {}) as Record<string, any>} role={role} />
       {renderDashboard()}
     </div>
