@@ -15,13 +15,17 @@ return new class extends Migration
             $table->string('lost_reason')->nullable()->after('temperature');
         });
 
-        // Alter stage enum to include 'lost'
-        DB::statement("ALTER TABLE leads MODIFY COLUMN stage ENUM('new','first_contact','proposal_sent','negotiation','contract_signed','lost') DEFAULT 'new'");
+        // Alter stage enum to include 'lost' (MySQL only — SQLite doesn't enforce enum values)
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE leads MODIFY COLUMN stage ENUM('new','first_contact','proposal_sent','negotiation','contract_signed','lost') DEFAULT 'new'");
+        }
     }
 
     public function down(): void
     {
-        DB::statement("ALTER TABLE leads MODIFY COLUMN stage ENUM('new','first_contact','proposal_sent','negotiation','contract_signed') DEFAULT 'new'");
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement("ALTER TABLE leads MODIFY COLUMN stage ENUM('new','first_contact','proposal_sent','negotiation','contract_signed') DEFAULT 'new'");
+        }
 
         Schema::table('leads', function (Blueprint $table) {
             $table->dropColumn(['temperature', 'lost_reason']);
