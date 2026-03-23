@@ -64,13 +64,13 @@ function WelcomeBanner({ userName, subtitle, rightContent, year, onYearChange, q
   const dateStr = `${dayNames[today.getDay()]}، ${today.getDate()} ${monthNames[today.getMonth()]} ${today.getFullYear()}`;
 
   return (
-    <div className="animate-fade-in-up relative overflow-hidden rounded-2xl bg-gradient-to-l from-primary-600 via-primary-700 to-[#312e81] p-7">
+    <div className="animate-fade-in-up relative overflow-hidden rounded-2xl bg-gradient-to-l from-primary-600 via-primary-700 to-[#312e81] p-5 sm:p-7">
       <div className="absolute top-0 left-0 w-72 h-72 bg-white/[0.04] rounded-full -translate-x-1/2 -translate-y-1/2" />
       <div className="absolute bottom-0 right-0 w-56 h-56 bg-white/[0.03] rounded-full translate-x-1/4 translate-y-1/4" />
       <div className="absolute top-1/2 left-1/3 w-32 h-32 bg-primary-400/10 rounded-full blur-2xl" />
       <div className="absolute top-4 left-4 w-20 h-20 bg-white/[0.02] rounded-full" />
       <div className="relative z-10">
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
             <div className="flex items-center gap-3 mb-2">
               <div className="flex items-center gap-2">
@@ -80,20 +80,20 @@ function WelcomeBanner({ userName, subtitle, rightContent, year, onYearChange, q
               <span className="text-primary-300/50">|</span>
               <span className="text-primary-300/80 text-xs">{dateStr}</span>
             </div>
-            <h1 className="text-2xl font-bold text-white mb-1">مرحباً، {userName} 👋</h1>
+            <h1 className="text-xl sm:text-2xl font-bold text-white mb-1">مرحباً، {userName} 👋</h1>
             <p className="text-primary-200/80 text-sm">{subtitle}</p>
           </div>
-          <div className="hidden md:flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             {rightContent}
-            <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-sm rounded-xl border border-white/15 px-1 py-1">
+            <div className="flex items-center bg-white/[0.08] backdrop-blur-sm rounded-full border border-white/[0.12] p-0.5">
               {Array.from({ length: 4 }, (_, i) => currentYear - i).map((y) => (
                 <button
                   key={y}
                   onClick={() => onYearChange(y)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                  className={`px-3 sm:px-3.5 py-1 rounded-full text-[11px] font-semibold tracking-wide transition-all duration-300 ${
                     year === y
-                      ? 'bg-white text-primary-700 shadow-sm'
-                      : 'text-white/70 hover:text-white hover:bg-white/10'
+                      ? 'bg-white text-primary-700 shadow-md shadow-black/10'
+                      : 'text-white/50 hover:text-white/80'
                   }`}
                 >
                   {y}
@@ -103,7 +103,7 @@ function WelcomeBanner({ userName, subtitle, rightContent, year, onYearChange, q
           </div>
         </div>
         {quickActions && (
-          <div className="flex flex-wrap gap-2 mt-5 pt-5 border-t border-white/10">
+          <div className="flex flex-wrap gap-2 mt-4 sm:mt-5 pt-4 sm:pt-5 border-t border-white/10">
             {quickActions}
           </div>
         )}

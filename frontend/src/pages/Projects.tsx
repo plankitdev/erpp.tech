@@ -262,7 +262,7 @@ export default function Projects() {
             value={searchQuery}
             onChange={setSearchQuery}
             placeholder="بحث بالاسم..."
-            className="flex-1 min-w-[200px]"
+            className="flex-1 min-w-[160px]"
           />
           <div className="flex items-center gap-1.5 bg-gray-50 p-1 rounded-xl">
             {[

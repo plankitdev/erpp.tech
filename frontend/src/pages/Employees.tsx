@@ -48,9 +48,9 @@ export default function Employees() {
             <thead>
               <tr>
                 <th>الاسم</th>
-                <th>المسمى الوظيفي</th>
+                <th className="hidden sm:table-cell">المسمى الوظيفي</th>
                 <th>الراتب الأساسي</th>
-                <th>تاريخ التعيين</th>
+                <th className="hidden md:table-cell">تاريخ التعيين</th>
                 <th>إجراءات</th>
               </tr>
             </thead>
@@ -74,9 +74,9 @@ export default function Employees() {
                       {emp.name}
                     </div>
                   </td>
-                  <td>{emp.position}</td>
+                  <td className="hidden sm:table-cell">{emp.position}</td>
                   <td className="font-medium">{formatCurrency(emp.base_salary)}</td>
-                  <td>{formatDate(emp.join_date)}</td>
+                  <td className="hidden md:table-cell">{formatDate(emp.join_date)}</td>
                   <td>
                     <div className="flex gap-1">
                       <Link to={`/employees/${emp.id}`} className="action-icon text-gray-400 hover:text-primary-600 hover:bg-primary-50">

@@ -131,9 +131,9 @@ export default function TaskBoard() {
       </div>
 
       <DragDropContext onDragEnd={onDragEnd}>
-        <div className="grid grid-cols-4 gap-4">
+        <div className="flex gap-3 md:gap-4 overflow-x-auto pb-4 snap-x snap-mandatory md:grid md:grid-cols-4 md:overflow-visible md:pb-0">
           {columns.map((col) => (
-            <div key={col.id}>
+            <div key={col.id} className="min-w-[260px] flex-shrink-0 md:min-w-0 snap-start">
               <div className={`${col.color} rounded-t-xl px-4 py-2.5 font-semibold text-gray-700 flex items-center justify-between`}>
                 <div className="flex items-center gap-2">
                   <div className={`w-2 h-2 rounded-full ${col.dot}`} />

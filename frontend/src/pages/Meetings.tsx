@@ -191,7 +191,7 @@ export default function Meetings() {
       </div>
 
       {/* Filters */}
-      <div className="card card-body !py-4 flex items-center gap-4 flex-wrap">
+      <div className="card card-body !py-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 flex-wrap">
         <div className="flex items-center gap-2">
           <Filter size={14} className="text-gray-400" />
           <span className="text-xs text-gray-400">النوع:</span>
@@ -241,7 +241,7 @@ export default function Meetings() {
             const myParticipation = meeting.participants?.find(p => p.id === user?.id);
             return (
               <div key={meeting.id} className="bg-white rounded-xl border border-gray-100 p-5 hover:shadow-md transition-all">
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <h3 className="font-bold text-gray-800 text-base">{meeting.title}</h3>
@@ -416,7 +416,7 @@ export default function Meetings() {
                     onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                     className="input" rows={3} placeholder="وصف الاجتماع (اختياري)" />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="input-label">وقت البداية *</label>
                     <input type="datetime-local" value={form.start_time}
@@ -430,7 +430,7 @@ export default function Meetings() {
                       className="input" required />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="input-label">النوع</label>
                     <select value={form.type}

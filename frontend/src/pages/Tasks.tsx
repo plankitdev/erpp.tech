@@ -191,11 +191,11 @@ export default function Tasks() {
             value={searchQuery}
             onChange={setSearchQuery}
             placeholder="بحث بالعنوان أو الوصف أو المكلف..."
-            className="flex-1 min-w-[200px]"
+            className="flex-1 min-w-[160px]"
           />
 
           {/* Status Filter */}
-          <div className="flex items-center gap-1.5 bg-gray-50 p-1 rounded-xl">
+          <div className="flex items-center gap-1.5 bg-gray-50 p-1 rounded-xl overflow-x-auto">
             {[
               { key: 'all', label: 'الكل' },
               { key: 'todo', label: 'جديد' },
@@ -206,7 +206,7 @@ export default function Tasks() {
               <button
                 key={s.key}
                 onClick={() => setParam('statusFilter', s.key)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
                   statusFilter === s.key
                     ? 'bg-white text-primary-700 shadow-sm'
                     : 'text-gray-500 hover:text-gray-700'
@@ -275,8 +275,7 @@ export default function Tasks() {
                 key={task.id}
                 className={`bg-white rounded-xl border ${overdue ? 'border-red-200 bg-red-50/30' : 'border-gray-100'} p-4 hover:shadow-md transition-all duration-200 group animate-fade-in-up stagger-${Math.min(idx + 1, 8)}`}
               >
-                <div className="flex items-center gap-4">
-                  {/* Status Icon */}
+                <div className="flex items-center gap-2 sm:gap-4">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${status.bg} flex-shrink-0`}>
                     <StatusIcon size={18} className={task.status === 'in_progress' ? 'animate-spin' : ''} />
                   </div>
@@ -292,7 +291,7 @@ export default function Tasks() {
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-4 text-xs text-gray-400">
+                    <div className="flex items-center gap-2 sm:gap-4 text-xs text-gray-400 flex-wrap">
                       {task.assigned_to && (
                         <span className="flex items-center gap-1">
                           <User size={12} />
@@ -333,7 +332,7 @@ export default function Tasks() {
                   <div className="relative">
                     <button
                       onClick={() => setActionMenu(actionMenu === task.id ? null : task.id)}
-                      className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 opacity-0 group-hover:opacity-100 transition-all"
+                      className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
                     >
                       <MoreVertical size={16} />
                     </button>
@@ -409,7 +408,7 @@ export default function Tasks() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">المكلف</label>
                   <select value={form.assigned_to} onChange={e => setForm({ ...form, assigned_to: e.target.value })}
@@ -428,7 +427,7 @@ export default function Tasks() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">الأولوية</label>
                   <select value={form.priority} onChange={e => setForm({ ...form, priority: e.target.value })}

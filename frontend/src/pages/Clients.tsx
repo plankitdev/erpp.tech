@@ -96,7 +96,7 @@ export default function Clients() {
           value={search}
           onChange={(v) => setParam('search', v)}
           placeholder="بحث بالاسم أو الموبايل..."
-          className="flex-1 min-w-[220px]"
+          className="flex-1 min-w-[160px]"
         />
         <div className="filter-bar">
           {statusFilters.map((s) => (
@@ -111,7 +111,7 @@ export default function Clients() {
         </div>
         <select value={sectorFilter}
           onChange={e => setParam('sectorFilter', e.target.value)}
-          className="form-input !py-1.5 !px-3 !text-xs w-40">
+          className="form-input !py-1.5 !px-3 !text-xs w-full sm:w-40">
           <option value="all">كل القطاعات</option>
           {(() => {
             const sectors = [...new Set(clients.map((c: Client) => c.sector).filter(Boolean))];
@@ -140,9 +140,9 @@ export default function Clients() {
                 <th className="w-10"><input type="checkbox" checked={clients.length > 0 && selectedIds.length === clients.length} onChange={toggleSelectAll} className="w-4 h-4 rounded border-gray-300" /></th>
                 <th>الاسم</th>
                 <th>الموبايل</th>
-                <th>الشركة</th>
-                <th>القطاع</th>
-                <th>الخدمة</th>
+                <th className="hidden md:table-cell">الشركة</th>
+                <th className="hidden lg:table-cell">القطاع</th>
+                <th className="hidden lg:table-cell">الخدمة</th>
                 <th>الحالة</th>
                 <th>إجراءات</th>
               </tr>
@@ -169,8 +169,8 @@ export default function Clients() {
                     </div>
                   </td>
                   <td className="text-gray-500 font-mono text-[13px]">{client.phone}</td>
-                  <td>{client.company_name}</td>
-                  <td>
+                  <td className="hidden md:table-cell">{client.company_name}</td>
+                  <td className="hidden lg:table-cell">
                     {client.sector ? (
                       <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-full text-[11px] font-medium">
                         <Building2 size={10} />
@@ -180,7 +180,7 @@ export default function Clients() {
                       <span className="text-gray-300 text-xs">-</span>
                     )}
                   </td>
-                  <td>{client.service}</td>
+                  <td className="hidden lg:table-cell">{client.service}</td>
                   <td>
                     <StatusBadge status={client.status} size="sm" />
                   </td>

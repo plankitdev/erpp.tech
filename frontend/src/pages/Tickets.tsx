@@ -138,9 +138,9 @@ export default function Tickets() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{isAdmin ? 'تذاكر الدعم' : 'الدعم الفني'}</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">{isAdmin ? 'تذاكر الدعم' : 'الدعم الفني'}</h1>
           <p className="text-sm text-gray-500 mt-1">{isAdmin ? 'إدارة تذاكر الدعم وتتبع حالتها' : 'أرسل مشكلتك وسنساعدك في حلها'}</p>
         </div>
         <button onClick={() => { resetForm(); setShowModal(true); }} className="btn-primary flex items-center gap-2">
@@ -168,7 +168,7 @@ export default function Tickets() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-center">
-        <div className="relative flex-1 min-w-[200px]">
+        <div className="relative flex-1 min-w-[160px]">
           <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text" placeholder="بحث بالمرجع أو الموضوع..." value={search}
@@ -176,7 +176,7 @@ export default function Tickets() {
             className="input pr-10 w-full"
           />
         </div>
-        <div className="flex gap-1 overflow-x-auto">
+        <div className="flex gap-1 overflow-x-auto flex-wrap">
           {[{ v: '', l: 'الكل' }, { v: 'open', l: 'مفتوحة' }, { v: 'in_progress', l: 'قيد العمل' }, { v: 'waiting', l: 'انتظار' }, { v: 'resolved', l: 'تم الحل' }, { v: 'closed', l: 'مغلقة' }].map(f => (
             <button key={f.v} onClick={() => setStatusFilter(f.v)}
               className={`px-3 py-1.5 rounded-lg text-sm whitespace-nowrap ${statusFilter === f.v ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
@@ -201,13 +201,13 @@ export default function Tickets() {
               <tr>
                 <th className="px-4 py-3 text-right font-medium text-gray-600">المرجع</th>
                 <th className="px-4 py-3 text-right font-medium text-gray-600">الموضوع</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-600">التصنيف</th>
+                <th className="px-4 py-3 text-right font-medium text-gray-600 hidden sm:table-cell">التصنيف</th>
                 <th className="px-4 py-3 text-right font-medium text-gray-600">الأولوية</th>
                 <th className="px-4 py-3 text-right font-medium text-gray-600">الحالة</th>
-                {isAdmin && <th className="px-4 py-3 text-right font-medium text-gray-600">العميل</th>}
-                {isAdmin && <th className="px-4 py-3 text-right font-medium text-gray-600">المسؤول</th>}
-                <th className="px-4 py-3 text-right font-medium text-gray-600">الردود</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-600">التاريخ</th>
+                {isAdmin && <th className="px-4 py-3 text-right font-medium text-gray-600 hidden lg:table-cell">العميل</th>}
+                {isAdmin && <th className="px-4 py-3 text-right font-medium text-gray-600 hidden lg:table-cell">المسؤول</th>}
+                <th className="px-4 py-3 text-right font-medium text-gray-600 hidden md:table-cell">الردود</th>
+                <th className="px-4 py-3 text-right font-medium text-gray-600 hidden md:table-cell">التاريخ</th>
                 <th className="px-4 py-3 text-right font-medium text-gray-600">إجراءات</th>
               </tr>
             </thead>
@@ -216,15 +216,15 @@ export default function Tickets() {
                 <tr key={t.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 font-mono text-xs text-primary-600">{t.reference}</td>
                   <td className="px-4 py-3 font-medium max-w-[200px] truncate">{t.subject}</td>
-                  <td className="px-4 py-3 text-gray-600">{categoryLabels[t.category] || t.category}</td>
+                  <td className="px-4 py-3 text-gray-600 hidden sm:table-cell">{categoryLabels[t.category] || t.category}</td>
                   <td className="px-4 py-3"><PriorityBadge priority={t.priority} /></td>
                   <td className="px-4 py-3"><StatusBadge status={t.status} /></td>
-                  {isAdmin && <td className="px-4 py-3 text-gray-600">{t.client?.name || '—'}</td>}
-                  {isAdmin && <td className="px-4 py-3 text-gray-600">{t.assignee?.name || '—'}</td>}
-                  <td className="px-4 py-3 text-gray-500">
+                  {isAdmin && <td className="px-4 py-3 text-gray-600 hidden lg:table-cell">{t.client?.name || '—'}</td>}
+                  {isAdmin && <td className="px-4 py-3 text-gray-600 hidden lg:table-cell">{t.assignee?.name || '—'}</td>}
+                  <td className="px-4 py-3 text-gray-500 hidden md:table-cell">
                     <span className="inline-flex items-center gap-1"><MessageSquare size={14} /> {t.replies_count || 0}</span>
                   </td>
-                  <td className="px-4 py-3 text-gray-500">{formatDate(t.created_at)}</td>
+                  <td className="px-4 py-3 text-gray-500 hidden md:table-cell">{formatDate(t.created_at)}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1">
                       <button onClick={() => setShowDetail(t.id)} className="p-1.5 hover:bg-blue-50 rounded text-blue-600" title="عرض">
@@ -271,7 +271,7 @@ export default function Tickets() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">الوصف *</label>
                 <textarea rows={4} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className="input w-full" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">الأولوية</label>
                   <select value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value }))} className="input w-full">
@@ -293,7 +293,7 @@ export default function Tickets() {
                 </div>
               </div>
               {isAdmin && (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">العميل</label>
                     <select value={form.client_id as string} onChange={e => setForm(f => ({ ...f, client_id: e.target.value }))} className="input w-full">
