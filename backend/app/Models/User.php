@@ -142,7 +142,6 @@ class User extends Authenticatable
                 'dashboard.view',
                 'tasks.view', 'tasks.create',
                 'projects.view',
-                'clients.view',
                 'settings.view',
             ],
         ];
