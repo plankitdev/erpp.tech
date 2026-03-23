@@ -74,7 +74,7 @@ class InvoiceApiTest extends TestCase
             'status' => 'pending',
         ]);
 
-        $response = $this->actingAs($this->admin)->postJson("/api/invoices/{$invoice->id}/pay", [
+        $response = $this->actingAs($this->admin)->postJson("/api/invoices/{$invoice->id}/payments", [
             'amount' => 5000,
             'notes' => 'دفعة أولى',
         ]);

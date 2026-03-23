@@ -21,7 +21,7 @@ class AuthApiTest extends TestCase
             'is_active' => true,
         ]);
 
-        $response = $this->postJson('/api/login', [
+        $response = $this->postJson('/api/auth/login', [
             'email' => 'test@example.com',
             'password' => 'password123',
         ]);
@@ -39,7 +39,7 @@ class AuthApiTest extends TestCase
             'password' => bcrypt('password123'),
         ]);
 
-        $response = $this->postJson('/api/login', [
+        $response = $this->postJson('/api/auth/login', [
             'email' => 'test@example.com',
             'password' => 'wrongpassword',
         ]);
@@ -57,7 +57,7 @@ class AuthApiTest extends TestCase
             'is_active' => false,
         ]);
 
-        $response = $this->postJson('/api/login', [
+        $response = $this->postJson('/api/auth/login', [
             'email' => 'inactive@example.com',
             'password' => 'password123',
         ]);
@@ -73,7 +73,7 @@ class AuthApiTest extends TestCase
             'is_active' => true,
         ]);
 
-        $response = $this->actingAs($user)->getJson('/api/me');
+        $response = $this->actingAs($user)->getJson('/api/auth/me');
         $response->assertOk();
         $response->assertJsonPath('data.id', $user->id);
     }
@@ -92,7 +92,7 @@ class AuthApiTest extends TestCase
             'is_active' => true,
         ]);
 
-        $response = $this->actingAs($user)->postJson('/api/logout');
+        $response = $this->actingAs($user)->postJson('/api/auth/logout');
         $response->assertOk();
     }
 }
