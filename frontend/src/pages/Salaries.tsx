@@ -18,7 +18,7 @@ export default function Salaries() {
   const salaries = data?.data ?? [];
 
   const [form, setForm] = useState({
-    employee_id: '', base_salary: '', deductions: '0', deduction_reason: '',
+    employee_id: '', base_salary: '', bonus: '0', bonus_reason: '', deductions: '0', deduction_reason: '',
     transfer_amount: '', payment_date: '',
   });
 
@@ -34,9 +34,10 @@ export default function Salaries() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const baseSalary = parseFloat(form.base_salary || '0');
+    const bonus = parseFloat(form.bonus || '0');
     const deductions = parseFloat(form.deductions || '0');
     const transferAmount = parseFloat(form.transfer_amount || '0');
-    const total = baseSalary - deductions;
+    const total = baseSalary + bonus - deductions;
     const remaining = total - transferAmount;
 
     try {
@@ -45,6 +46,8 @@ export default function Salaries() {
         month: selectedMonth,
         year: selectedYear,
         base_salary: baseSalary,
+        bonus,
+        bonus_reason: form.bonus_reason || null,
         deductions,
         deduction_reason: form.deduction_reason || null,
         total,
@@ -53,7 +56,7 @@ export default function Salaries() {
         payment_date: form.payment_date || null,
       } as any);
       setShowForm(false);
-      setForm({ employee_id: '', base_salary: '', deductions: '0', deduction_reason: '', transfer_amount: '', payment_date: '' });
+      setForm({ employee_id: '', base_salary: '', bonus: '0', bonus_reason: '', deductions: '0', deduction_reason: '', transfer_amount: '', payment_date: '' });
       toast.success('تم تسجيل الراتب');
     } catch {
       toast.error('حدث خطأ');
@@ -61,9 +64,10 @@ export default function Salaries() {
   };
 
   const baseSalary = parseFloat(form.base_salary || '0');
+  const bonus = parseFloat(form.bonus || '0');
   const deductions = parseFloat(form.deductions || '0');
   const transferAmount = parseFloat(form.transfer_amount || '0');
-  const total = baseSalary - deductions;
+  const total = baseSalary + bonus - deductions;
   const remaining = total - transferAmount;
 
   return (
@@ -108,6 +112,16 @@ export default function Salaries() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
+              <label className="input-label">المكافأة</label>
+              <input type="number" value={form.bonus} onChange={e => setForm({ ...form, bonus: e.target.value })} className="input" />
+            </div>
+            <div>
+              <label className="input-label">سبب المكافأة</label>
+              <input type="text" value={form.bonus_reason} onChange={e => setForm({ ...form, bonus_reason: e.target.value })} className="input" />
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
               <label className="input-label">الخصومات</label>
               <input type="number" value={form.deductions} onChange={e => setForm({ ...form, deductions: e.target.value })} className="input" />
             </div>
@@ -141,8 +155,8 @@ export default function Salaries() {
               <tr>
                 <th>الموظف</th>
                 <th>الأساسي</th>
+                <th>المكافأة</th>
                 <th>الخصومات</th>
-                <th>سبب الخصم</th>
                 <th>الإجمالي</th>
                 <th>المحول</th>
                 <th>المتبقي</th>
@@ -163,8 +177,8 @@ export default function Salaries() {
                 <tr key={s.id}>
                   <td className="font-semibold text-gray-900">{s.employee?.name}</td>
                   <td className="font-medium">{s.base_salary?.toLocaleString()}</td>
-                  <td className="text-red-500 font-medium">{s.deductions?.toLocaleString()}</td>
-                  <td className="text-gray-400 text-[13px]">{s.deduction_reason || '—'}</td>
+                  <td className="text-emerald-600 font-medium" title={s.bonus_reason || ''}>{s.bonus?.toLocaleString() || '0'}</td>
+                  <td className="text-red-500 font-medium" title={s.deduction_reason || ''}>{s.deductions?.toLocaleString()}</td>
                   <td className="font-bold text-gray-900">{s.total?.toLocaleString()}</td>
                   <td className="text-emerald-600 font-medium">{s.transfer_amount?.toLocaleString()}</td>
                   <td className="text-amber-600 font-medium">{s.remaining?.toLocaleString()}</td>

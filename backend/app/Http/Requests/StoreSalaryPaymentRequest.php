@@ -18,6 +18,8 @@ class StoreSalaryPaymentRequest extends FormRequest
             'month'            => 'required|integer|between:1,12',
             'year'             => 'required|integer|min:2020|max:2099',
             'base_salary'      => 'required|numeric|min:0',
+            'bonus'            => 'nullable|numeric|min:0',
+            'bonus_reason'     => 'nullable|string|max:500',
             'deductions'       => 'nullable|numeric|min:0',
             'deduction_reason' => 'nullable|string|max:500',
             'total'            => 'required|numeric|min:0',

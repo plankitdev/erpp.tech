@@ -6,7 +6,7 @@ import type { Meeting } from '../types';
 import toast from 'react-hot-toast';
 import {
   Plus, Video, X, Clock, MapPin, Users, Calendar,
-  CheckCircle2, XCircle, Pencil, Trash2, Filter,
+  CheckCircle2, XCircle, Pencil, Trash2, Filter, Link2,
 } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import Breadcrumbs from '../components/Breadcrumbs';
@@ -71,12 +71,12 @@ export default function Meetings() {
 
   const [form, setForm] = useState({
     title: '', description: '', start_time: '', end_time: '',
-    location: '', type: 'team' as string, status: 'scheduled' as string,
+    location: '', meeting_link: '', type: 'team' as string, status: 'scheduled' as string,
   });
 
   const openCreateModal = () => {
     setEditMeeting(null);
-    setForm({ title: '', description: '', start_time: '', end_time: '', location: '', type: 'team', status: 'scheduled' });
+    setForm({ title: '', description: '', start_time: '', end_time: '', location: '', meeting_link: '', type: 'team', status: 'scheduled' });
     setShowModal(true);
   };
 
@@ -88,6 +88,7 @@ export default function Meetings() {
       start_time: m.start_time?.slice(0, 16) || '',
       end_time: m.end_time?.slice(0, 16) || '',
       location: m.location || '',
+      meeting_link: m.meeting_link || '',
       type: m.type,
       status: m.status,
     });
@@ -258,6 +259,13 @@ export default function Meetings() {
                           <MapPin size={13} />
                           {meeting.location}
                         </span>
+                      )}
+                      {meeting.meeting_link && (
+                        <a href={meeting.meeting_link} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-primary-600 hover:text-primary-700 hover:underline">
+                          <Link2 size={13} />
+                          انضم للاجتماع
+                        </a>
                       )}
                       {meeting.project && (
                         <span className="flex items-center gap-1 text-primary-500">
@@ -430,7 +438,13 @@ export default function Meetings() {
                   <label className="form-label">المكان</label>
                   <input type="text" value={form.location}
                     onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
-                    className="form-input" placeholder="مثال: قاعة الاجتماعات أو رابط Zoom" />
+                    className="form-input" placeholder="مثال: قاعة الاجتماعات" />
+                </div>
+                <div>
+                  <label className="form-label">رابط الاجتماع</label>
+                  <input type="url" value={form.meeting_link}
+                    onChange={e => setForm(f => ({ ...f, meeting_link: e.target.value }))}
+                    className="form-input" placeholder="مثال: https://meet.google.com/..." dir="ltr" />
                 </div>
               </div>
               <div className="modal-footer">

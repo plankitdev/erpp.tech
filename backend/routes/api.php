@@ -38,6 +38,7 @@ use App\Http\Controllers\Api\TimeEntryController;
 use App\Http\Controllers\Api\MeetingController;
 use App\Http\Controllers\Api\CalendarController;
 use App\Http\Controllers\Api\MediaLibraryController;
+use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\PushController;
 use Illuminate\Support\Facades\Route;
@@ -178,6 +179,14 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
     // ========== Calendar ==========
     Route::get('/calendar', [CalendarController::class, 'index']);
+
+    // ========== Announcements ==========
+    Route::get('/announcements', [AnnouncementController::class, 'index']);
+    Route::middleware('role:super_admin')->group(function () {
+        Route::post('/announcements', [AnnouncementController::class, 'store']);
+        Route::put('/announcements/{announcement}', [AnnouncementController::class, 'update']);
+        Route::delete('/announcements/{announcement}', [AnnouncementController::class, 'destroy']);
+    });
 
     // ========== Meetings ==========
     Route::apiResource('meetings', MeetingController::class);

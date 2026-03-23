@@ -8,7 +8,7 @@ import {
   CheckSquare, Kanban, Handshake, BarChart3, KeyRound, ChevronRight, ChevronLeft,
   LogOut, CreditCard, Settings, Activity, ChevronDown, Building2, User, Shield, FolderKanban, FolderOpen,
   PanelRightOpen, PanelRightClose, Search, Target, UserPlus, Menu, X,
-  CalendarDays, ImageIcon, Video, Heart, Timer, ClipboardList, Ticket, GanttChartSquare, Mail, Zap, BookOpen, MessageSquare, Tag, Monitor,
+  CalendarDays, ImageIcon, Video, Heart, Timer, ClipboardList, Ticket, GanttChartSquare, Mail, Zap, BookOpen, MessageSquare, Tag, Monitor, Megaphone,
 } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import Breadcrumbs, { type BreadcrumbItem } from './Breadcrumbs';
@@ -30,6 +30,13 @@ interface MenuSection {
 }
 
 const menuSections: MenuSection[] = [
+  {
+    title: 'التحديثات',
+    icon: Megaphone,
+    items: [
+      { path: '/announcements', label: 'التحديثات والإعلانات', icon: Megaphone, permission: null },
+    ],
+  },
   {
     title: 'العملاء والمبيعات',
     icon: Users,

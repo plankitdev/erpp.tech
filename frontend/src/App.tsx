@@ -62,6 +62,7 @@ const Chat = lazy(() => import('./pages/Chat'));
 const KpiDashboard = lazy(() => import('./pages/KpiDashboard'));
 const TagsManager = lazy(() => import('./pages/TagsManager'));
 const SystemMonitor = lazy(() => import('./pages/SystemMonitor'));
+const Announcements = lazy(() => import('./pages/Announcements'));
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuthStore();
@@ -125,6 +126,7 @@ export default function App() {
         <Route path="kpi" element={<KpiDashboard />} />
         <Route path="tags" element={<TagsManager />} />
         <Route path="system-monitor" element={<SystemMonitor />} />
+        <Route path="announcements" element={<Announcements />} />
         <Route path="media" element={<MediaLibrary />} />
         <Route path="partners" element={<Partners />} />
         <Route path="partners/:id/statement" element={<PartnerStatement />} />

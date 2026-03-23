@@ -13,12 +13,14 @@ class SalaryPayment extends Model
 
     protected $fillable = [
         'company_id', 'employee_id', 'month', 'year', 'base_salary',
+        'bonus', 'bonus_reason',
         'deductions', 'deduction_reason', 'total',
         'transfer_amount', 'remaining', 'payment_date',
     ];
 
     protected $casts = [
         'base_salary' => 'decimal:2',
+        'bonus' => 'decimal:2',
         'deductions' => 'decimal:2',
         'total' => 'decimal:2',
         'transfer_amount' => 'decimal:2',

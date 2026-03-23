@@ -197,6 +197,8 @@ export interface SalaryPayment {
   month: number;
   year: number;
   base_salary: number;
+  bonus: number;
+  bonus_reason: string | null;
   deductions: number;
   deduction_reason: string | null;
   total: number;
@@ -606,6 +608,7 @@ export interface Meeting {
   start_time: string;
   end_time: string;
   location: string | null;
+  meeting_link: string | null;
   type: MeetingType;
   status: MeetingStatus;
   project_id: number | null;

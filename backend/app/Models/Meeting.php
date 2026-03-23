@@ -24,7 +24,7 @@ class Meeting extends Model
     protected $fillable = [
         'company_id', 'created_by', 'project_id', 'title',
         'description', 'start_time', 'end_time', 'location',
-        'type', 'status',
+        'meeting_link', 'type', 'status',
     ];
 
     protected $casts = [

@@ -14,6 +14,8 @@ class SalaryPaymentResource extends JsonResource
             'month'            => $this->month,
             'year'             => $this->year,
             'base_salary'      => $this->base_salary,
+            'bonus'            => $this->bonus,
+            'bonus_reason'     => $this->bonus_reason,
             'deductions'       => $this->deductions,
             'deduction_reason' => $this->deduction_reason,
             'total'            => $this->total,

@@ -9,7 +9,7 @@ import StatusBadge from '../components/StatusBadge';
 import toast from 'react-hot-toast';
 import {
   ArrowRight, Paperclip, Send, Download, Clock, Calendar, User, FolderKanban,
-  CheckSquare, Plus, Trash2, Timer, Play, Square, GripVertical,
+  CheckSquare, Plus, Trash2, Timer, Play, Square, GripVertical, Pencil, X,
 } from 'lucide-react';
 
 const statusOptions: { value: TaskStatus; label: string }[] = [
@@ -39,6 +39,11 @@ export default function TaskDetail() {
   const [attachment, setAttachment] = useState<File | null>(null);
   const [newChecklistTitle, setNewChecklistTitle] = useState('');
   const [elapsed, setElapsed] = useState(0);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({
+    title: '', description: '', priority: 'medium' as string,
+    start_date: '', due_date: '',
+  });
   const fileRef = useRef<HTMLInputElement>(null);
 
   const isTimerRunning = runningTimer && runningTimer.task_id === taskId;
@@ -89,6 +94,38 @@ export default function TaskDetail() {
     try {
       await updateTask.mutateAsync({ id: task.id, data: { status } as Partial<Task> });
       toast.success('تم تحديث الحالة');
+    } catch {
+      toast.error('حدث خطأ');
+    }
+  };
+
+  const openEditModal = () => {
+    setEditForm({
+      title: task.title,
+      description: task.description || '',
+      priority: task.priority,
+      start_date: task.start_date?.slice(0, 10) || '',
+      due_date: task.due_date?.slice(0, 10) || '',
+    });
+    setShowEditModal(true);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editForm.title.trim()) { toast.error('العنوان مطلوب'); return; }
+    try {
+      await updateTask.mutateAsync({
+        id: task.id,
+        data: {
+          title: editForm.title,
+          description: editForm.description || null,
+          priority: editForm.priority as TaskPriority,
+          start_date: editForm.start_date || null,
+          due_date: editForm.due_date || null,
+        } as Partial<Task>,
+      });
+      setShowEditModal(false);
+      toast.success('تم تحديث المهمة');
     } catch {
       toast.error('حدث خطأ');
     }
@@ -184,6 +221,11 @@ export default function TaskDetail() {
                   <p className="text-gray-600 text-sm leading-relaxed">{task.description}</p>
                 )}
               </div>
+              <button onClick={openEditModal}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium text-gray-500 hover:text-amber-600 hover:bg-amber-50 transition-all border border-gray-200">
+                <Pencil size={14} />
+                تعديل
+              </button>
             </div>
 
             {/* Status selector */}
@@ -483,6 +525,72 @@ export default function TaskDetail() {
           )}
         </div>
       </div>
+
+      {/* Edit Modal */}
+      {showEditModal && (
+        <div className="modal-overlay">
+          <div className="modal-backdrop" onClick={() => setShowEditModal(false)} />
+          <div className="modal-content" style={{ maxWidth: '520px' }}>
+            <div className="modal-header">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white">
+                  <Pencil size={20} />
+                </div>
+                <h2 className="text-lg font-bold text-gray-800">تعديل المهمة</h2>
+              </div>
+              <button onClick={() => setShowEditModal(false)} className="text-gray-400 hover:text-gray-600 p-1">
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleEditSubmit}>
+              <div className="modal-body space-y-4">
+                <div>
+                  <label className="form-label">العنوان *</label>
+                  <input type="text" value={editForm.title}
+                    onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
+                    className="form-input" required />
+                </div>
+                <div>
+                  <label className="form-label">الوصف</label>
+                  <textarea value={editForm.description}
+                    onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+                    className="form-input" rows={3} />
+                </div>
+                <div>
+                  <label className="form-label">الأولوية</label>
+                  <select value={editForm.priority}
+                    onChange={e => setEditForm(f => ({ ...f, priority: e.target.value }))}
+                    className="form-input">
+                    <option value="high">عالية</option>
+                    <option value="medium">متوسطة</option>
+                    <option value="low">منخفضة</option>
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="form-label">تاريخ البداية</label>
+                    <input type="date" value={editForm.start_date}
+                      onChange={e => setEditForm(f => ({ ...f, start_date: e.target.value }))}
+                      className="form-input" />
+                  </div>
+                  <div>
+                    <label className="form-label">تاريخ التسليم</label>
+                    <input type="date" value={editForm.due_date}
+                      onChange={e => setEditForm(f => ({ ...f, due_date: e.target.value }))}
+                      className="form-input" />
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" onClick={() => setShowEditModal(false)} className="btn-secondary">إلغاء</button>
+                <button type="submit" disabled={updateTask.isPending} className="btn-primary">
+                  {updateTask.isPending ? 'جاري الحفظ...' : 'حفظ التعديلات'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
