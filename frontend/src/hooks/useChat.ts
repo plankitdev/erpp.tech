@@ -3,7 +3,7 @@ import { chatApi } from '../api/chat';
 import toast from 'react-hot-toast';
 
 export function useChatChannels() {
-  return useQuery({ queryKey: ['chat-channels'], queryFn: chatApi.getChannels, refetchInterval: 10000, staleTime: 0, refetchIntervalInBackground: true, refetchOnWindowFocus: true });
+  return useQuery({ queryKey: ['chat-channels'], queryFn: chatApi.getChannels, refetchInterval: 15000, staleTime: 5000, refetchOnWindowFocus: true });
 }
 
 export function useChatMessages(channelId: number | null) {
@@ -11,9 +11,8 @@ export function useChatMessages(channelId: number | null) {
     queryKey: ['chat-messages', channelId],
     queryFn: () => chatApi.getMessages(channelId!),
     enabled: !!channelId,
-    refetchInterval: 3000,
-    staleTime: 0,
-    refetchIntervalInBackground: true,
+    refetchInterval: 5000,
+    staleTime: 2000,
     refetchOnWindowFocus: true,
   });
 }
