@@ -366,9 +366,9 @@ export default function Meetings() {
 
       {/* Create/Edit Modal */}
       {showModal && (
-        <div className="modal-overlay">
+        <div className="modal-overlay !items-start !pt-8">
           <div className="modal-backdrop" onClick={() => setShowModal(false)} />
-          <div className="modal-content" style={{ maxWidth: '560px' }}>
+          <div className="modal-content" style={{ maxWidth: '680px' }}>
             <div className="modal-header">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white">

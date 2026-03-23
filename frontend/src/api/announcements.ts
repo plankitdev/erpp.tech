@@ -9,6 +9,7 @@ export interface Announcement {
   is_pinned: boolean;
   likes_count: number;
   is_liked: boolean;
+  likes?: { id: number; name: string }[];
   creator?: { id: number; name: string };
   created_at: string;
 }

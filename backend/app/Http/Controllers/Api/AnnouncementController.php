@@ -16,7 +16,7 @@ class AnnouncementController extends Controller
     {
         $userId = $request->user()->id;
 
-        $announcements = Announcement::with('creator')
+        $announcements = Announcement::with(['creator', 'likes:id,name'])
             ->withCount('likes')
             ->withExists(['likes as is_liked' => function ($q) use ($userId) {
                 $q->where('user_id', $userId);

@@ -149,6 +149,11 @@ export default function Announcements() {
                         <ThumbsUp size={14} />
                         {a.likes_count > 0 && <span>{a.likes_count}</span>}
                       </button>
+                      {a.likes && a.likes.length > 0 && (
+                        <span className="text-xs text-gray-400">
+                          {a.likes.map(l => l.name).join('، ')}
+                        </span>
+                      )}
                     </div>
                   </div>
                   {isSuperAdmin && (
