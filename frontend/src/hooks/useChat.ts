@@ -32,7 +32,7 @@ export function useSendMessage() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ channelId, data }: { channelId: number; data: FormData }) => chatApi.sendMessage(channelId, data),
-    onSuccess: (_, vars) => { qc.invalidateQueries({ queryKey: ['chat-messages', vars.channelId] }); qc.invalidateQueries({ queryKey: ['chat-channels'] }); },
+    onSuccess: (_, vars) => { qc.invalidateQueries({ queryKey: ['chat-messages', vars.channelId] }); qc.invalidateQueries({ queryKey: ['chat-channels'] }); qc.invalidateQueries({ queryKey: ['chat-unread'] }); },
     onError: () => toast.error('فشل إرسال الرسالة'),
   });
 }
@@ -59,6 +59,28 @@ export function useMarkRead() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: chatApi.markRead,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['chat-channels'] }); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['chat-channels'] }); qc.invalidateQueries({ queryKey: ['chat-unread'] }); },
+  });
+}
+
+export function useChatUnreadCount() {
+  return useQuery({ queryKey: ['chat-unread'], queryFn: chatApi.getTotalUnread, refetchInterval: 15000 });
+}
+
+export function useAddMembers() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ channelId, memberIds }: { channelId: number; memberIds: number[] }) => chatApi.addMembers(channelId, memberIds),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['chat-channels'] }); toast.success('تم إضافة الأعضاء'); },
+    onError: () => toast.error('فشل إضافة الأعضاء'),
+  });
+}
+
+export function useRemoveMember() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ channelId, userId }: { channelId: number; userId: number }) => chatApi.removeMember(channelId, userId),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['chat-channels'] }); toast.success('تم إزالة العضو'); },
+    onError: () => toast.error('فشل إزالة العضو'),
   });
 }

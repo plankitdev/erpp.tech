@@ -36,4 +36,7 @@ export const chatApi = {
 
   getUsers: () =>
     api.get<ApiResponse<ChatUser[]>>('/chat/users').then(r => r.data.data),
+
+  getTotalUnread: () =>
+    api.get<ApiResponse<{ count: number }>>('/chat/unread-count').then(r => r.data.data.count),
 };

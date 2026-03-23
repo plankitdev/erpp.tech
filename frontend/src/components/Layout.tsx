@@ -16,6 +16,7 @@ import GlobalSearch from './GlobalSearch';
 import FloatingActionButton from './FloatingActionButton';
 import OnboardingTour from './OnboardingTour';
 import { useAnnouncementUnreadCount } from '../hooks/useAnnouncements';
+import { useChatUnreadCount } from '../hooks/useChat';
 
 interface MenuItem {
   path: string;
@@ -116,6 +117,7 @@ export default function Layout() {
   const { user, logout, hasPermission } = useAuthStore();
   const location = useLocation();
   const { data: announcementUnread = 0 } = useAnnouncementUnreadCount();
+  const { data: chatUnread = 0 } = useChatUnreadCount();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
@@ -342,6 +344,11 @@ export default function Layout() {
                         {item.path === '/announcements' && announcementUnread > 0 && (
                           <span className="bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 mr-auto">
                             {announcementUnread > 99 ? '99+' : announcementUnread}
+                          </span>
+                        )}
+                        {item.path === '/chat' && chatUnread > 0 && (
+                          <span className="bg-blue-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 mr-auto">
+                            {chatUnread > 99 ? '99+' : chatUnread}
                           </span>
                         )}
                         {/* Hover glow on active */}

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { MessageSquare, Plus, Send, Paperclip, Trash2, Users, Hash, X, Search, ArrowRight, Building2 } from 'lucide-react';
-import { useChatChannels, useChatMessages, useChatUsers, useCreateChannel, useSendMessage, useDeleteMessage, useDeleteChannel, useMarkRead } from '../hooks/useChat';
+import { MessageSquare, Plus, Send, Paperclip, Trash2, Users, Hash, X, Search, ArrowRight, Building2, UserPlus, UserMinus, Lock, Globe } from 'lucide-react';
+import { useChatChannels, useChatMessages, useChatUsers, useCreateChannel, useSendMessage, useDeleteMessage, useDeleteChannel, useMarkRead, useAddMembers, useRemoveMember } from '../hooks/useChat';
 import { useAuthStore } from '../store/authStore';
 import type { ChatChannel, ChatMessage } from '../types';
 
@@ -9,6 +9,7 @@ export default function Chat() {
   const [activeChannelId, setActiveChannelId] = useState<number | null>(null);
   const [showNewChannel, setShowNewChannel] = useState(false);
   const [showDM, setShowDM] = useState(false);
+  const [showMembers, setShowMembers] = useState(false);
   const [messageText, setMessageText] = useState('');
   const [attachment, setAttachment] = useState<File | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -23,6 +24,8 @@ export default function Chat() {
   const deleteMessage = useDeleteMessage();
   const deleteChannel = useDeleteChannel();
   const markRead = useMarkRead();
+  const addMembers = useAddMembers();
+  const removeMember = useRemoveMember();
 
   const messages = messagesData?.data ?? [];
   const activeChannel = channels.find((c: ChatChannel) => c.id === activeChannelId);
@@ -162,18 +165,33 @@ export default function Chat() {
               <div className="flex items-center gap-3">
                 {getChannelIcon(activeChannel)}
                 <div>
-                  <h3 className="font-bold text-gray-800">{getChannelName(activeChannel)}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-gray-800">{getChannelName(activeChannel)}</h3>
+                    {activeChannel.type === 'public' && <Globe size={14} className="text-gray-400" />}
+                    {activeChannel.type === 'private' && <Lock size={14} className="text-yellow-500" />}
+                  </div>
                   <p className="text-xs text-gray-500">{activeChannel.members.length} عضو</p>
                 </div>
               </div>
-              {activeChannel.created_by === user?.id && (
-                <button
-                  onClick={() => { if (confirm('حذف هذه القناة؟')) { deleteChannel.mutate(activeChannel.id); setActiveChannelId(null); } }}
-                  className="p-2 hover:bg-red-50 rounded-lg text-red-500 transition"
-                >
-                  <Trash2 size={18} />
-                </button>
-              )}
+              <div className="flex items-center gap-1">
+                {activeChannel.type !== 'direct' && (
+                  <button
+                    onClick={() => setShowMembers(true)}
+                    className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition"
+                    title="إدارة الأعضاء"
+                  >
+                    <Users size={18} />
+                  </button>
+                )}
+                {(activeChannel.created_by === user?.id || user?.role === 'super_admin') && (
+                  <button
+                    onClick={() => { if (confirm('حذف هذه القناة؟')) { deleteChannel.mutate(activeChannel.id); setActiveChannelId(null); } }}
+                    className="p-2 hover:bg-red-50 rounded-lg text-red-500 transition"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Messages */}
@@ -267,6 +285,19 @@ export default function Chat() {
 
       {/* DM Modal */}
       {showDM && <DMModal users={chatUsers} onClose={() => setShowDM(false)} onCreate={(data) => { createChannel.mutate(data, { onSuccess: (ch) => { setActiveChannelId(ch.id); } }); setShowDM(false); }} />}
+
+      {/* Members Modal */}
+      {showMembers && activeChannel && activeChannel.type !== 'direct' && (
+        <MembersModal
+          channel={activeChannel}
+          allUsers={chatUsers}
+          currentUserId={user?.id || 0}
+          canManage={activeChannel.created_by === user?.id || user?.role === 'super_admin' || user?.role === 'manager'}
+          onAddMembers={(ids) => addMembers.mutate({ channelId: activeChannel.id, memberIds: ids })}
+          onRemoveMember={(userId) => removeMember.mutate({ channelId: activeChannel.id, userId })}
+          onClose={() => setShowMembers(false)}
+        />
+      )}
     </div>
   );
 }
@@ -400,6 +431,105 @@ function DMModal({ users, onClose, onCreate }: { users: { id: number; name: stri
             </button>
           ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function MembersModal({ channel, allUsers, currentUserId, canManage, onAddMembers, onRemoveMember, onClose }: {
+  channel: ChatChannel;
+  allUsers: { id: number; name: string; role: string }[];
+  currentUserId: number;
+  canManage: boolean;
+  onAddMembers: (ids: number[]) => void;
+  onRemoveMember: (userId: number) => void;
+  onClose: () => void;
+}) {
+  const [showAdd, setShowAdd] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const memberIds = channel.members.map(m => m.id);
+  const nonMembers = allUsers.filter(u => !memberIds.includes(u.id));
+  const toggle = (id: number) => setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl w-full max-w-md p-6 max-h-[80vh] flex flex-col">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold flex items-center gap-2">
+            <Users size={20} />
+            أعضاء القناة ({channel.members.length})
+          </h3>
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded"><X size={20} /></button>
+        </div>
+
+        {channel.type === 'public' && (
+          <div className="flex items-center gap-2 p-2.5 bg-primary-50 text-primary-700 rounded-lg text-xs mb-3">
+            <Globe size={14} />
+            <span>قناة عامة - كل موظفين الشركة بيتضافوا تلقائياً</span>
+          </div>
+        )}
+
+        {/* Current members */}
+        <div className="flex-1 overflow-y-auto space-y-1 mb-3">
+          {channel.members.map(m => (
+            <div key={m.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
+              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-sm font-bold">
+                {m.avatar ? <img src={m.avatar} className="w-8 h-8 rounded-full object-cover" /> : m.name.charAt(0)}
+              </div>
+              <div className="flex-1">
+                <span className="text-sm font-medium">{m.name}</span>
+                {m.id === channel.created_by && <span className="text-[10px] text-gray-400 mr-2">المنشئ</span>}
+              </div>
+              {canManage && m.id !== currentUserId && m.id !== channel.created_by && (
+                <button
+                  onClick={() => { if (confirm(`إزالة ${m.name} من القناة؟`)) onRemoveMember(m.id); }}
+                  className="p-1.5 hover:bg-red-50 rounded text-red-400 hover:text-red-600 transition"
+                  title="إزالة"
+                >
+                  <UserMinus size={16} />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Add members section */}
+        {canManage && !showAdd && nonMembers.length > 0 && (
+          <button
+            onClick={() => setShowAdd(true)}
+            className="w-full py-2.5 border-2 border-dashed border-gray-200 hover:border-primary-300 rounded-xl text-sm text-gray-500 hover:text-primary-600 transition flex items-center justify-center gap-2"
+          >
+            <UserPlus size={16} />
+            إضافة أعضاء
+          </button>
+        )}
+
+        {showAdd && (
+          <div className="border-t border-gray-100 pt-3 mt-1">
+            <p className="text-sm font-medium text-gray-700 mb-2">اختر أعضاء لإضافتهم</p>
+            <div className="max-h-32 overflow-y-auto border rounded-lg p-2 space-y-1 mb-3">
+              {nonMembers.map(u => (
+                <label key={u.id} className="flex items-center gap-2 p-1.5 hover:bg-gray-50 rounded cursor-pointer">
+                  <input type="checkbox" checked={selectedIds.includes(u.id)} onChange={() => toggle(u.id)} className="rounded" />
+                  <span className="text-sm">{u.name}</span>
+                  <span className="text-xs text-gray-400 mr-auto">{u.role}</span>
+                </label>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { if (selectedIds.length) { onAddMembers(selectedIds); setSelectedIds([]); setShowAdd(false); } }}
+                disabled={!selectedIds.length}
+                className="flex-1 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-300 text-white rounded-lg text-sm font-medium transition"
+              >
+                إضافة ({selectedIds.length})
+              </button>
+              <button onClick={() => { setShowAdd(false); setSelectedIds([]); }} className="px-4 py-2 bg-gray-100 rounded-lg text-sm">
+                إلغاء
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

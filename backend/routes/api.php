@@ -293,6 +293,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::delete('/chat/channels/{channel}/messages/{message}', [ChatController::class, 'deleteMessage']);
     Route::post('/chat/channels/{channel}/read', [ChatController::class, 'markRead']);
     Route::get('/chat/users', [ChatController::class, 'users']);
+    Route::get('/chat/unread-count', [ChatController::class, 'totalUnread']);
 
     // ========== KPI Dashboard ==========
     Route::get('/kpi/personal', [KpiController::class, 'personal']);

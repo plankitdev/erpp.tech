@@ -21,6 +21,9 @@ class ChatController extends Controller
     {
         $user = Auth::user();
 
+        // Auto-join user to public channels of their company
+        $this->autoJoinPublicChannels($user);
+
         $query = ChatChannel::query()
             ->whereHas('members', function ($q) use ($user) {
                 $q->where('user_id', $user->id);
@@ -83,7 +86,7 @@ class ChatController extends Controller
         }
 
         $channel = ChatChannel::create([
-            'company_id' => $user->company_id,
+            'company_id' => $user->isSuperAdmin() ? ($this->getSuperAdminCompanyId($user) ?? $user->company_id) : $user->company_id,
             'name' => $request->name,
             'type' => $request->type,
             'description' => $request->description,
@@ -92,6 +95,14 @@ class ChatController extends Controller
 
         // Add creator + members
         $memberIds = array_unique(array_merge([$user->id], $request->member_ids));
+
+        // For public channels, add all company users
+        if ($request->type === 'public') {
+            $companyId = $user->isSuperAdmin() ? ($this->getSuperAdminCompanyId($user) ?? $user->company_id) : $user->company_id;
+            $companyUserIds = User::where('company_id', $companyId)->where('is_active', true)->pluck('id')->toArray();
+            $memberIds = array_unique(array_merge($memberIds, $companyUserIds));
+        }
+
         $channel->members()->attach($memberIds);
 
         $channel->load(['members:id,name,avatar', 'latestMessage.user:id,name']);
@@ -263,6 +274,47 @@ class ChatController extends Controller
         $users = $query->orderBy('name')->get();
 
         return $this->successResponse($users);
+    }
+
+    public function totalUnread(): JsonResponse
+    {
+        $user = Auth::user();
+
+        $count = ChatChannel::query()
+            ->whereHas('members', fn($q) => $q->where('user_id', $user->id))
+            ->withCount(['messages as unread_count' => function ($q) use ($user) {
+                $q->where('chat_messages.created_at', '>', function ($sub) use ($user) {
+                    $sub->select('last_read_at')
+                        ->from('chat_channel_members')
+                        ->whereColumn('chat_channel_members.channel_id', 'chat_messages.channel_id')
+                        ->where('chat_channel_members.user_id', $user->id);
+                });
+            }])
+            ->get()
+            ->sum('unread_count');
+
+        return $this->successResponse(['count' => (int)$count]);
+    }
+
+    private function autoJoinPublicChannels($user): void
+    {
+        $companyId = $user->isSuperAdmin() ? $this->getSuperAdminCompanyId($user) : $user->company_id;
+        if (!$companyId) return;
+
+        $publicChannelIds = ChatChannel::where('company_id', $companyId)
+            ->where('type', 'public')
+            ->whereDoesntHave('members', fn($q) => $q->where('user_id', $user->id))
+            ->pluck('id');
+
+        foreach ($publicChannelIds as $channelId) {
+            \DB::table('chat_channel_members')->insert([
+                'channel_id' => $channelId,
+                'user_id' => $user->id,
+                'last_read_at' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
     }
 
     private function getSuperAdminCompanyId($user): ?int
