@@ -46,10 +46,22 @@ return new class extends Migration
 
             $table->index('lead_id');
         });
+
+        // Add foreign key for quotations.lead_id (quotations table created earlier)
+        if (Schema::hasTable('quotations') && Schema::hasColumn('quotations', 'lead_id')) {
+            Schema::table('quotations', function (Blueprint $table) {
+                $table->foreign('lead_id')->references('id')->on('leads')->nullOnDelete();
+            });
+        }
     }
 
     public function down(): void
     {
+        if (Schema::hasTable('quotations')) {
+            Schema::table('quotations', function (Blueprint $table) {
+                $table->dropForeign(['lead_id']);
+            });
+        }
         Schema::dropIfExists('lead_activities');
         Schema::dropIfExists('leads');
     }

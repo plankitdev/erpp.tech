@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
             $table->foreignId('client_id')->nullable()->constrained()->nullOnDelete();
-            $table->foreignId('lead_id')->nullable()->constrained()->nullOnDelete();
+            $table->unsignedBigInteger('lead_id')->nullable();
             $table->foreignId('created_by')->constrained('users')->cascadeOnDelete();
             $table->string('reference')->unique();
             $table->string('subject');
