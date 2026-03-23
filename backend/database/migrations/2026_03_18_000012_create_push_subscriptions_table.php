@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->foreignId('company_id')->constrained()->onDelete('cascade');
-            $table->text('endpoint');
+            $table->string('endpoint', 500);
             $table->string('p256dh')->nullable();
             $table->string('auth')->nullable();
             $table->timestamps();
