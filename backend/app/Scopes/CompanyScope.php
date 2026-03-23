@@ -13,7 +13,7 @@ class CompanyScope implements Scope
         if (auth()->check()) {
             $user = auth()->user();
 
-            // Super admin: scope by selected company from token abilities
+            // Super admin: scope by selected company from token abilities, or show all
             if ($user->isSuperAdmin()) {
                 $token = $user->currentAccessToken();
                 if ($token) {
@@ -25,11 +25,7 @@ class CompanyScope implements Scope
                         }
                     }
                 }
-                // No company selected via token — fall back to user's company_id if set
-                if ($user->company_id) {
-                    $builder->where($model->getTable() . '.company_id', $user->company_id);
-                }
-                // If company_id is also null, show all (true super admin)
+                // No company selected — show all
                 return;
             }
 

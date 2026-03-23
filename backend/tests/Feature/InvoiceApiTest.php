@@ -106,12 +106,19 @@ class InvoiceApiTest extends TestCase
         $otherCompany = Company::factory()->create();
         $otherUser = User::factory()->create([
             'company_id' => $otherCompany->id,
-            'role' => 'super_admin',
+            'role' => 'manager',
         ]);
         $otherClient = Client::factory()->create(['company_id' => $otherCompany->id]);
         $otherContract = Contract::factory()->create([
             'company_id' => $otherCompany->id,
             'client_id' => $otherClient->id,
+        ]);
+
+        // Use a manager (not super_admin) to test company isolation
+        $manager = User::factory()->create([
+            'company_id' => $this->company->id,
+            'role' => 'manager',
+            'is_active' => true,
         ]);
 
         Invoice::factory()->create([
@@ -123,7 +130,7 @@ class InvoiceApiTest extends TestCase
             'contract_id' => $otherContract->id,
         ]);
 
-        $response = $this->actingAs($this->admin)->getJson('/api/invoices');
+        $response = $this->actingAs($manager)->getJson('/api/invoices');
         $response->assertOk();
         $this->assertCount(1, $response->json('data'));
     }
