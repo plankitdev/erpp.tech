@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useDashboard } from '../hooks/useDashboard';
 import { formatCurrency, formatDate } from '../utils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Area, AreaChart } from 'recharts';
-import { Users, FileText, Receipt, TrendingUp, TrendingDown, Wallet, Clock, CheckCircle2, Sparkles, FolderKanban, Target, CalendarDays, Timer, AlertTriangle, Play, UserCheck, Plus, ArrowUpRight, Activity, Zap, BarChart3, Building2, ChevronDown } from 'lucide-react';
+import { Users, FileText, Receipt, TrendingUp, TrendingDown, Wallet, Clock, CheckCircle2, Sparkles, FolderKanban, Target, CalendarDays, Timer, AlertTriangle, Play, UserCheck, Plus, ArrowUpRight, Activity, Zap, BarChart3, Building2 } from 'lucide-react';
 import type { RecentInvoice, RecentTask, ExpenseCategory } from '../types';
 import { useAuthStore } from '../store/authStore';
 import { Link } from 'react-router-dom';
@@ -85,17 +85,20 @@ function WelcomeBanner({ userName, subtitle, rightContent, year, onYearChange, q
           </div>
           <div className="hidden md:flex items-center gap-3">
             {rightContent}
-            <div className="relative">
-              <select
-                value={year}
-                onChange={(e) => onYearChange(Number(e.target.value))}
-                className="appearance-none bg-white/10 backdrop-blur-sm text-white text-sm font-medium rounded-xl px-4 py-2.5 pl-8 border border-white/15 cursor-pointer hover:bg-white/15 transition-colors focus:outline-none focus:ring-2 focus:ring-white/20"
-              >
-                {Array.from({ length: 5 }, (_, i) => currentYear - i).map((y) => (
-                  <option key={y} value={y} className="text-gray-900">{y}</option>
-                ))}
-              </select>
-              <ChevronDown size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/60 pointer-events-none" />
+            <div className="flex items-center gap-1.5 bg-white/10 backdrop-blur-sm rounded-xl border border-white/15 px-1 py-1">
+              {Array.from({ length: 4 }, (_, i) => currentYear - i).map((y) => (
+                <button
+                  key={y}
+                  onClick={() => onYearChange(y)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                    year === y
+                      ? 'bg-white text-primary-700 shadow-sm'
+                      : 'text-white/70 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  {y}
+                </button>
+              ))}
             </div>
           </div>
         </div>
@@ -723,6 +726,17 @@ export default function Dashboard() {
       <div className="text-left bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 border border-white/10">
         <p className="text-xs text-primary-200">مهام الفريق</p>
         <p className="text-lg font-bold text-white mt-0.5">{(stats as any)?.total_tasks || 0}</p>
+      </div>
+    </div>
+  ) : role === 'sales' ? (
+    <div className="flex items-center gap-3">
+      <div className="text-left bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 border border-white/10">
+        <p className="text-xs text-primary-200">قيمة المبيعات</p>
+        <p className="text-lg font-bold text-emerald-300 mt-0.5">{formatCurrency((stats as any)?.won_value || 0)}</p>
+      </div>
+      <div className="text-left bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 border border-white/10">
+        <p className="text-xs text-primary-200">فرص مفتوحة</p>
+        <p className="text-lg font-bold text-white mt-0.5">{(stats as any)?.open_leads || 0}</p>
       </div>
     </div>
   ) : role === 'employee' ? (

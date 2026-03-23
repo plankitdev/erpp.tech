@@ -134,7 +134,7 @@ class DashboardController extends Controller
     {
         $data = $this->getManagerData($year, $dateFrom, $dateTo);
         $data['total_users'] = User::count();
-        $data['total_employees'] = Employee::count();
+        $data['employees_count'] = Employee::count();
         return $data;
     }
 
@@ -251,6 +251,8 @@ class DashboardController extends Controller
             'expense_distribution' => $expDist,
             'recent_invoices' => $recentInvoices,
             'project_progress' => $projectProgress,
+            'employees_count' => Employee::count(),
+            'team_count' => User::where('role', '!=', 'super_admin')->count(),
         ];
     }
 
