@@ -141,7 +141,7 @@ export default function FinanceHub() {
           <h3 className="text-lg font-bold text-gray-900 mb-1">الإيرادات والمصروفات</h3>
           <p className="text-xs text-gray-400 mb-4">آخر 12 شهر</p>
           {monthlyRevenue.length > 0 ? (
-            <ResponsiveContainer width="100%" height={280}>
+            <ResponsiveContainer width="100%" height={280} minWidth={0} minHeight={0}>
               <AreaChart data={monthlyRevenue}>
                 <defs>
                   <linearGradient id="finRevenueGrad" x1="0" y1="0" x2="0" y2="1">
@@ -172,7 +172,7 @@ export default function FinanceHub() {
           <p className="text-xs text-gray-400 mb-4">حسب الفئة</p>
           {expenseDist.length > 0 ? (
             <>
-              <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={200} minWidth={0} minHeight={0}>
                 <PieChart>
                   <Pie data={expenseDist} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={4} dataKey="value" stroke="none">
                     {expenseDist.map((_, idx) => <Cell key={idx} fill={COLORS[idx % COLORS.length]} />)}

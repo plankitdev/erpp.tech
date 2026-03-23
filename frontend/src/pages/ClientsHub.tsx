@@ -133,7 +133,7 @@ export default function ClientsHub() {
           <p className="text-xs text-gray-400 mb-4">حسب الحالة</p>
           {clientsByStatus.length > 0 ? (
             <>
-              <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={200} minWidth={0} minHeight={0}>
                 <PieChart>
                   <Pie data={clientsByStatus} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={4} dataKey="value" stroke="none">
                     {clientsByStatus.map((_, idx) => <Cell key={idx} fill={COLORS[idx % COLORS.length]} />)}
@@ -163,7 +163,7 @@ export default function ClientsHub() {
           <h3 className="text-lg font-bold text-gray-900 mb-1">القطاعات</h3>
           <p className="text-xs text-gray-400 mb-4">توزيع العملاء حسب القطاع</p>
           {sectorData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={280}>
+            <ResponsiveContainer width="100%" height={280} minWidth={0} minHeight={0}>
               <BarChart data={sectorData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
                 <XAxis type="number" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />

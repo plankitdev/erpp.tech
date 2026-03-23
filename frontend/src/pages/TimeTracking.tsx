@@ -294,7 +294,7 @@ export default function TimeTracking() {
             <div className="text-center py-8 text-gray-400 text-sm">لا توجد بيانات</div>
           ) : (
             <>
-              <ResponsiveContainer width="100%" height={220}>
+              <ResponsiveContainer width="100%" height={220} minWidth={0} minHeight={0}>
                 <PieChart>
                   <Pie data={byProject} cx="50%" cy="50%" innerRadius={50} outerRadius={80} dataKey="value" paddingAngle={3}>
                     {byProject.map((_: unknown, i: number) => (

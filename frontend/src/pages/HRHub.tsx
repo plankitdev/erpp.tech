@@ -119,7 +119,7 @@ export default function HRHub() {
           <p className="text-xs text-gray-400 mb-4">الموظفين حسب القسم</p>
           {deptData.length > 0 ? (
             <>
-              <ResponsiveContainer width="100%" height={220}>
+              <ResponsiveContainer width="100%" height={220} minWidth={0} minHeight={0}>
                 <PieChart>
                   <Pie data={deptData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={4} dataKey="value" stroke="none">
                     {deptData.map((_, idx) => <Cell key={idx} fill={COLORS[idx % COLORS.length]} />)}
@@ -149,7 +149,7 @@ export default function HRHub() {
           <h3 className="text-lg font-bold text-gray-900 mb-1">المسميات الوظيفية</h3>
           <p className="text-xs text-gray-400 mb-4">توزيع الموظفين حسب الدور</p>
           {roleData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={320}>
+            <ResponsiveContainer width="100%" height={320} minWidth={0} minHeight={0}>
               <BarChart data={roleData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
                 <XAxis type="number" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />

@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreSalaryPaymentRequest extends FormRequest
 {
@@ -14,7 +15,14 @@ class StoreSalaryPaymentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'employee_id'      => 'required|exists:employees,id',
+            'employee_id'      => [
+                'required',
+                'exists:employees,id',
+                Rule::unique('salary_payments')->where(function ($query) {
+                    return $query->where('month', $this->month)
+                                ->where('year', $this->year);
+                }),
+            ],
             'month'            => 'required|integer|between:1,12',
             'year'             => 'required|integer|min:2020|max:2099',
             'base_salary'      => 'required|numeric|min:0',
@@ -34,6 +42,7 @@ class StoreSalaryPaymentRequest extends FormRequest
         return [
             'employee_id.required' => 'الموظف مطلوب',
             'employee_id.exists'   => 'الموظف غير موجود',
+            'employee_id.unique'   => 'تم تسجيل راتب هذا الموظف لهذا الشهر بالفعل',
             'month.required'       => 'الشهر مطلوب',
             'month.between'        => 'الشهر يجب أن يكون بين 1 و 12',
             'year.required'        => 'السنة مطلوبة',

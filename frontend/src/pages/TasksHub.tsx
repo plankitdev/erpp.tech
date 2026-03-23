@@ -144,7 +144,7 @@ export default function TasksHub() {
           <p className="text-xs text-gray-400 mb-4">حسب الحالة</p>
           {tasksByStatus.length > 0 ? (
             <>
-              <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={200} minWidth={0} minHeight={0}>
                 <PieChart>
                   <Pie data={tasksByStatus} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={4} dataKey="value" stroke="none">
                     {tasksByStatus.map((entry, idx) => <Cell key={idx} fill={entry.color} />)}

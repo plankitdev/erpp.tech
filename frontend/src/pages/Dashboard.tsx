@@ -104,7 +104,7 @@ function RevenueChart({ data }: { data: Array<{ month: string; revenue: number; 
           </div>
         </div>
       </div>
-      <ResponsiveContainer width="100%" height={300}>
+      <ResponsiveContainer width="100%" height={300} minWidth={0} minHeight={0}>
         <AreaChart data={data}>
           <defs>
             <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
@@ -135,7 +135,7 @@ function ExpenseDistChart({ data }: { data: ExpenseCategory[] }) {
         <h3 className="text-lg font-bold text-gray-900">توزيع المصروفات</h3>
         <p className="text-xs text-gray-400 mt-1">حسب الفئة</p>
       </div>
-      <ResponsiveContainer width="100%" height={210}>
+      <ResponsiveContainer width="100%" height={210} minWidth={0} minHeight={0}>
         <PieChart>
           <Pie data={data} cx="50%" cy="50%" innerRadius={52} outerRadius={82} paddingAngle={4} dataKey="value" nameKey="name" stroke="none">
             {data.map((_: ExpenseCategory, index: number) => (
@@ -266,7 +266,7 @@ function TaskStatusChart({ data }: { data: Array<{ name: string; value: number }
     <div className="animate-fade-in-up card card-body">
       <h3 className="text-lg font-bold text-gray-900 mb-1">حالة المهام</h3>
       <p className="text-xs text-gray-400 mb-4">توزيع المهام حسب الحالة</p>
-      <ResponsiveContainer width="100%" height={250}>
+      <ResponsiveContainer width="100%" height={250} minWidth={0} minHeight={0}>
         <BarChart data={data} layout="vertical">
           <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
           <XAxis type="number" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
@@ -554,7 +554,7 @@ function SalesDashboard({ stats }: { stats: Record<string, any> }) {
         <div className="lg:col-span-2 animate-fade-in-up card card-body">
           <h3 className="text-lg font-bold text-gray-900 mb-1">خط المبيعات</h3>
           <p className="text-xs text-gray-400 mb-4">مراحل العملاء المحتملين</p>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={300} minWidth={0} minHeight={0}>
             <BarChart data={stats.pipeline || []}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
               <XAxis dataKey="stage" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />

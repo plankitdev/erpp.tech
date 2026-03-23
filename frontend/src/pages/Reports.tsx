@@ -80,7 +80,7 @@ function ProfitLossView({ data, currency }: { data: PLData['data']; currency: st
       {/* Chart */}
       <div className="card card-body">
         <h3 className="font-bold text-gray-900 mb-4">الإيرادات مقابل المصروفات</h3>
-        <ResponsiveContainer width="100%" height={350}>
+        <ResponsiveContainer width="100%" height={350} minWidth={0} minHeight={0}>
           <BarChart data={data.monthly}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="month_name" fontSize={12} />
@@ -193,7 +193,7 @@ function CashFlowView({ data, currency }: { data: CFData['data']; currency: stri
       {/* Cash Flow Chart */}
       <div className="card card-body">
         <h3 className="font-bold text-gray-900 mb-4">التدفق النقدي التراكمي</h3>
-        <ResponsiveContainer width="100%" height={350}>
+        <ResponsiveContainer width="100%" height={350} minWidth={0} minHeight={0}>
           <AreaChart data={data.monthly}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="month_name" fontSize={12} />
@@ -362,7 +362,7 @@ export default function Reports() {
           {!['profit-loss', 'cash-flow'].includes(activeTab) && reportData?.chart_data && (
             <div className="card card-body">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">الرسم البياني</h3>
-              <ResponsiveContainer width="100%" height={400}>
+              <ResponsiveContainer width="100%" height={400} minWidth={0} minHeight={0}>
                 {activeTab === 'yearly' ? (
                   <LineChart data={reportData.chart_data}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />

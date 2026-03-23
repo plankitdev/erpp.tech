@@ -15,6 +15,8 @@ class UpdateSalaryPaymentRequest extends FormRequest
     {
         return [
             'base_salary'      => ['sometimes', 'numeric', 'min:0'],
+            'bonus'            => ['nullable', 'numeric', 'min:0'],
+            'bonus_reason'     => ['nullable', 'string', 'max:500'],
             'deductions'       => ['nullable', 'numeric', 'min:0'],
             'deduction_reason' => ['nullable', 'string'],
             'total'            => ['sometimes', 'numeric'],
