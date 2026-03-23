@@ -130,22 +130,24 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            FRONTEND="/home/${{ secrets.SSH_USERNAME }}/domains/erpp.tech/public_html"
-            BACKEND="/home/${{ secrets.SSH_USERNAME }}/backend"
+            SITE_ROOT="/home/${{ secrets.SSH_USERNAME }}/htdocs/erpp.tech"
+            FRONTEND="${SITE_ROOT}/frontend/dist"
+            BACKEND="${SITE_ROOT}/backend"
 
             # Deploy frontend
-            cd "$FRONTEND"
-            rm -rf assets
-            cp -r /tmp/erpp-frontend/* .
+            rm -rf "${FRONTEND}"
+            mkdir -p "${FRONTEND}"
+            cp -r /tmp/erpp-frontend/* "${FRONTEND}/"
             rm -rf /tmp/erpp-frontend
 
             # Update backend
-            cd "$BACKEND"
-            git pull origin main
+            cd "${BACKEND}"
+            git -C "${SITE_ROOT}" pull origin main
             composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
             php artisan migrate --force
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
+            php artisan storage:link 2>/dev/null || true
 
             echo "Deployment complete!"
