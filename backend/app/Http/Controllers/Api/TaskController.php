@@ -159,7 +159,7 @@ class TaskController extends Controller
 
     public function batchDelete(Request $request): JsonResponse
     {
-        $this->authorize('delete', Task::class);
+        $this->authorize('deleteAny', Task::class);
 
         $request->validate(['ids' => 'required|array|min:1', 'ids.*' => 'integer|exists:tasks,id']);
         Task::whereIn('id', $request->ids)->delete();

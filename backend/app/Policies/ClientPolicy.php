@@ -31,4 +31,9 @@ class ClientPolicy
     {
         return $user->hasRole(['super_admin', 'manager']);
     }
+
+    public function deleteAny(User $user): bool
+    {
+        return $user->hasRole(['super_admin', 'manager']);
+    }
 }

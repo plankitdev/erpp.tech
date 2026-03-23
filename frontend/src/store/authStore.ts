@@ -73,6 +73,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const { data } = await authApi.me();
       const user = data.data;
+      // Preserve company for super_admin (set via switchCompany, not in DB)
+      const currentUser = get().user;
+      if (currentUser?.role === 'super_admin' && currentUser?.company && !user.company) {
+        user.company = currentUser.company;
+      }
       localStorage.setItem('user', JSON.stringify(user));
       set({ user });
     } catch {

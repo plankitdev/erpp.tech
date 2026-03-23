@@ -72,7 +72,7 @@ class ClientController extends Controller
 
     public function batchDelete(Request $request): JsonResponse
     {
-        $this->authorize('delete', Client::class);
+        $this->authorize('deleteAny', Client::class);
 
         $request->validate(['ids' => 'required|array|min:1', 'ids.*' => 'integer|exists:clients,id']);
         Client::whereIn('id', $request->ids)->delete();

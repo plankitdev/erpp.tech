@@ -98,7 +98,7 @@ class InvoiceController extends Controller
 
     public function batchDelete(Request $request): JsonResponse
     {
-        $this->authorize('delete', Invoice::class);
+        $this->authorize('deleteAny', Invoice::class);
 
         $request->validate(['ids' => 'required|array|min:1', 'ids.*' => 'integer|exists:invoices,id']);
         InvoicePayment::whereIn('invoice_id', $request->ids)->delete();
