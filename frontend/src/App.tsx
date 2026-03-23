@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import { useSessionTimeout } from './hooks/useSessionTimeout';
 import Layout from './components/Layout';
+import RoleGuard from './components/RoleGuard';
 import ErrorBoundary from './components/ErrorBoundary';
 import PageLoader from './components/PageLoader';
 
@@ -64,6 +65,7 @@ const KpiDashboard = lazy(() => import('./pages/KpiDashboard'));
 const TagsManager = lazy(() => import('./pages/TagsManager'));
 const SystemMonitor = lazy(() => import('./pages/SystemMonitor'));
 const Announcements = lazy(() => import('./pages/Announcements'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuthStore();
@@ -85,64 +87,77 @@ export default function App() {
       <Route path="/select-company" element={<SelectCompany />} />
       <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
         <Route index element={<Dashboard />} />
-        <Route path="clients-hub" element={<ClientsHub />} />
-        <Route path="tasks-hub" element={<TasksHub />} />
-        <Route path="finance-hub" element={<FinanceHub />} />
-        <Route path="hr-hub" element={<HRHub />} />
-        <Route path="clients" element={<Clients />} />
-        <Route path="clients/financial" element={<ClientsFinancial />} />
-        <Route path="clients/create" element={<ClientForm />} />
-        <Route path="clients/:id" element={<ClientProfile />} />
-        <Route path="clients/:id/edit" element={<ClientForm />} />
-        <Route path="contracts" element={<Contracts />} />
-        <Route path="contracts/create" element={<ContractForm />} />
-        <Route path="contracts/:id/edit" element={<ContractForm />} />
-        <Route path="contracts/:id/installments" element={<Installments />} />
-        <Route path="invoices" element={<Invoices />} />
-        <Route path="invoices/create" element={<InvoiceForm />} />
-        <Route path="invoices/:id" element={<InvoiceDetail />} />
-        <Route path="invoices/:id/edit" element={<InvoiceForm />} />
-        <Route path="employees" element={<Employees />} />
-        <Route path="employees/create" element={<EmployeeForm />} />
-        <Route path="employees/:id" element={<EmployeeProfile />} />
-        <Route path="employees/:id/edit" element={<EmployeeForm />} />
-        <Route path="salaries" element={<Salaries />} />
-        <Route path="treasury" element={<Treasury />} />
-        <Route path="expenses" element={<Expenses />} />
-        <Route path="projects" element={<Projects />} />
-        <Route path="projects/:slug" element={<ProjectDetail />} />
-        <Route path="tasks" element={<Tasks />} />
-        <Route path="tasks/board" element={<TaskBoard />} />
-        <Route path="tasks/:id" element={<TaskDetail />} />
-        <Route path="calendar" element={<CalendarPage />} />
-        <Route path="time-tracking" element={<TimeTracking />} />
-        <Route path="meetings" element={<Meetings />} />
-        <Route path="quotations" element={<Quotations />} />
-        <Route path="tickets" element={<Tickets />} />
-        <Route path="leave-attendance" element={<LeaveAttendance />} />
-        <Route path="gantt" element={<GanttChart />} />
-        <Route path="email" element={<EmailCompose />} />
-        <Route path="workflows" element={<WorkflowAutomation />} />
-        <Route path="api-docs" element={<ApiDocs />} />
+        <Route path="announcements" element={<Announcements />} />
         <Route path="chat" element={<Chat />} />
         <Route path="kpi" element={<KpiDashboard />} />
-        <Route path="tags" element={<TagsManager />} />
-        <Route path="system-monitor" element={<SystemMonitor />} />
-        <Route path="announcements" element={<Announcements />} />
-        <Route path="media" element={<MediaLibrary />} />
-        <Route path="partners" element={<Partners />} />
-        <Route path="partners/:id/statement" element={<PartnerStatement />} />
-        <Route path="sales" element={<SalesDashboard />} />
-        <Route path="sales-hub" element={<SalesHub />} />
-        <Route path="leads" element={<LeadsPage />} />
-        <Route path="leads/:id" element={<LeadDetailPage />} />
-        <Route path="reports" element={<Reports />} />
-        <Route path="reports/employees" element={<EmployeeReports />} />
-        <Route path="file-templates" element={<FileTemplates />} />
-        <Route path="users" element={<Users />} />
         <Route path="notifications" element={<Notifications />} />
-        <Route path="settings" element={<Settings />} />
-        <Route path="activity-logs" element={<ActivityLogs />} />
+
+        {/* العملاء والمبيعات */}
+        <Route path="clients-hub" element={<RoleGuard permission="clients"><ClientsHub /></RoleGuard>} />
+        <Route path="clients" element={<RoleGuard permission="clients"><Clients /></RoleGuard>} />
+        <Route path="clients/financial" element={<RoleGuard permission="clients"><ClientsFinancial /></RoleGuard>} />
+        <Route path="clients/create" element={<RoleGuard permission="clients"><ClientForm /></RoleGuard>} />
+        <Route path="clients/:id" element={<RoleGuard permission="clients"><ClientProfile /></RoleGuard>} />
+        <Route path="clients/:id/edit" element={<RoleGuard permission="clients"><ClientForm /></RoleGuard>} />
+        <Route path="contracts" element={<RoleGuard permission="contracts"><Contracts /></RoleGuard>} />
+        <Route path="contracts/create" element={<RoleGuard permission="contracts"><ContractForm /></RoleGuard>} />
+        <Route path="contracts/:id/edit" element={<RoleGuard permission="contracts"><ContractForm /></RoleGuard>} />
+        <Route path="contracts/:id/installments" element={<RoleGuard permission="contracts"><Installments /></RoleGuard>} />
+        <Route path="invoices" element={<RoleGuard permission="invoices"><Invoices /></RoleGuard>} />
+        <Route path="invoices/create" element={<RoleGuard permission="invoices"><InvoiceForm /></RoleGuard>} />
+        <Route path="invoices/:id" element={<RoleGuard permission="invoices"><InvoiceDetail /></RoleGuard>} />
+        <Route path="invoices/:id/edit" element={<RoleGuard permission="invoices"><InvoiceForm /></RoleGuard>} />
+        <Route path="sales-hub" element={<RoleGuard permission="sales"><SalesHub /></RoleGuard>} />
+        <Route path="sales" element={<RoleGuard permission="sales"><SalesDashboard /></RoleGuard>} />
+        <Route path="leads" element={<RoleGuard permission="sales"><LeadsPage /></RoleGuard>} />
+        <Route path="leads/:id" element={<RoleGuard permission="sales"><LeadDetailPage /></RoleGuard>} />
+        <Route path="quotations" element={<RoleGuard permission="sales"><Quotations /></RoleGuard>} />
+        <Route path="tickets" element={<RoleGuard permission="clients"><Tickets /></RoleGuard>} />
+        <Route path="email" element={<RoleGuard permission="sales"><EmailCompose /></RoleGuard>} />
+
+        {/* المهام والمشاريع */}
+        <Route path="tasks-hub" element={<RoleGuard permission="tasks"><TasksHub /></RoleGuard>} />
+        <Route path="projects" element={<RoleGuard permission="tasks"><Projects /></RoleGuard>} />
+        <Route path="projects/:slug" element={<RoleGuard permission="tasks"><ProjectDetail /></RoleGuard>} />
+        <Route path="tasks" element={<RoleGuard permission="tasks"><Tasks /></RoleGuard>} />
+        <Route path="tasks/board" element={<RoleGuard permission="tasks"><TaskBoard /></RoleGuard>} />
+        <Route path="tasks/:id" element={<RoleGuard permission="tasks"><TaskDetail /></RoleGuard>} />
+        <Route path="calendar" element={<RoleGuard permission="tasks"><CalendarPage /></RoleGuard>} />
+        <Route path="time-tracking" element={<RoleGuard permission="tasks"><TimeTracking /></RoleGuard>} />
+        <Route path="meetings" element={<RoleGuard permission="tasks"><Meetings /></RoleGuard>} />
+        <Route path="gantt" element={<RoleGuard permission="tasks"><GanttChart /></RoleGuard>} />
+
+        {/* المالية */}
+        <Route path="finance-hub" element={<RoleGuard permission="treasury"><FinanceHub /></RoleGuard>} />
+        <Route path="treasury" element={<RoleGuard permission="treasury"><Treasury /></RoleGuard>} />
+        <Route path="expenses" element={<RoleGuard permission="expenses"><Expenses /></RoleGuard>} />
+        <Route path="partners" element={<RoleGuard permission="partners"><Partners /></RoleGuard>} />
+        <Route path="partners/:id/statement" element={<RoleGuard permission="partners"><PartnerStatement /></RoleGuard>} />
+
+        {/* الموارد البشرية */}
+        <Route path="hr-hub" element={<RoleGuard permission="employees"><HRHub /></RoleGuard>} />
+        <Route path="employees" element={<RoleGuard permission="employees"><Employees /></RoleGuard>} />
+        <Route path="employees/create" element={<RoleGuard permission="employees"><EmployeeForm /></RoleGuard>} />
+        <Route path="employees/:id" element={<RoleGuard permission="employees"><EmployeeProfile /></RoleGuard>} />
+        <Route path="employees/:id/edit" element={<RoleGuard permission="employees"><EmployeeForm /></RoleGuard>} />
+        <Route path="salaries" element={<RoleGuard permission="salaries"><Salaries /></RoleGuard>} />
+        <Route path="leave-attendance" element={<RoleGuard permission="employees"><LeaveAttendance /></RoleGuard>} />
+
+        {/* النظام والإدارة */}
+        <Route path="reports" element={<RoleGuard permission="reports"><Reports /></RoleGuard>} />
+        <Route path="reports/employees" element={<RoleGuard permission="reports"><EmployeeReports /></RoleGuard>} />
+        <Route path="users" element={<RoleGuard permission="users"><Users /></RoleGuard>} />
+        <Route path="activity-logs" element={<RoleGuard permission="activity_logs"><ActivityLogs /></RoleGuard>} />
+        <Route path="media" element={<RoleGuard permission="settings"><MediaLibrary /></RoleGuard>} />
+        <Route path="file-templates" element={<RoleGuard permission="settings"><FileTemplates /></RoleGuard>} />
+        <Route path="settings" element={<RoleGuard permission="settings"><Settings /></RoleGuard>} />
+        <Route path="workflows" element={<RoleGuard permission="settings"><WorkflowAutomation /></RoleGuard>} />
+        <Route path="tags" element={<RoleGuard permission="settings"><TagsManager /></RoleGuard>} />
+        <Route path="api-docs" element={<RoleGuard permission="settings"><ApiDocs /></RoleGuard>} />
+        <Route path="system-monitor" element={<RoleGuard permission="settings"><SystemMonitor /></RoleGuard>} />
+
+        {/* صفحة غير موجودة */}
+        <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>
     </Suspense>

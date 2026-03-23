@@ -28,6 +28,10 @@ api.interceptors.response.use(
       window.location.href = '/login';
     }
 
+    if (error.response?.status === 403) {
+      toast.error('غير مصرح لك بالوصول إلى هذا المورد');
+    }
+
     // Show server-side validation errors
     if (error.response?.status === 422 && error.response?.data?.errors) {
       const errors = error.response.data.errors as Record<string, string[]>;
