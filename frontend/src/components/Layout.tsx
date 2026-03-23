@@ -358,9 +358,13 @@ export default function Layout() {
       <div className="relative p-3">
         {sidebarOpen ? (
           <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-white/[0.03] border border-white/[0.05] hover:bg-white/[0.05] transition-all duration-200">
-            <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${roleColors[user?.role || 'employee']} flex items-center justify-center text-white font-bold text-sm shadow-md flex-shrink-0`}>
-              {user?.name?.charAt(0) || 'U'}
-            </div>
+            {user?.avatar ? (
+              <img src={user.avatar} alt={user.name} className="w-9 h-9 rounded-lg object-cover shadow-md flex-shrink-0" />
+            ) : (
+              <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${roleColors[user?.role || 'employee']} flex items-center justify-center text-white font-bold text-sm shadow-md flex-shrink-0`}>
+                {user?.name?.charAt(0) || 'U'}
+              </div>
+            )}
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-white truncate">{user?.name}</p>
               <p className="text-[10px] text-slate-500">{user?.role ? statusLabels.role[user.role] : ''}</p>
@@ -470,9 +474,13 @@ export default function Layout() {
                 onClick={() => setProfileOpen(!profileOpen)}
                 className="flex items-center gap-2.5 hover:bg-gray-50 px-2.5 py-1.5 rounded-xl transition-all border border-transparent hover:border-gray-200/80"
               >
-                <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${roleColors[user?.role || 'employee']} flex items-center justify-center text-white font-bold text-xs shadow-sm ring-2 ring-white`}>
-                  {user?.name?.charAt(0) || 'U'}
-                </div>
+                {user?.avatar ? (
+                  <img src={user.avatar} alt={user.name} className="w-8 h-8 rounded-lg object-cover shadow-sm ring-2 ring-white" />
+                ) : (
+                  <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${roleColors[user?.role || 'employee']} flex items-center justify-center text-white font-bold text-xs shadow-sm ring-2 ring-white`}>
+                    {user?.name?.charAt(0) || 'U'}
+                  </div>
+                )}
                 <div className="text-right hidden sm:block">
                   <p className="text-sm font-semibold text-gray-800 leading-tight">{user?.name}</p>
                   <p className="text-[11px] text-gray-400 leading-tight">{user?.role ? statusLabels.role[user.role] : ''}</p>

@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEmployee } from '../hooks/useEmployees';
+import { useUsers } from '../hooks/useUsers';
 import { employeesApi } from '../api/employees';
 import toast from 'react-hot-toast';
 
@@ -21,6 +22,7 @@ const employeeSchema = z.object({
   contract_start: z.string().optional(),
   contract_end: z.string().optional(),
   notes: z.string().optional(),
+  user_id: z.coerce.number().optional(),
 });
 
 type EmployeeFormData = z.infer<typeof employeeSchema>;
@@ -30,6 +32,8 @@ export default function EmployeeForm() {
   const navigate = useNavigate();
   const editId = id ? parseInt(id) : 0;
   const { data: employee } = useEmployee(editId);
+  const { data: usersData } = useUsers();
+  const users = usersData?.data || [];
   const [file, setFile] = useState<File | null>(null);
 
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<EmployeeFormData>({
@@ -52,28 +56,31 @@ export default function EmployeeForm() {
         contract_start: employee.contract_start || '',
         contract_end: employee.contract_end || '',
         notes: employee.notes || '',
+        user_id: employee.user?.id || undefined,
       });
     }
   }, [employee, reset]);
 
   const onSubmit = async (data: EmployeeFormData) => {
     try {
+      // Treat user_id = 0 as null (no linking)
+      const submitData = { ...data, user_id: data.user_id || null };
       if (editId) {
         if (file) {
           const formData = new FormData();
           formData.append('_method', 'PUT');
-          Object.entries(data).forEach(([k, v]) => { if (v != null && v !== '') formData.append(k, String(v)); });
+          Object.entries(submitData).forEach(([k, v]) => { if (v != null && v !== '') formData.append(k, String(v)); });
           formData.append('contract_file', file);
           await employeesApi.updateWithFile(editId, formData);
         } else {
           const payload: Record<string, unknown> = {};
-          Object.entries(data).forEach(([k, v]) => { if (v != null && v !== '') payload[k] = v; });
+          Object.entries(submitData).forEach(([k, v]) => { if (v != null && v !== '') payload[k] = v; });
           await employeesApi.update(editId, payload as Partial<import('../types').Employee>);
         }
         toast.success('تم تعديل الموظف');
       } else {
         const formData = new FormData();
-        Object.entries(data).forEach(([k, v]) => { if (v != null && v !== '') formData.append(k, String(v)); });
+        Object.entries(submitData).forEach(([k, v]) => { if (v != null && v !== '') formData.append(k, String(v)); });
         if (file) formData.append('contract_file', file);
         await employeesApi.create(formData as unknown as Partial<import('../types').Employee>);
         toast.success('تم إضافة الموظف');
@@ -100,6 +107,16 @@ export default function EmployeeForm() {
             <input type="text" {...register('position')} className="input" />
             {errors.position && <p className="text-red-500 text-xs mt-1">{errors.position.message}</p>}
           </div>
+        </div>
+        <div>
+          <label className="input-label">ربط بحساب مستخدم</label>
+          <select {...register('user_id')} className="input">
+            <option value="">بدون ربط</option>
+            {users.map((u) => (
+              <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+            ))}
+          </select>
+        </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
