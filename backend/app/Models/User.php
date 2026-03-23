@@ -67,11 +67,20 @@ class User extends Authenticatable
         if ($this->role === 'super_admin') return true;
 
         $userPerms = $this->permissions;
-        if (is_array($userPerms) && count($userPerms) > 0) {
-            return in_array($permission, $userPerms);
+        $perms = (is_array($userPerms) && count($userPerms) > 0)
+            ? $userPerms
+            : self::getDefaultPermissions($this->role);
+
+        // Exact match
+        if (in_array($permission, $perms)) return true;
+
+        // Hierarchical: 'tasks' matches 'tasks.view', 'tasks.create', etc.
+        foreach ($perms as $p) {
+            if (str_starts_with($p, $permission . '.')) return true;
+            if (str_contains($permission, '.') && $permission === $p) return true;
         }
 
-        return in_array($permission, self::getDefaultPermissions($this->role));
+        return false;
     }
 
     public function getEffectivePermissions(): array
@@ -129,6 +138,7 @@ class User extends Authenticatable
             'employee' => [
                 'dashboard.view',
                 'tasks.view', 'tasks.create',
+                'projects.view',
             ],
         ];
         return $defaults[$role] ?? [];

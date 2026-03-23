@@ -16,7 +16,7 @@ class UserResource extends JsonResource
             'role'       => $this->role,
             'permissions' => $this->getEffectivePermissions(),
             'phone'      => $this->phone,
-            'avatar'     => $this->avatar,
+            'avatar'     => $this->avatar ? asset('storage/' . $this->avatar) : null,
             'is_active'  => $this->is_active,
             'company_id' => $this->company_id,
             'company'    => new CompanyResource($this->whenLoaded('company')),

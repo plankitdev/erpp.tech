@@ -61,8 +61,6 @@ const menuSections: MenuSection[] = [
       { path: '/projects', label: 'المشاريع', icon: FolderKanban, permission: 'tasks' },
       { path: '/tasks', label: 'المهام', icon: CheckSquare, permission: 'tasks' },
       { path: '/tasks/board', label: 'لوحة Kanban', icon: Kanban, permission: 'tasks' },
-      { path: '/time-tracking', label: 'تتبع الوقت', icon: Timer, permission: 'tasks' },
-      { path: '/gantt', label: 'مخطط جانت', icon: GanttChartSquare, permission: 'tasks' },
       { path: '/calendar', label: 'التقويم', icon: CalendarDays, permission: 'tasks' },
       { path: '/meetings', label: 'الاجتماعات', icon: Video, permission: 'tasks' },
       { path: '/chat', label: 'المحادثات', icon: MessageSquare, permission: null },

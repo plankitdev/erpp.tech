@@ -58,6 +58,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
+    Route::post('/auth/avatar', [AuthController::class, 'updateAvatar']);
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index']);
@@ -74,8 +75,14 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     });
 
     // ========== Clients & Contracts ==========
+    Route::middleware('role:super_admin,manager,sales,employee')->group(function () {
+        Route::get('clients', [ClientController::class, 'index']);
+        Route::get('clients/{client}', [ClientController::class, 'show']);
+    });
     Route::middleware('role:super_admin,manager,sales')->group(function () {
-        Route::apiResource('clients', ClientController::class);
+        Route::post('clients', [ClientController::class, 'store']);
+        Route::put('clients/{client}', [ClientController::class, 'update']);
+        Route::delete('clients/{client}', [ClientController::class, 'destroy']);
         Route::post('clients/batch-delete', [ClientController::class, 'batchDelete']);
         Route::apiResource('clients.contracts', ContractController::class);
     });
@@ -138,8 +145,14 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     });
 
     // ========== Employees & HR ==========
+    Route::middleware('role:super_admin,manager,employee')->group(function () {
+        Route::get('employees', [EmployeeController::class, 'index']);
+        Route::get('employees/{employee}', [EmployeeController::class, 'show']);
+    });
     Route::middleware('role:super_admin,manager')->group(function () {
-        Route::apiResource('employees', EmployeeController::class);
+        Route::post('employees', [EmployeeController::class, 'store']);
+        Route::put('employees/{employee}', [EmployeeController::class, 'update']);
+        Route::delete('employees/{employee}', [EmployeeController::class, 'destroy']);
         Route::post('/employees/{employee}/files', [EmployeeController::class, 'uploadFile']);
         Route::delete('/employees/{employee}/files/{file}', [EmployeeController::class, 'deleteFile']);
     });

@@ -83,8 +83,8 @@ export default function Tasks() {
 
   useEffect(() => {
     Promise.all([
-      employeesApi.getAll({ per_page: 1000 }),
-      clientsApi.getAll({ per_page: 1000 }),
+      employeesApi.getAll({ per_page: 1000 }).catch(() => ({ data: { data: [] } })),
+      clientsApi.getAll({ per_page: 1000 }).catch(() => ({ data: { data: [] } })),
     ]).then(([empRes, clientRes]) => {
       setEmployees(empRes.data.data);
       setClients(clientRes.data.data);

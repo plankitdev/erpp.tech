@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\ProjectResource;
 use App\Http\Resources\ProjectFileResource;
 use App\Http\Resources\TaskResource;
+use App\Models\ChatChannel;
 use App\Models\Project;
 use App\Models\ProjectFile;
+use App\Models\User;
 use App\Services\NotificationService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -60,6 +62,24 @@ class ProjectController extends Controller
 
         $data['created_by'] = $request->user()->id;
         $project = Project::create($data);
+
+        // Auto-create chat channel for the project
+        $channelName = $project->name;
+        if ($project->client_id) {
+            $client = \App\Models\Client::find($project->client_id);
+            if ($client) {
+                $channelName = $client->name;
+            }
+        }
+        $channel = ChatChannel::create([
+            'company_id'  => $project->company_id,
+            'name'        => $channelName,
+            'type'        => ChatChannel::TYPE_PUBLIC,
+            'description' => "قناة مشروع: {$project->name}",
+            'created_by'  => $request->user()->id,
+        ]);
+        $companyUserIds = User::where('company_id', $project->company_id)->pluck('id');
+        $channel->members()->attach($companyUserIds);
 
         NotificationService::projectCreated($project->company_id, $project->name, "/projects/{$project->slug}");
 

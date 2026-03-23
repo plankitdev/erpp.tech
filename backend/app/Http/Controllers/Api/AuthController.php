@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class AuthController extends Controller
@@ -52,6 +53,28 @@ class AuthController extends Controller
     {
         return $this->successResponse(
             new UserResource($request->user()->load('company'))
+        );
+    }
+
+    public function updateAvatar(Request $request): JsonResponse
+    {
+        $request->validate([
+            'avatar' => 'required|image|mimes:jpg,jpeg,png,webp|max:2048',
+        ]);
+
+        $user = $request->user();
+
+        // Delete old avatar if exists
+        if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+            Storage::disk('public')->delete($user->avatar);
+        }
+
+        $path = $request->file('avatar')->store('avatars', 'public');
+        $user->update(['avatar' => $path]);
+
+        return $this->successResponse(
+            new UserResource($user->load('company')),
+            'تم تحديث الصورة الشخصية'
         );
     }
 

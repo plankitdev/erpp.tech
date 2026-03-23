@@ -27,10 +27,11 @@ export default function Settings() {
   );
 
   // Company data
+  const canViewCompany = user?.role === 'super_admin' || user?.role === 'manager';
   const { data: company } = useQuery({
     queryKey: ['company', companyId],
     queryFn: () => companiesApi.getById(companyId!).then(r => r.data.data),
-    enabled: !!companyId,
+    enabled: !!companyId && canViewCompany,
   });
 
   const [companyForm, setCompanyForm] = useState({ name: '', primary_color: '' });
@@ -39,6 +40,8 @@ export default function Settings() {
   const [iconFile, setIconFile] = useState<File | null>(null);
   const [iconPreview, setIconPreview] = useState<string | null>(null);
   const [profileForm, setProfileForm] = useState({ name: '', password: '', password_confirmation: '' });
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
 
   if (company && !initialized) {
@@ -76,6 +79,36 @@ export default function Settings() {
     },
     onError: () => toast.error('حدث خطأ'),
   });
+
+  // Upload avatar
+  const uploadAvatar = useMutation({
+    mutationFn: (file: File) => {
+      const formData = new FormData();
+      formData.append('avatar', file);
+      return api.post('/auth/avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+    },
+    onSuccess: () => {
+      toast.success('تم تحديث الصورة الشخصية');
+      fetchUser();
+      setAvatarFile(null);
+      setAvatarPreview(null);
+    },
+    onError: () => toast.error('حدث خطأ في رفع الصورة'),
+  });
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAvatarFile(file);
+      const reader = new FileReader();
+      reader.onload = () => setAvatarPreview(reader.result as string);
+      reader.readAsDataURL(file);
+      // Auto-upload
+      uploadAvatar.mutate(file);
+    }
+  };
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -234,6 +267,27 @@ export default function Settings() {
             <h2 className="text-lg font-semibold text-gray-900">بيانات حسابي</h2>
           </div>
           <div className="mb-4 p-3 bg-surface-50 rounded-xl border border-gray-100">
+            <div className="flex items-center gap-4 mb-3">
+              <label className="cursor-pointer group relative">
+                <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleAvatarChange} className="hidden" />
+                {(avatarPreview || user?.avatar) ? (
+                  <img src={avatarPreview || user?.avatar || ''} alt="Avatar"
+                    className="w-16 h-16 rounded-full object-cover shadow-soft border-2 border-gray-200 group-hover:opacity-80 transition-opacity" />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center group-hover:bg-primary-200 transition-colors border-2 border-gray-200">
+                    <span className="text-xl font-bold text-primary-600">{user?.name?.charAt(0)}</span>
+                  </div>
+                )}
+                <div className="absolute -bottom-1 -left-1 w-6 h-6 rounded-full bg-primary-600 flex items-center justify-center text-white shadow-sm">
+                  <Upload size={12} />
+                </div>
+              </label>
+              <div>
+                <p className="text-sm font-medium text-gray-900">{user?.name}</p>
+                <p className="text-xs text-gray-400">اضغط على الصورة لتغييرها</p>
+                {uploadAvatar.isPending && <p className="text-xs text-primary-600">جاري الرفع...</p>}
+              </div>
+            </div>
             <p className="text-sm text-gray-600">البريد الإلكتروني: <strong className="text-gray-900">{user?.email}</strong></p>
             <p className="text-sm text-gray-600 mt-1">الدور: <strong className="text-gray-900">{user?.role}</strong></p>
           </div>
