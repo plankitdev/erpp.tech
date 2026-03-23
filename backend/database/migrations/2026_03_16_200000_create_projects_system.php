@@ -13,6 +13,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
             $table->string('name');
+            $table->string('slug')->unique();
             $table->text('description')->nullable();
             $table->foreignId('client_id')->nullable()->constrained()->nullOnDelete();
             $table->enum('status', ['active', 'completed', 'on_hold', 'cancelled'])->default('active');
