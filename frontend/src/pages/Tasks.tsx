@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useTasks, useCreateTask, useUpdateTask, useDeleteTask } from '../hooks/useTasks';
+import { useMarkBadgeSeen } from '../hooks/useDashboard';
 import { useUrlFilters } from '../hooks/useUrlFilters';
 import TaskDetailDrawer from '../components/TaskDetailDrawer';
 import { employeesApi } from '../api/employees';
@@ -31,6 +32,7 @@ const statusConfig: Record<string, { label: string; color: string; bg: string; d
 };
 
 export default function Tasks() {
+  useMarkBadgeSeen('tasks');
   const { getParam, setParam } = useUrlFilters({ statusFilter: 'all', priorityFilter: 'all' });
   const statusFilter = getParam('statusFilter') || 'all';
   const priorityFilter = getParam('priorityFilter') || 'all';

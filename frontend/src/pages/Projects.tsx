@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useProjects, useCreateProject, useDeleteProject } from '../hooks/useProjects';
+import { useMarkBadgeSeen } from '../hooks/useDashboard';
 import { clientsApi } from '../api/clients';
 import type { Client } from '../types';
 import { formatDate } from '../utils';
@@ -161,6 +162,7 @@ const PROJECT_TEMPLATES = [
 ];
 
 export default function Projects() {
+  useMarkBadgeSeen('projects');
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');

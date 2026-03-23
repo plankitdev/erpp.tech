@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { Link, useNavigate } from 'react-router-dom';
+import { useMarkBadgeSeen } from '../hooks/useDashboard';
 import { tasksApi } from '../api/tasks';
 import { projectsApi } from '../api/projects';
 import { useUpdateTask } from '../hooks/useTasks';
@@ -35,6 +36,7 @@ function sortByDeadline(tasks: Task[]): Task[] {
 }
 
 export default function TaskBoard() {
+  useMarkBadgeSeen('tasks');
   const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectFilter, setProjectFilter] = useState<string>('all');

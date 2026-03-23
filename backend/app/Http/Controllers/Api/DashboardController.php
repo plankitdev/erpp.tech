@@ -17,6 +17,7 @@ use App\Models\TreasuryTransaction;
 use App\Models\SalaryPayment;
 use App\Models\User;
 use App\Traits\ApiResponse;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -54,13 +55,22 @@ class DashboardController extends Controller
         $user = $request->user();
         $userId = $user->id;
 
-        // New tasks assigned to user in last 7 days that are not done
+        // Use client-provided "last seen" timestamps, fallback to 7 days
+        $tasksSince = $request->query('tasks_since')
+            ? Carbon::parse($request->query('tasks_since'))
+            : now()->subDays(7);
+
+        $projectsSince = $request->query('projects_since')
+            ? Carbon::parse($request->query('projects_since'))
+            : now()->subDays(7);
+
+        // New tasks assigned to user since last visit (not done)
         $newTasks = Task::where(function ($q) use ($userId) {
             $q->where('assigned_to', $userId)
               ->orWhereHas('assignees', fn($q2) => $q2->where('user_id', $userId));
         })
             ->whereIn('status', ['todo', 'in_progress'])
-            ->where('created_at', '>=', now()->subDays(7))
+            ->where('created_at', '>=', $tasksSince)
             ->count();
 
         // Upcoming meetings (scheduled, starting within next 7 days)
@@ -73,9 +83,9 @@ class DashboardController extends Controller
             })
             ->count();
 
-        // New projects created in last 7 days
+        // New projects since last visit
         $newProjects = Project::where('status', 'active')
-            ->where('created_at', '>=', now()->subDays(7))
+            ->where('created_at', '>=', $projectsSince)
             ->count();
 
         return $this->successResponse([

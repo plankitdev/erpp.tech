@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { dashboardApi, reportsApi } from '../api/dashboard';
 
 export function useDashboard(params?: Record<string, unknown>) {
@@ -8,10 +9,33 @@ export function useDashboard(params?: Record<string, unknown>) {
   });
 }
 
+const BADGE_SEEN_KEY = 'erpp_badge_seen';
+
+function getBadgeSeenTimestamps(): Record<string, string> {
+  try {
+    return JSON.parse(localStorage.getItem(BADGE_SEEN_KEY) || '{}');
+  } catch { return {}; }
+}
+
+export function useMarkBadgeSeen(page: 'tasks' | 'projects' | 'meetings') {
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    const seen = getBadgeSeenTimestamps();
+    seen[page] = new Date().toISOString();
+    localStorage.setItem(BADGE_SEEN_KEY, JSON.stringify(seen));
+    queryClient.invalidateQueries({ queryKey: ['sidebar-badges'] });
+  }, [page, queryClient]);
+}
+
 export function useSidebarBadges() {
+  const seen = getBadgeSeenTimestamps();
+  const params: Record<string, string> = {};
+  if (seen.tasks) params.tasks_since = seen.tasks;
+  if (seen.projects) params.projects_since = seen.projects;
+
   return useQuery({
-    queryKey: ['sidebar-badges'],
-    queryFn: () => dashboardApi.getBadges().then(r => r.data.data),
+    queryKey: ['sidebar-badges', seen.tasks, seen.projects],
+    queryFn: () => dashboardApi.getBadges(params).then(r => r.data.data),
     refetchInterval: 60000,
   });
 }

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useDashboard } from '../hooks/useDashboard';
+import { useDashboard, useMarkBadgeSeen } from '../hooks/useDashboard';
 import { useProjects } from '../hooks/useProjects';
 import { useTasks } from '../hooks/useTasks';
 import { useMeetings } from '../hooks/useMeetings';
@@ -32,6 +32,7 @@ const PRIORITY_COLORS: Record<string, string> = {
 };
 
 export default function TasksHub() {
+  useMarkBadgeSeen('tasks');
   const { data: dashData, isLoading: dashLoading } = useDashboard();
   const { data: projectsData } = useProjects({ per_page: 1000 });
   const { data: tasksData } = useTasks({ per_page: 1000 });

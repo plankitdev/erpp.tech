@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useMeetings, useCreateMeeting, useUpdateMeeting, useDeleteMeeting, useRespondMeeting } from '../hooks/useMeetings';
+import { useMarkBadgeSeen } from '../hooks/useDashboard';
 import { useUsersList } from '../hooks/useUsers';
 import { formatDateTime } from '../utils';
 import { useAuthStore } from '../store/authStore';
@@ -42,6 +43,7 @@ const statusColors: Record<string, string> = {
 };
 
 export default function Meetings() {
+  useMarkBadgeSeen('meetings');
   const { user } = useAuthStore();
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
