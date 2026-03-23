@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useClient, useCreateClient, useUpdateClient } from '../hooks/useClients';
+import { useAuthStore } from '../store/authStore';
 import toast from 'react-hot-toast';
 
 const clientSchema = z.object({
@@ -14,19 +15,31 @@ const clientSchema = z.object({
   service: z.string().optional().or(z.literal('')),
   status: z.enum(['active', 'inactive', 'lead']).default('active'),
   notes: z.string().optional().or(z.literal('')),
+  monthly_payment: z.union([z.string(), z.number()]).optional().transform(v => v === '' || v === undefined ? null : Number(v)),
+  payment_day: z.union([z.string(), z.number()]).optional().transform(v => v === '' || v === undefined ? null : Number(v)),
 });
 
-type ClientForm = z.infer<typeof clientSchema>;
+type ClientFormData = z.infer<typeof clientSchema>;
+
+const serviceOptions = [
+  { value: 'تسويق', label: 'تسويق' },
+  { value: 'تصميم', label: 'تصميم' },
+  { value: 'مودريشن', label: 'مودريشن' },
+  { value: 'تطوير', label: 'تطوير' },
+  { value: 'أخرى', label: 'أخرى' },
+];
 
 export default function ClientForm() {
-  const { id } = useParams();
+  const { id: slug } = useParams();
   const navigate = useNavigate();
-  const editId = id ? parseInt(id) : 0;
-  const { data: client } = useClient(editId);
+  const editSlug = slug || '';
+  const { data: client } = useClient(editSlug);
   const createMutation = useCreateClient();
   const updateMutation = useUpdateClient();
+  const user = useAuthStore(s => s.user);
+  const isEmployee = user?.role === 'employee';
 
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<ClientForm>({
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<ClientFormData>({
     resolver: zodResolver(clientSchema) as any,
     defaultValues: { status: 'active' },
   });
@@ -41,20 +54,23 @@ export default function ClientForm() {
         service: client.service || '',
         status: client.status,
         notes: client.notes || '',
-      });
+        monthly_payment: client.monthly_payment ?? undefined,
+        payment_day: client.payment_day ?? undefined,
+      } as any);
     }
   }, [client, reset]);
 
-  const onSubmit = async (data: ClientForm) => {
+  const onSubmit = async (data: ClientFormData) => {
     try {
-      if (editId) {
-        await updateMutation.mutateAsync({ id: editId, data });
+      if (editSlug) {
+        const result = await updateMutation.mutateAsync({ slug: editSlug, data });
         toast.success('تم تعديل العميل بنجاح');
+        navigate(`/clients/${result.data?.slug || editSlug}`);
       } else {
-        await createMutation.mutateAsync(data);
+        const result = await createMutation.mutateAsync(data);
         toast.success('تم إضافة العميل بنجاح');
+        navigate(`/clients/${result.data?.slug || ''}`);
       }
-      navigate('/clients');
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'حدث خطأ');
     }
@@ -62,7 +78,7 @@ export default function ClientForm() {
 
   return (
     <div className="page-container max-w-2xl mx-auto">
-      <h1 className="page-title mb-6">{editId ? 'تعديل عميل' : 'إضافة عميل جديد'}</h1>
+      <h1 className="page-title mb-6">{editSlug ? 'تعديل عميل' : 'إضافة عميل جديد'}</h1>
       <form onSubmit={handleSubmit(onSubmit)} className="card card-body space-y-4">
         <div>
           <label className="input-label">اسم العميل</label>
@@ -86,9 +102,26 @@ export default function ClientForm() {
           </div>
           <div>
             <label className="input-label">الخدمة</label>
-            <input type="text" {...register('service')} className="input" />
+            <select {...register('service')} className="select">
+              <option value="">اختر الخدمة</option>
+              {serviceOptions.map(o => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
           </div>
         </div>
+        {!isEmployee && (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="input-label">الدفعة الشهرية</label>
+              <input type="number" step="0.01" min="0" {...register('monthly_payment')} className="input" placeholder="0.00" />
+            </div>
+            <div>
+              <label className="input-label">يوم الدفع (1-28)</label>
+              <input type="number" min="1" max="28" {...register('payment_day')} className="input" placeholder="1" />
+            </div>
+          </div>
+        )}
         <div>
           <label className="input-label">الحالة</label>
           <select {...register('status')} className="select">

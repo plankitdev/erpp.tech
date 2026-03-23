@@ -26,10 +26,11 @@ class InvoiceController extends Controller
     {
         $this->authorize('viewAny', Invoice::class);
 
-        $invoices = Invoice::with(['contract.client', 'payments'])
+        $invoices = Invoice::with(['contract.client', 'client', 'payments'])
             ->when($request->status, fn($q) => $q->where('status', $request->status))
             ->when($request->client_id, fn($q) =>
-                $q->whereHas('contract', fn($cq) => $cq->where('client_id', $request->client_id))
+                $q->where('client_id', $request->client_id)
+                  ->orWhereHas('contract', fn($cq) => $cq->where('client_id', $request->client_id))
             )
             ->when($request->month, fn($q) => $q->whereMonth('due_date', $request->month))
             ->when($request->year, fn($q) => $q->whereYear('due_date', $request->year))

@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useClients, useDeleteClient, useBatchDeleteClients } from '../hooks/useClients';
+import { useAuthStore } from '../store/authStore';
 import { useUrlFilters } from '../hooks/useUrlFilters';
 import toast from 'react-hot-toast';
 import type { Client } from '../types';
-import { Plus, Pencil, Trash2, Eye, Download, Users, Building2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, Download, Users, Building2, DollarSign } from 'lucide-react';
 import { exportToCSV } from '../utils/exportCsv';
 import ConfirmDialog from '../components/ConfirmDialog';
 import StatusBadge from '../components/StatusBadge';
@@ -13,11 +14,13 @@ import { SkeletonTable } from '../components/Skeletons';
 
 export default function Clients() {
   const { getParam, setParam, getPage, setPage } = useUrlFilters({ filter: 'all', sectorFilter: 'all' });
+  const user = useAuthStore(s => s.user);
+  const isEmployee = user?.role === 'employee';
   const search = getParam('search');
   const filter = getParam('filter') || 'all';
   const sectorFilter = getParam('sectorFilter') || 'all';
   const page = getPage();
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleteSlug, setDeleteSlug] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [showBatchConfirm, setShowBatchConfirm] = useState(false);
 
@@ -31,9 +34,9 @@ export default function Clients() {
   const batchDeleteMutation = useBatchDeleteClients();
 
   const handleDelete = () => {
-    if (!deleteId) return;
-    deleteMutation.mutate(deleteId, {
-      onSuccess: () => { toast.success('تم حذف العميل'); setDeleteId(null); },
+    if (!deleteSlug) return;
+    deleteMutation.mutate(deleteSlug, {
+      onSuccess: () => { toast.success('تم حذف العميل'); setDeleteSlug(null); },
       onError: () => toast.error('حدث خطأ أثناء الحذف'),
     });
   };
@@ -73,6 +76,11 @@ export default function Clients() {
           <p className="page-subtitle">{meta?.total || clients.length} عميل مسجل</p>
         </div>
         <div className="flex gap-2">
+          {!isEmployee && (
+            <Link to="/clients/financial" className="btn-secondary">
+              <DollarSign size={16} /> الملخص المالي
+            </Link>
+          )}
           <button onClick={() => exportToCSV('clients', ['الاسم', 'الموبايل', 'الشركة', 'الخدمة', 'الحالة'], clients.map((c: Client) => [c.name, c.phone || '', c.company_name || '', c.service || '', c.status]))} disabled={clients.length === 0} className="btn-secondary">
             <Download size={16} /> تصدير CSV
           </button>
@@ -178,9 +186,9 @@ export default function Clients() {
                   </td>
                   <td>
                     <div className="flex gap-1">
-                      <Link to={`/clients/${client.id}`} className="action-icon text-gray-400 hover:text-primary-600 hover:bg-primary-50"><Eye size={15} /></Link>
-                      <Link to={`/clients/${client.id}/edit`} className="action-icon text-gray-400 hover:text-amber-600 hover:bg-amber-50"><Pencil size={15} /></Link>
-                      <button onClick={() => setDeleteId(client.id)} className="action-icon text-gray-400 hover:text-red-600 hover:bg-red-50"><Trash2 size={15} /></button>
+                      <Link to={`/clients/${client.slug}`} className="action-icon text-gray-400 hover:text-primary-600 hover:bg-primary-50"><Eye size={15} /></Link>
+                      <Link to={`/clients/${client.slug}/edit`} className="action-icon text-gray-400 hover:text-amber-600 hover:bg-amber-50"><Pencil size={15} /></Link>
+                      <button onClick={() => setDeleteSlug(client.slug)} className="action-icon text-gray-400 hover:text-red-600 hover:bg-red-50"><Trash2 size={15} /></button>
                     </div>
                   </td>
                 </tr>
@@ -203,12 +211,12 @@ export default function Clients() {
       </div>
 
       <ConfirmDialog
-        open={deleteId !== null}
+        open={deleteSlug !== null}
         title="حذف العميل"
         message="هل أنت متأكد من حذف هذا العميل؟ لا يمكن التراجع عن هذا الإجراء."
         confirmText="حذف"
         onConfirm={handleDelete}
-        onCancel={() => setDeleteId(null)}
+        onCancel={() => setDeleteSlug(null)}
       />
 
       <ConfirmDialog

@@ -20,6 +20,7 @@ class StoreExpenseRequest extends FormRequest
             'date'         => ['required', 'date'],
             'notes'        => ['nullable', 'string'],
             'reference_id' => ['nullable', 'string', 'max:100'],
+            'client_id'    => ['nullable', 'integer', 'exists:clients,id'],
         ];
     }
 }

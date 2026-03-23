@@ -80,6 +80,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::get('clients/{client}', [ClientController::class, 'show']);
     });
     Route::middleware('role:super_admin,manager,sales')->group(function () {
+        Route::get('clients/financial-summary', [ClientController::class, 'financialSummary']);
         Route::post('clients', [ClientController::class, 'store']);
         Route::put('clients/{client}', [ClientController::class, 'update']);
         Route::delete('clients/{client}', [ClientController::class, 'destroy']);

@@ -28,7 +28,7 @@ const categories = [
 ];
 
 const routeMap: Record<string, (item: any) => string> = {
-  clients: (i) => `/clients/${i.id}`,
+  clients: (i) => `/clients/${i.slug || i.id}`,
   projects: (i) => `/projects/${i.slug || i.id}`,
   tasks: (i) => `/tasks`,
   invoices: (i) => `/invoices/${i.id}`,

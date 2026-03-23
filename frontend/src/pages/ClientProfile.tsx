@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useClient } from '../hooks/useClients';
 import { useInvoices } from '../hooks/useInvoices';
+import { useAuthStore } from '../store/authStore';
 import { formatCurrency, formatDate, statusLabels, statusColors } from '../utils';
 import type { InvoiceStatus, ContractStatus } from '../types';
 import {
@@ -18,11 +19,13 @@ const projectStatusLabels: Record<string, string> = {
 };
 
 export default function ClientProfile() {
-  const { id } = useParams<{ id: string }>();
-  const clientId = parseInt(id || '0');
-  const { data: client, isLoading, isError, refetch } = useClient(clientId);
-  const { data: invoiceData } = useInvoices({ client_id: clientId, per_page: 50 });
+  const { id: slug } = useParams<{ id: string }>();
+  const clientSlug = slug || '';
+  const { data: client, isLoading, isError, refetch } = useClient(clientSlug);
+  const { data: invoiceData } = useInvoices({ client_id: client?.id, per_page: 50 });
   const invoices = invoiceData?.data ?? [];
+  const user = useAuthStore(s => s.user);
+  const isEmployee = user?.role === 'employee';
   const [activeTab, setActiveTab] = useState<'overview' | 'invoices' | 'contracts' | 'projects'>('overview');
 
   if (isLoading) return <LoadingSpinner />;
@@ -32,15 +35,17 @@ export default function ClientProfile() {
   const projects = client.projects ?? [];
   const tasks = client.tasks ?? [];
   const activeContract = contracts.find(c => c.status === 'active');
-  const totalContractValue = contracts.reduce((sum, c) => sum + c.value, 0);
+  const totalContractValue = contracts.reduce((sum, c) => sum + (c.value ?? 0), 0);
   const totalPaid = invoices.reduce((sum, inv) => sum + inv.paid_amount, 0);
   const totalOutstanding = client.total_outstanding ?? 0;
   const paymentRate = totalContractValue > 0 ? Math.round((totalPaid / totalContractValue) * 100) : 0;
 
   const tabs = [
     { key: 'overview' as const, label: 'نظرة عامة', icon: User },
-    { key: 'invoices' as const, label: `الفواتير (${invoices.length})`, icon: FileText },
-    { key: 'contracts' as const, label: `العقود (${contracts.length})`, icon: Briefcase },
+    ...(!isEmployee ? [
+      { key: 'invoices' as const, label: `الفواتير (${invoices.length})`, icon: FileText },
+      { key: 'contracts' as const, label: `العقود (${contracts.length})`, icon: Briefcase },
+    ] : []),
     { key: 'projects' as const, label: `المشاريع (${projects.length})`, icon: FolderKanban },
   ];
 
@@ -73,13 +78,14 @@ export default function ClientProfile() {
               <span className="flex items-center gap-1.5"><Calendar size={14} />عميل منذ {formatDate(client.created_at)}</span>
             </div>
           </div>
-          <Link to={`/clients/${client.id}/edit`} className="btn-secondary text-sm flex-shrink-0">
+          <Link to={`/clients/${client.slug}/edit`} className="btn-secondary text-sm flex-shrink-0">
             <Pencil size={14} /> تعديل
           </Link>
         </div>
       </div>
 
-      {/* Financial Summary Cards */}
+      {/* Financial Summary Cards - hidden for employees */}
+      {!isEmployee && (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-xl border border-gray-100 p-4">
           <div className="flex items-center gap-2 mb-2">
@@ -116,6 +122,7 @@ export default function ClientProfile() {
           </div>
         </div>
       </div>
+      )}
 
       {/* Tabs */}
       <div className="bg-white rounded-t-xl border border-b-0 border-gray-100">
@@ -169,14 +176,14 @@ export default function ClientProfile() {
             </div>
 
             {/* Active Contract */}
-            {activeContract && (
+            {activeContract && !isEmployee && (
               <div>
                 <h3 className="text-sm font-semibold text-gray-800 mb-3">العقد النشط</h3>
                 <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
                       <p className="text-xs text-emerald-600">القيمة</p>
-                      <p className="font-bold text-emerald-800">{formatCurrency(activeContract.value, activeContract.currency)}</p>
+                      <p className="font-bold text-emerald-800">{formatCurrency(activeContract.value ?? 0, activeContract.currency)}</p>
                     </div>
                     <div>
                       <p className="text-xs text-emerald-600">النوع</p>
@@ -222,7 +229,7 @@ export default function ClientProfile() {
         )}
 
         {/* Invoices Tab */}
-        {activeTab === 'invoices' && (
+        {activeTab === 'invoices' && !isEmployee && (
           <div className="overflow-x-auto">
             <table className="data-table w-full">
               <thead className="bg-gray-50">
@@ -260,7 +267,7 @@ export default function ClientProfile() {
         )}
 
         {/* Contracts Tab */}
-        {activeTab === 'contracts' && (
+        {activeTab === 'contracts' && !isEmployee && (
           <div className="space-y-3">
             {contracts.length === 0 ? (
               <p className="text-center text-gray-400 py-8 text-sm">لا يوجد عقود</p>
@@ -270,7 +277,7 @@ export default function ClientProfile() {
                 <div className={`w-2 h-12 rounded-full ${c.status === 'active' ? 'bg-emerald-500' : c.status === 'completed' ? 'bg-blue-500' : 'bg-gray-300'}`} />
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-bold text-gray-800">{formatCurrency(c.value, c.currency)}</span>
+                    <span className="font-bold text-gray-800">{formatCurrency(c.value ?? 0, c.currency)}</span>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors.contract[c.status as ContractStatus]}`}>
                       {statusLabels.contract[c.status as ContractStatus]}
                     </span>

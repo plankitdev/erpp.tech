@@ -25,14 +25,35 @@ class Client extends Model
     ];
 
     protected $fillable = [
-        'company_id', 'name', 'phone', 'company_name',
-        'sector', 'service', 'status', 'notes',
-        'last_contact_date', 'follow_up_days',
+        'company_id', 'name', 'slug', 'phone', 'company_name',
+        'sector', 'service', 'monthly_payment', 'payment_day',
+        'status', 'notes', 'last_contact_date', 'follow_up_days',
     ];
 
     protected $casts = [
         'last_contact_date' => 'date',
+        'monthly_payment' => 'decimal:2',
     ];
+
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (Client $client) {
+            if (empty($client->slug)) {
+                $slug = \Illuminate\Support\Str::slug($client->name);
+                $original = $slug;
+                $i = 1;
+                while (static::withoutGlobalScopes()->where('slug', $slug)->exists()) {
+                    $slug = $original . '-' . $i++;
+                }
+                $client->slug = $slug;
+            }
+        });
+    }
 
     public function company(): BelongsTo
     {
@@ -64,8 +85,35 @@ class Client extends Model
         return $this->hasMany(Project::class);
     }
 
+    public function directInvoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
+    }
+
+    public function expenses(): HasMany
+    {
+        return $this->hasMany(Expense::class);
+    }
+
     public function getTotalOutstandingAttribute(): float
     {
         return $this->invoices()->where('invoices.status', '!=', Invoice::STATUS_PAID)->sum('invoices.amount');
+    }
+
+    public function getTotalExpensesAttribute(): float
+    {
+        return $this->expenses()->sum('amount');
+    }
+
+    public function getTotalPaidAttribute(): float
+    {
+        $throughContract = $this->invoices()
+            ->where('invoices.status', Invoice::STATUS_PAID)
+            ->sum('invoices.amount');
+        $direct = $this->directInvoices()
+            ->where('status', Invoice::STATUS_PAID)
+            ->whereNull('contract_id')
+            ->sum('amount');
+        return $throughContract + $direct;
     }
 }

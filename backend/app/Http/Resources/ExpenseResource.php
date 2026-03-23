@@ -12,12 +12,17 @@ class ExpenseResource extends JsonResource
         return [
             'id'           => $this->id,
             'company_id'   => $this->company_id,
+            'client_id'    => $this->client_id,
             'category'     => $this->category,
             'amount'       => $this->amount,
             'currency'     => $this->currency,
             'date'         => $this->date?->format('Y-m-d'),
             'notes'        => $this->notes,
             'reference_id' => $this->reference_id,
+            'client'       => $this->whenLoaded('client', fn() => [
+                'id' => $this->client->id,
+                'name' => $this->client->name,
+            ]),
             'created_at'   => $this->created_at?->toISOString(),
             'updated_at'   => $this->updated_at?->toISOString(),
         ];

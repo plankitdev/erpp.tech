@@ -74,7 +74,7 @@ export default function Contracts() {
           <p className="page-subtitle">{meta?.total || contracts.length} عقد</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => exportToCSV('contracts', ['الشركة', 'العميل', 'القيمة', 'العملة', 'البداية', 'النهاية', 'نوع الدفع', 'الحالة'], contracts.map((c: Contract) => [c.client?.company_name || '', c.client?.name || '', String(c.value), c.currency, c.start_date, c.end_date || '', c.payment_type, c.status]))} disabled={contracts.length === 0} className="btn-secondary">
+          <button onClick={() => exportToCSV('contracts', ['الشركة', 'العميل', 'القيمة', 'العملة', 'البداية', 'النهاية', 'نوع الدفع', 'الحالة'], contracts.map((c: Contract) => [c.client?.company_name || '', c.client?.name || '', String(c.value ?? 0), c.currency || 'EGP', c.start_date, c.end_date || '', c.payment_type, c.status]))} disabled={contracts.length === 0} className="btn-secondary">
             <Download size={16} /> تصدير CSV
           </button>
           <Link to="/contracts/create" className="btn-primary">
@@ -134,7 +134,7 @@ export default function Contracts() {
                       )}
                     </div>
                   </td>
-                  <td className="font-medium">{formatCurrency(c.value, c.currency)}</td>
+                  <td className="font-medium">{formatCurrency(c.value ?? 0, c.currency)}</td>
                   <td className="text-gray-500 text-[13px]">{formatDate(c.start_date)}</td>
                   <td className="text-gray-500 text-[13px]">
                     <div className="flex items-center gap-1.5">

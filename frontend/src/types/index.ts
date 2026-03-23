@@ -76,6 +76,7 @@ export interface Company {
 // ========== Client ==========
 export interface Client {
   id: number;
+  slug: string;
   name: string;
   phone: string | null;
   company_name: string | null;
@@ -83,12 +84,28 @@ export interface Client {
   service: string | null;
   status: ClientStatus;
   notes: string | null;
-  total_outstanding: number;
+  monthly_payment?: number | null;
+  payment_day?: number | null;
+  total_outstanding?: number;
+  total_expenses?: number;
+  total_paid?: number;
   active_contract?: Contract;
   contracts?: Contract[];
   projects?: Project[];
   tasks?: Task[];
   created_at: string;
+}
+
+export interface ClientFinancialSummary {
+  id: number;
+  name: string;
+  slug: string;
+  service: string | null;
+  contract_value: number;
+  total_expenses: number;
+  monthly_payment: number;
+  outstanding: number;
+  notes: string | null;
 }
 
 export type ClientStatus = 'active' | 'inactive' | 'lead';
@@ -97,13 +114,13 @@ export type ClientStatus = 'active' | 'inactive' | 'lead';
 export interface Contract {
   id: number;
   client_id: number;
-  value: number;
-  currency: Currency;
+  value?: number;
+  currency?: Currency;
   payment_type: PaymentType;
   start_date: string;
   end_date: string | null;
-  installments_count: number | null;
-  installment_amount: number | null;
+  installments_count?: number | null;
+  installment_amount?: number | null;
   status: ContractStatus;
   notes: string | null;
   client?: Client;
@@ -118,15 +135,18 @@ export type Currency = 'EGP' | 'USD' | 'SAR';
 // ========== Invoice ==========
 export interface Invoice {
   id: number;
-  contract_id: number;
+  contract_id: number | null;
+  client_id?: number | null;
   amount: number;
   currency: Currency;
   status: InvoiceStatus;
   due_date: string;
+  issue_date?: string | null;
   paid_date: string | null;
   paid_amount: number;
   remaining: number;
   contract?: Contract;
+  client?: { id: number; name: string } | null;
   payments?: InvoicePayment[];
   created_at: string;
 }
@@ -231,8 +251,8 @@ export interface Project {
   status: ProjectStatus;
   start_date: string | null;
   end_date: string | null;
-  budget: number | null;
-  currency: Currency;
+  budget?: number | null;
+  currency?: Currency;
   client: Client | null;
   created_by: User | null;
   tasks_count: number;
@@ -470,12 +490,14 @@ export type NotificationType = 'invoice_overdue' | 'task_assigned' | 'file_sent'
 export interface Expense {
   id: number;
   company_id: number;
+  client_id?: number | null;
   category: string;
   amount: number;
   currency: Currency;
   date: string;
   notes: string | null;
   reference_id: string | null;
+  client?: { id: number; name: string } | null;
   created_at: string;
   updated_at: string;
 }

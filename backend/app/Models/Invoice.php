@@ -25,8 +25,8 @@ class Invoice extends Model
     ];
 
     protected $fillable = [
-        'contract_id', 'company_id', 'amount', 'vat_rate', 'vat_amount', 'total_with_vat', 'currency',
-        'status', 'due_date', 'paid_date',
+        'contract_id', 'company_id', 'client_id', 'amount', 'vat_rate', 'vat_amount', 'total_with_vat', 'currency',
+        'status', 'due_date', 'paid_date', 'issue_date',
     ];
 
     protected $casts = [
@@ -36,6 +36,7 @@ class Invoice extends Model
         'total_with_vat' => 'decimal:2',
         'due_date' => 'datetime:Y-m-d',
         'paid_date' => 'datetime:Y-m-d',
+        'issue_date' => 'datetime:Y-m-d',
     ];
 
     protected $appends = ['paid_amount', 'remaining'];
@@ -43,6 +44,11 @@ class Invoice extends Model
     public function contract(): BelongsTo
     {
         return $this->belongsTo(Contract::class);
+    }
+
+    public function client(): BelongsTo
+    {
+        return $this->belongsTo(Client::class);
     }
 
     public function company(): BelongsTo

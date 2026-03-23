@@ -13,6 +13,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Clients = lazy(() => import('./pages/Clients'));
 const ClientForm = lazy(() => import('./pages/ClientForm'));
 const ClientProfile = lazy(() => import('./pages/ClientProfile'));
+const ClientsFinancial = lazy(() => import('./pages/ClientsFinancial'));
 const Contracts = lazy(() => import('./pages/Contracts'));
 const ContractForm = lazy(() => import('./pages/ContractForm'));
 const Invoices = lazy(() => import('./pages/Invoices'));
@@ -89,6 +90,7 @@ export default function App() {
         <Route path="finance-hub" element={<FinanceHub />} />
         <Route path="hr-hub" element={<HRHub />} />
         <Route path="clients" element={<Clients />} />
+        <Route path="clients/financial" element={<ClientsFinancial />} />
         <Route path="clients/create" element={<ClientForm />} />
         <Route path="clients/:id" element={<ClientProfile />} />
         <Route path="clients/:id/edit" element={<ClientForm />} />

@@ -14,10 +14,12 @@ class StoreInvoiceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'contract_id' => 'required|exists:contracts,id',
+            'contract_id' => 'nullable|exists:contracts,id',
+            'client_id'   => 'nullable|exists:clients,id',
             'amount'      => 'required|numeric|min:0.01',
             'currency'    => 'required|in:EGP,USD,SAR',
             'due_date'    => 'required|date',
+            'issue_date'  => 'nullable|date',
             'notes'       => 'nullable|string',
             'is_paid'     => 'nullable|boolean',
         ];

@@ -41,11 +41,11 @@ export default function InvoiceForm() {
   useEffect(() => {
     if (invoice) {
       reset({
-        contract_id: invoice.contract_id,
+        contract_id: invoice.contract_id ?? undefined,
         amount: invoice.amount,
         currency: invoice.currency,
         due_date: invoice.due_date,
-      });
+      } as any);
     }
   }, [invoice, reset]);
 
@@ -74,7 +74,7 @@ export default function InvoiceForm() {
           <select {...register('contract_id')} className="select">
             <option value="">اختر العقد</option>
             {contracts.map(c => (
-              <option key={c.id} value={c.id}>{c.client?.company_name || c.client?.name} - {formatCurrency(c.value, c.currency)}</option>
+              <option key={c.id} value={c.id}>{c.client?.company_name || c.client?.name} - {formatCurrency(c.value ?? 0, c.currency)}</option>
             ))}
           </select>
           {errors.contract_id && <p className="text-red-500 text-xs mt-1">{errors.contract_id.message}</p>}

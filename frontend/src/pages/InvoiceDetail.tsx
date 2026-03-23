@@ -75,7 +75,7 @@ export default function InvoiceDetail() {
             <p className="text-sm text-gray-500">الشركة</p>
             <p className="font-semibold text-gray-900">{invoice.contract?.client?.company_name || '—'}</p>
             {invoice.contract?.client && (
-              <Link to={`/clients/${invoice.contract.client.id}`} className="text-xs text-primary-600 hover:underline">
+              <Link to={`/clients/${(invoice.contract.client as any).slug || invoice.contract.client.id}`} className="text-xs text-primary-600 hover:underline">
                 العميل: {invoice.contract.client.name}
               </Link>
             )}

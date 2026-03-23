@@ -12,11 +12,16 @@ class Expense extends Model
 {
     use HasCompany, HasFactory, LogsActivity;
 
-    protected $fillable = ['company_id', 'project_id', 'category', 'amount', 'currency', 'date', 'notes', 'reference_id'];
+    protected $fillable = ['company_id', 'project_id', 'client_id', 'category', 'amount', 'currency', 'date', 'notes', 'reference_id'];
 
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function client(): BelongsTo
+    {
+        return $this->belongsTo(Client::class);
     }
 
     protected $casts = [

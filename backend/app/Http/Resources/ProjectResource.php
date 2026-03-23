@@ -9,7 +9,10 @@ class ProjectResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        return [
+        $user = $request->user();
+        $isEmployee = $user && $user->role === 'employee';
+
+        $data = [
             'id'                    => $this->id,
             'slug'                  => $this->slug,
             'name'                  => $this->name,
@@ -17,8 +20,6 @@ class ProjectResource extends JsonResource
             'status'                => $this->status,
             'start_date'            => $this->start_date?->format('Y-m-d'),
             'end_date'              => $this->end_date?->format('Y-m-d'),
-            'budget'                => $this->budget,
-            'currency'              => $this->currency,
             'client'                => new ClientResource($this->whenLoaded('client')),
             'created_by'            => new UserResource($this->whenLoaded('creator')),
             'tasks_count'           => $this->whenCounted('tasks', $this->tasks_count ?? 0),
@@ -29,5 +30,12 @@ class ProjectResource extends JsonResource
             'files'                 => ProjectFileResource::collection($this->whenLoaded('files')),
             'created_at'            => $this->created_at?->format('Y-m-d H:i'),
         ];
+
+        if (!$isEmployee) {
+            $data['budget']   = $this->budget;
+            $data['currency'] = $this->currency;
+        }
+
+        return $data;
     }
 }

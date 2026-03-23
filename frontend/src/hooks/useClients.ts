@@ -9,11 +9,11 @@ export function useClients(params?: Record<string, unknown>) {
   });
 }
 
-export function useClient(id: number) {
+export function useClient(slug: string) {
   return useQuery({
-    queryKey: ['clients', id],
-    queryFn: () => clientsApi.getById(id).then(r => r.data.data),
-    enabled: !!id,
+    queryKey: ['clients', slug],
+    queryFn: () => clientsApi.getBySlug(slug).then(r => r.data.data),
+    enabled: !!slug,
   });
 }
 
@@ -28,8 +28,8 @@ export function useCreateClient() {
 export function useUpdateClient() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<Client> }) =>
-      clientsApi.update(id, data).then(r => r.data),
+    mutationFn: ({ slug, data }: { slug: string; data: Partial<Client> }) =>
+      clientsApi.update(slug, data).then(r => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['clients'] }),
   });
 }
@@ -37,7 +37,7 @@ export function useUpdateClient() {
 export function useDeleteClient() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => clientsApi.delete(id).then(r => r.data),
+    mutationFn: (slug: string) => clientsApi.delete(slug).then(r => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['clients'] }),
   });
 }
@@ -47,5 +47,12 @@ export function useBatchDeleteClients() {
   return useMutation({
     mutationFn: (ids: number[]) => clientsApi.batchDelete(ids).then(r => r.data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['clients'] }),
+  });
+}
+
+export function useFinancialSummary(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: ['clients', 'financial-summary', params],
+    queryFn: () => clientsApi.getFinancialSummary(params).then(r => r.data.data),
   });
 }

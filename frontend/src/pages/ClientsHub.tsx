@@ -95,6 +95,9 @@ export default function ClientsHub() {
             <Link to="/clients/create" className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-all border border-white/10">
               <Plus size={16} /> عميل جديد
             </Link>
+            <Link to="/clients/financial" className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-all border border-white/10">
+              <CreditCard size={16} /> الملخص المالي
+            </Link>
             <Link to="/invoices/create" className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-all border border-white/10">
               <Receipt size={16} /> فاتورة جديدة
             </Link>
@@ -206,7 +209,7 @@ export default function ClientsHub() {
                       className="flex items-center justify-between p-3 rounded-xl hover:bg-amber-50 transition-colors group">
                       <div>
                         <p className="text-sm font-semibold text-gray-800">{c.client?.company_name || c.client?.name}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">{formatCurrency(c.value, c.currency)}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{formatCurrency(c.value ?? 0, c.currency)}</p>
                       </div>
                       <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-bold">
                         {days} يوم

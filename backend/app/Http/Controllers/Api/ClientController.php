@@ -47,6 +47,7 @@ class ClientController extends Controller
         $client->load([
             'contracts',
             'invoices' => fn($q) => $q->latest()->limit(10),
+            'expenses' => fn($q) => $q->latest()->limit(10),
             'projects' => fn($q) => $q->select('id', 'slug', 'name', 'status', 'client_id', 'start_date', 'end_date')
                 ->withCount('tasks'),
             'tasks' => fn($q) => $q->with('assignedUser')->latest()->limit(10),
@@ -77,5 +78,36 @@ class ClientController extends Controller
         $request->validate(['ids' => 'required|array|min:1', 'ids.*' => 'integer|exists:clients,id']);
         Client::whereIn('id', $request->ids)->delete();
         return $this->successResponse(null, 'تم حذف العملاء المحددين');
+    }
+
+    public function financialSummary(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', Client::class);
+
+        $clients = Client::with('activeContract')
+            ->when($request->service, fn($q) => $q->where('service', $request->service))
+            ->where('status', 'active')
+            ->get()
+            ->map(function ($client) {
+                $contractValue = $client->activeContract?->value ?? 0;
+                $totalExpenses = $client->expenses()->sum('amount');
+                $totalPaid = $client->invoices()
+                    ->where('invoices.status', 'paid')
+                    ->sum('invoices.amount');
+
+                return [
+                    'id'              => $client->id,
+                    'name'            => $client->name,
+                    'slug'            => $client->slug,
+                    'service'         => $client->service,
+                    'contract_value'  => (float) $contractValue,
+                    'total_expenses'  => (float) $totalExpenses,
+                    'monthly_payment' => $client->monthly_payment ? (float) $client->monthly_payment : null,
+                    'outstanding'     => (float) ($contractValue - $totalPaid),
+                    'notes'           => $client->notes,
+                ];
+            });
+
+        return $this->successResponse($clients);
     }
 }
