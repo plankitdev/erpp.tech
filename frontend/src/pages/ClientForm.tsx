@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 
 const clientSchema = z.object({
   name: z.string().min(1, 'اسم العميل مطلوب'),
+  slug: z.string().optional().or(z.literal('')),
   phone: z.string().optional().or(z.literal('')),
   company_name: z.string().optional().or(z.literal('')),
   sector: z.string().optional().or(z.literal('')),
@@ -48,6 +49,7 @@ export default function ClientForm() {
     if (client) {
       reset({
         name: client.name,
+        slug: client.slug || '',
         phone: client.phone || '',
         company_name: client.company_name || '',
         sector: client.sector || '',
@@ -85,6 +87,12 @@ export default function ClientForm() {
           <input type="text" {...register('name')} className="input" />
           {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
         </div>
+        {editSlug && (
+          <div>
+            <label className="input-label">Slug (رابط العميل)</label>
+            <input type="text" {...register('slug')} className="input" dir="ltr" />
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="input-label">رقم الموبايل</label>

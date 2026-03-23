@@ -20,14 +20,16 @@ export default function SearchInput({
   const [localValue, setLocalValue] = useState(externalValue);
   const debouncedValue = useDebounce(localValue, delay);
   const isFirstRender = useRef(true);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
 
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
       return;
     }
-    onChange(debouncedValue);
-  }, [debouncedValue, onChange]);
+    onChangeRef.current(debouncedValue);
+  }, [debouncedValue]);
 
   useEffect(() => {
     setLocalValue(externalValue);

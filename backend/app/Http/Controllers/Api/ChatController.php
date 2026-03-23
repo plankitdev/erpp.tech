@@ -21,16 +21,14 @@ class ChatController extends Controller
     {
         $user = Auth::user();
 
-        $query = ChatChannel::query();
+        $query = ChatChannel::query()
+            ->whereHas('members', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            })
+            ->with(['latestMessage.user:id,name', 'members:id,name,avatar']);
 
         if ($user->isSuperAdmin()) {
-            // Super admin sees all channels, with company info
-            $query->with(['latestMessage.user:id,name', 'members:id,name,avatar', 'company:id,name']);
-        } else {
-            $query->whereHas('members', function ($q) use ($user) {
-                    $q->where('user_id', $user->id);
-                })
-                ->with(['latestMessage.user:id,name', 'members:id,name,avatar']);
+            $query->with('company:id,name');
         }
 
         $query->withCount(['messages as unread_count' => function ($q) use ($user) {
@@ -248,12 +246,35 @@ class ChatController extends Controller
             ->where('is_active', true)
             ->select('id', 'name', 'avatar', 'role', 'company_id');
 
-        if (!$user->isSuperAdmin()) {
-            $query->where('company_id', $user->company_id);
+        if ($user->isSuperAdmin()) {
+            // Super admin: show users of the company they switched to
+            $companyId = $this->getSuperAdminCompanyId($user);
+            if ($companyId) {
+                $query->where('company_id', $companyId);
+            }
+        } else {
+            // Regular users: show company users + super admins
+            $query->where(function ($q) use ($user) {
+                $q->where('company_id', $user->company_id)
+                  ->orWhere('role', 'super_admin');
+            });
         }
 
         $users = $query->orderBy('name')->get();
 
         return $this->successResponse($users);
+    }
+
+    private function getSuperAdminCompanyId($user): ?int
+    {
+        $token = $user->currentAccessToken();
+        if ($token) {
+            foreach ($token->abilities ?? [] as $ability) {
+                if (str_starts_with($ability, 'company:')) {
+                    return (int) substr($ability, 8);
+                }
+            }
+        }
+        return null;
     }
 }
