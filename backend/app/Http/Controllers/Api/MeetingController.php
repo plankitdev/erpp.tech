@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Meeting;
+use App\Services\NotificationService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -49,6 +50,7 @@ class MeetingController extends Controller
             'location' => 'nullable|string|max:255',
             'meeting_link' => 'nullable|url|max:500',
             'type' => 'required|in:team,sales,client,other',
+            'notes' => 'nullable|string',
             'project_id' => 'nullable|exists:projects,id',
             'participant_ids' => 'nullable|array',
             'participant_ids.*' => 'exists:users,id',
@@ -63,6 +65,19 @@ class MeetingController extends Controller
 
         if (!empty($participantIds)) {
             $meeting->participants()->sync($participantIds);
+
+            // Notify participants
+            $startFormatted = $meeting->start_time->format('Y-m-d H:i');
+            foreach ($participantIds as $participantId) {
+                if ($participantId !== $request->user()->id) {
+                    NotificationService::meetingScheduled(
+                        $meeting->company_id,
+                        $participantId,
+                        $meeting->title,
+                        $startFormatted
+                    );
+                }
+            }
         }
 
         return $this->successResponse(
@@ -81,6 +96,11 @@ class MeetingController extends Controller
 
     public function update(Request $request, Meeting $meeting): JsonResponse
     {
+        // Employees can only update their own meetings
+        if ($request->user()->role === 'employee' && $meeting->created_by !== $request->user()->id) {
+            return $this->errorResponse('غير مصرح لك بتعديل هذا الاجتماع', 403);
+        }
+
         $data = $request->validate([
             'title' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
@@ -90,6 +110,7 @@ class MeetingController extends Controller
             'meeting_link' => 'nullable|url|max:500',
             'type' => 'sometimes|in:team,sales,client,other',
             'status' => 'sometimes|in:scheduled,in_progress,completed,cancelled',
+            'notes' => 'nullable|string',
             'project_id' => 'nullable|exists:projects,id',
             'participant_ids' => 'nullable|array',
             'participant_ids.*' => 'exists:users,id',
@@ -110,8 +131,13 @@ class MeetingController extends Controller
         );
     }
 
-    public function destroy(Meeting $meeting): JsonResponse
+    public function destroy(Request $request, Meeting $meeting): JsonResponse
     {
+        // Employees can only delete their own meetings
+        if ($request->user()->role === 'employee' && $meeting->created_by !== $request->user()->id) {
+            return $this->errorResponse('غير مصرح لك بحذف هذا الاجتماع', 403);
+        }
+
         $meeting->delete();
 
         return $this->successResponse(null, 'تم حذف الاجتماع');

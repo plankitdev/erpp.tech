@@ -15,6 +15,18 @@ class UserController extends Controller
 {
     use ApiResponse;
 
+    /**
+     * Lightweight user list for dropdowns/assignments (all authenticated users).
+     */
+    public function list(): JsonResponse
+    {
+        $users = User::select('id', 'name', 'email', 'role', 'avatar')
+            ->where('is_active', true)
+            ->get();
+
+        return $this->successResponse($users);
+    }
+
     public function index(): JsonResponse
     {
         $this->authorize('viewAny', User::class);

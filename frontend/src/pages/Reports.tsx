@@ -49,8 +49,8 @@ interface PLData {
 }
 
 function ProfitLossView({ data, currency }: { data: PLData['data']; currency: string }) {
-  const t = data.totals;
-  const fmt = (v: number) => formatCurrency(v, currency as any);
+  const t = data.totals || {} as Record<string, number>;
+  const fmt = (v: number) => formatCurrency(v || 0, currency as any);
 
   return (
     <div className="space-y-6">
@@ -162,8 +162,8 @@ interface CFData {
 }
 
 function CashFlowView({ data, currency }: { data: CFData['data']; currency: string }) {
-  const t = data.totals;
-  const fmt = (v: number) => formatCurrency(v, currency as any);
+  const t = data.totals || {} as Record<string, number>;
+  const fmt = (v: number) => formatCurrency(v || 0, currency as any);
 
   return (
     <div className="space-y-6">

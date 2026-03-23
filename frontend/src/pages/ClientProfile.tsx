@@ -22,7 +22,9 @@ export default function ClientProfile() {
   const { id: slug } = useParams<{ id: string }>();
   const clientSlug = slug || '';
   const { data: client, isLoading, isError, refetch } = useClient(clientSlug);
-  const { data: invoiceData } = useInvoices({ client_id: client?.id, per_page: 50 });
+  const { hasPermission } = useAuthStore();
+  const canViewInvoices = hasPermission('invoices');
+  const { data: invoiceData } = useInvoices({ client_id: client?.id, per_page: 50 }, { enabled: canViewInvoices && !!client?.id });
   const invoices = invoiceData?.data ?? [];
   const user = useAuthStore(s => s.user);
   const isEmployee = user?.role === 'employee';

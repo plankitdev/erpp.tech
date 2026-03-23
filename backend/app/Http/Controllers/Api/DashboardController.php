@@ -46,6 +46,45 @@ class DashboardController extends Controller
         return $this->successResponse(array_merge($common, $roleData, ['role' => $role]));
     }
 
+    /**
+     * Sidebar badge counts: new tasks assigned, upcoming meetings, new projects.
+     */
+    public function badges(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $userId = $user->id;
+
+        // New tasks assigned to user in last 7 days that are not done
+        $newTasks = Task::where(function ($q) use ($userId) {
+            $q->where('assigned_to', $userId)
+              ->orWhereHas('assignees', fn($q2) => $q2->where('user_id', $userId));
+        })
+            ->whereIn('status', ['todo', 'in_progress'])
+            ->where('created_at', '>=', now()->subDays(7))
+            ->count();
+
+        // Upcoming meetings (scheduled, starting within next 7 days)
+        $upcomingMeetings = Meeting::where('status', 'scheduled')
+            ->where('start_time', '>=', now())
+            ->where('start_time', '<=', now()->addDays(7))
+            ->where(function ($q) use ($userId) {
+                $q->where('created_by', $userId)
+                  ->orWhereHas('participants', fn($q2) => $q2->where('user_id', $userId));
+            })
+            ->count();
+
+        // New projects created in last 7 days
+        $newProjects = Project::where('status', 'active')
+            ->where('created_at', '>=', now()->subDays(7))
+            ->count();
+
+        return $this->successResponse([
+            'new_tasks' => $newTasks,
+            'upcoming_meetings' => $upcomingMeetings,
+            'new_projects' => $newProjects,
+        ]);
+    }
+
     private function getCommonData(): array
     {
         $recentTasks = Task::with('assignedUser')

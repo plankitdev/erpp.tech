@@ -8,6 +8,14 @@ export function useDashboard(params?: Record<string, unknown>) {
   });
 }
 
+export function useSidebarBadges() {
+  return useQuery({
+    queryKey: ['sidebar-badges'],
+    queryFn: () => dashboardApi.getBadges().then(r => r.data.data),
+    refetchInterval: 60000,
+  });
+}
+
 export function useMonthlyReport(params?: Record<string, unknown>) {
   return useQuery({
     queryKey: ['reports', 'monthly', params],

@@ -2,10 +2,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { invoicesApi } from '../api/invoices';
 import type { Invoice } from '../types';
 
-export function useInvoices(params?: Record<string, unknown>) {
+export function useInvoices(params?: Record<string, unknown>, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['invoices', params],
     queryFn: () => invoicesApi.getAll(params).then(r => r.data),
+    enabled: options?.enabled,
   });
 }
 

@@ -66,4 +66,9 @@ class NotificationService
     {
         return self::notifyRoles($companyId, ['super_admin', 'accountant'], Notification::TYPE_PAYMENT_RECEIVED, 'تم استلام دفعة', "دفعة من {$clientName} بمبلغ {$amount}", '/invoices');
     }
+
+    public static function meetingScheduled(int $companyId, int $userId, string $meetingTitle, string $startTime): Notification
+    {
+        return self::notify($companyId, $userId, Notification::TYPE_MEETING_REMINDER, 'اجتماع جديد', "تمت دعوتك لاجتماع: {$meetingTitle} في {$startTime}", '/meetings');
+    }
 }

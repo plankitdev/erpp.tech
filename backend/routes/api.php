@@ -62,6 +62,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index']);
+    Route::get('/dashboard/badges', [DashboardController::class, 'badges']);
 
     // ========== Super Admin Only ==========
     Route::middleware('role:super_admin')->prefix('super-admin')->group(function () {
@@ -88,10 +89,17 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::apiResource('clients.contracts', ContractController::class);
     });
 
-    // Contracts (standalone)
-    Route::middleware('role:super_admin,manager,sales,accountant')->group(function () {
-        Route::apiResource('contracts', ContractController::class);
+    // Contracts (standalone) - read access includes employee
+    Route::middleware('role:super_admin,manager,sales,accountant,employee')->group(function () {
+        Route::get('contracts', [ContractController::class, 'index']);
+        Route::get('contracts/{contract}', [ContractController::class, 'show']);
         Route::get('/contracts/{contract}/installments', [InstallmentController::class, 'index']);
+    });
+    // Contracts - write access
+    Route::middleware('role:super_admin,manager,sales,accountant')->group(function () {
+        Route::post('contracts', [ContractController::class, 'store']);
+        Route::put('contracts/{contract}', [ContractController::class, 'update']);
+        Route::delete('contracts/{contract}', [ContractController::class, 'destroy']);
         Route::post('/contracts/{contract}/installments/generate', [InstallmentController::class, 'generate']);
         Route::post('/installments/{installment}/pay', [InstallmentController::class, 'markPaid']);
     });
@@ -233,6 +241,9 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     });
 
     // ========== Users ==========
+    // Lightweight user list for dropdowns (all authenticated users)
+    Route::get('/users/list', [UserController::class, 'list']);
+    // Full user management (admin only)
     Route::middleware('role:super_admin,manager')->group(function () {
         Route::apiResource('users', UserController::class);
         Route::post('/users/{user}/reset-password', [UserController::class, 'resetPassword']);

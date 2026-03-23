@@ -7,6 +7,9 @@ export const dashboardApi = {
   
   getRoleData: (params?: Record<string, unknown>) =>
     api.get<ApiResponse<Record<string, unknown>>>('/dashboard', { params }),
+
+  getBadges: () =>
+    api.get<ApiResponse<{ new_tasks: number; upcoming_meetings: number; new_projects: number }>>('/dashboard/badges'),
 };
 
 export const reportsApi = {

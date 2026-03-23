@@ -3,6 +3,7 @@ import { useDashboard } from '../hooks/useDashboard';
 import { useClients } from '../hooks/useClients';
 import { useContracts } from '../hooks/useContracts';
 import { useInvoices } from '../hooks/useInvoices';
+import { useAuthStore } from '../store/authStore';
 import { formatCurrency, formatDate, statusLabels } from '../utils';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import {
@@ -16,10 +17,13 @@ import type { Contract, Invoice } from '../types';
 const COLORS = ['#2c9f8f', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
 export default function ClientsHub() {
+  const { hasPermission } = useAuthStore();
+  const canViewContracts = hasPermission('contracts') || hasPermission('clients');
+  const canViewInvoices = hasPermission('invoices');
   const { data: dashData, isLoading: dashLoading } = useDashboard();
   const { data: clientsData } = useClients({ per_page: 1000 });
-  const { data: contractsData } = useContracts({ per_page: 1000 });
-  const { data: invoicesData } = useInvoices({ per_page: 5 });
+  const { data: contractsData } = useContracts({ per_page: 1000 }, { enabled: canViewContracts });
+  const { data: invoicesData } = useInvoices({ per_page: 5 }, { enabled: canViewInvoices });
 
   const stats = (dashData || {}) as Record<string, any>;
   const clients = clientsData?.data || [];

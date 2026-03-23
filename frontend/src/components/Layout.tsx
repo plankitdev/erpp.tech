@@ -17,6 +17,7 @@ import FloatingActionButton from './FloatingActionButton';
 import OnboardingTour from './OnboardingTour';
 import { useAnnouncementUnreadCount } from '../hooks/useAnnouncements';
 import { useChatUnreadCount } from '../hooks/useChat';
+import { useSidebarBadges } from '../hooks/useDashboard';
 
 interface MenuItem {
   path: string;
@@ -118,6 +119,7 @@ export default function Layout() {
   const location = useLocation();
   const { data: announcementUnread = 0 } = useAnnouncementUnreadCount();
   const { data: chatUnread = 0 } = useChatUnreadCount();
+  const { data: badges } = useSidebarBadges();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
@@ -349,6 +351,21 @@ export default function Layout() {
                         {item.path === '/chat' && chatUnread > 0 && (
                           <span className="bg-blue-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 mr-auto">
                             {chatUnread > 99 ? '99+' : chatUnread}
+                          </span>
+                        )}
+                        {item.path === '/tasks' && (badges?.new_tasks ?? 0) > 0 && (
+                          <span className="bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 mr-auto">
+                            {badges!.new_tasks > 99 ? '99+' : badges!.new_tasks}
+                          </span>
+                        )}
+                        {item.path === '/projects' && (badges?.new_projects ?? 0) > 0 && (
+                          <span className="bg-orange-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 mr-auto">
+                            {badges!.new_projects > 99 ? '99+' : badges!.new_projects}
+                          </span>
+                        )}
+                        {item.path === '/meetings' && (badges?.upcoming_meetings ?? 0) > 0 && (
+                          <span className="bg-purple-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 mr-auto">
+                            {badges!.upcoming_meetings > 99 ? '99+' : badges!.upcoming_meetings}
                           </span>
                         )}
                         {/* Hover glow on active */}

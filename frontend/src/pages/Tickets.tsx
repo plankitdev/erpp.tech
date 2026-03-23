@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useTickets, useTicket, useCreateTicket, useUpdateTicket, useDeleteTicket, useTicketReply } from '../hooks/useTickets';
 import { useClients } from '../hooks/useClients';
 import { useProjects } from '../hooks/useProjects';
-import { useUsers } from '../hooks/useUsers';
+import { useUsersList } from '../hooks/useUsers';
+import { useAuthStore } from '../store/authStore';
 import { formatDate, formatDateTime } from '../utils';
 import type { Ticket, TicketReply } from '../api/tickets';
 import {
@@ -32,6 +33,8 @@ const statusIcons: Record<string, typeof AlertCircle> = {
 const categoryLabels: Record<string, string> = { bug: 'خطأ', feature: 'ميزة جديدة', support: 'دعم', inquiry: 'استفسار', other: 'أخرى' };
 
 export default function Tickets() {
+  const { user } = useAuthStore();
+  const isAdmin = user?.role === 'super_admin' || user?.role === 'manager';
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -49,9 +52,10 @@ export default function Tickets() {
 
   const { data: ticketsData, isLoading } = useTickets(params);
   const { data: detailData } = useTicket(showDetail || 0);
-  const { data: clientsData } = useClients({ per_page: 200 });
-  const { data: projectsData } = useProjects({ per_page: 200 });
-  const { data: usersData } = useUsers();
+  const { data: clientsData } = useClients(isAdmin ? { per_page: 200 } : { per_page: 0 });
+  const { data: projectsData } = useProjects(isAdmin ? { per_page: 200 } : { per_page: 0 });
+  const { data: usersListData } = useUsersList();
+  const usersData = usersListData;
   const createTicket = useCreateTicket();
   const updateTicket = useUpdateTicket();
   const deleteTicket = useDeleteTicket();
@@ -136,11 +140,11 @@ export default function Tickets() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">تذاكر الدعم</h1>
-          <p className="text-sm text-gray-500 mt-1">إدارة تذاكر الدعم وتتبع حالتها</p>
+          <h1 className="text-2xl font-bold text-gray-900">{isAdmin ? 'تذاكر الدعم' : 'الدعم الفني'}</h1>
+          <p className="text-sm text-gray-500 mt-1">{isAdmin ? 'إدارة تذاكر الدعم وتتبع حالتها' : 'أرسل مشكلتك وسنساعدك في حلها'}</p>
         </div>
         <button onClick={() => { resetForm(); setShowModal(true); }} className="btn-primary flex items-center gap-2">
-          <Plus size={18} /> تذكرة جديدة
+          <Plus size={18} /> {isAdmin ? 'تذكرة جديدة' : 'إرسال مشكلة'}
         </button>
       </div>
 
@@ -200,8 +204,8 @@ export default function Tickets() {
                 <th className="px-4 py-3 text-right font-medium text-gray-600">التصنيف</th>
                 <th className="px-4 py-3 text-right font-medium text-gray-600">الأولوية</th>
                 <th className="px-4 py-3 text-right font-medium text-gray-600">الحالة</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-600">العميل</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-600">المسؤول</th>
+                {isAdmin && <th className="px-4 py-3 text-right font-medium text-gray-600">العميل</th>}
+                {isAdmin && <th className="px-4 py-3 text-right font-medium text-gray-600">المسؤول</th>}
                 <th className="px-4 py-3 text-right font-medium text-gray-600">الردود</th>
                 <th className="px-4 py-3 text-right font-medium text-gray-600">التاريخ</th>
                 <th className="px-4 py-3 text-right font-medium text-gray-600">إجراءات</th>
@@ -215,8 +219,8 @@ export default function Tickets() {
                   <td className="px-4 py-3 text-gray-600">{categoryLabels[t.category] || t.category}</td>
                   <td className="px-4 py-3"><PriorityBadge priority={t.priority} /></td>
                   <td className="px-4 py-3"><StatusBadge status={t.status} /></td>
-                  <td className="px-4 py-3 text-gray-600">{t.client?.name || '—'}</td>
-                  <td className="px-4 py-3 text-gray-600">{t.assignee?.name || '—'}</td>
+                  {isAdmin && <td className="px-4 py-3 text-gray-600">{t.client?.name || '—'}</td>}
+                  {isAdmin && <td className="px-4 py-3 text-gray-600">{t.assignee?.name || '—'}</td>}
                   <td className="px-4 py-3 text-gray-500">
                     <span className="inline-flex items-center gap-1"><MessageSquare size={14} /> {t.replies_count || 0}</span>
                   </td>
@@ -226,17 +230,21 @@ export default function Tickets() {
                       <button onClick={() => setShowDetail(t.id)} className="p-1.5 hover:bg-blue-50 rounded text-blue-600" title="عرض">
                         <Eye size={15} />
                       </button>
-                      <button onClick={() => openEdit(t)} className="p-1.5 hover:bg-yellow-50 rounded text-yellow-600" title="تعديل">
-                        <Edit3 size={15} />
-                      </button>
-                      {t.status !== 'closed' && t.status !== 'resolved' && (
+                      {isAdmin && (
+                        <button onClick={() => openEdit(t)} className="p-1.5 hover:bg-yellow-50 rounded text-yellow-600" title="تعديل">
+                          <Edit3 size={15} />
+                        </button>
+                      )}
+                      {isAdmin && t.status !== 'closed' && t.status !== 'resolved' && (
                         <button onClick={() => handleStatusChange(t.id, 'resolved')} className="p-1.5 hover:bg-green-50 rounded text-green-600" title="تم الحل">
                           <CheckCircle2 size={15} />
                         </button>
                       )}
-                      <button onClick={() => { if (confirm('هل أنت متأكد؟')) deleteTicket.mutate(t.id); }} className="p-1.5 hover:bg-red-50 rounded text-red-600" title="حذف">
-                        <Trash2 size={15} />
-                      </button>
+                      {isAdmin && (
+                        <button onClick={() => { if (confirm('هل أنت متأكد؟')) deleteTicket.mutate(t.id); }} className="p-1.5 hover:bg-red-50 rounded text-red-600" title="حذف">
+                          <Trash2 size={15} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -284,29 +292,33 @@ export default function Tickets() {
                   </select>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              {isAdmin && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">العميل</label>
+                    <select value={form.client_id as string} onChange={e => setForm(f => ({ ...f, client_id: e.target.value }))} className="input w-full">
+                      <option value="">— بدون —</option>
+                      {clients.map((c: { id: number; name: string }) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">المشروع</label>
+                    <select value={form.project_id as string} onChange={e => setForm(f => ({ ...f, project_id: e.target.value }))} className="input w-full">
+                      <option value="">— بدون —</option>
+                      {projects.map((p: { id: number; name: string }) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    </select>
+                  </div>
+                </div>
+              )}
+              {isAdmin && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">العميل</label>
-                  <select value={form.client_id as string} onChange={e => setForm(f => ({ ...f, client_id: e.target.value }))} className="input w-full">
-                    <option value="">— بدون —</option>
-                    {clients.map((c: { id: number; name: string }) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  <label className="block text-sm font-medium text-gray-700 mb-1">المسؤول</label>
+                  <select value={form.assigned_to as string} onChange={e => setForm(f => ({ ...f, assigned_to: e.target.value }))} className="input w-full">
+                    <option value="">— غير محدد —</option>
+                    {users.map((u: { id: number; name: string }) => <option key={u.id} value={u.id}>{u.name}</option>)}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">المشروع</label>
-                  <select value={form.project_id as string} onChange={e => setForm(f => ({ ...f, project_id: e.target.value }))} className="input w-full">
-                    <option value="">— بدون —</option>
-                    {projects.map((p: { id: number; name: string }) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">المسؤول</label>
-                <select value={form.assigned_to as string} onChange={e => setForm(f => ({ ...f, assigned_to: e.target.value }))} className="input w-full">
-                  <option value="">— غير محدد —</option>
-                  {users.map((u: { id: number; name: string }) => <option key={u.id} value={u.id}>{u.name}</option>)}
-                </select>
-              </div>
+              )}
             </div>
             <div className="flex justify-end gap-3 mt-6">
               <button onClick={() => { setShowModal(false); resetForm(); }} className="btn-secondary">إلغاء</button>
@@ -345,7 +357,7 @@ export default function Tickets() {
             </div>
 
             {/* Status Actions */}
-            {detail.status !== 'closed' && (() => {
+            {isAdmin && detail.status !== 'closed' && (() => {
               const s = detail.status;
               return (
               <div className="flex gap-2 mb-6">
@@ -395,10 +407,12 @@ export default function Tickets() {
                     placeholder="اكتب ردك هنا..." className="input w-full mb-2"
                   />
                   <div className="flex items-center justify-between">
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" checked={replyInternal} onChange={e => setReplyInternal(e.target.checked)} className="rounded" />
-                      ملاحظة داخلية (لن تظهر للعميل)
-                    </label>
+                    {isAdmin ? (
+                      <label className="flex items-center gap-2 text-sm">
+                        <input type="checkbox" checked={replyInternal} onChange={e => setReplyInternal(e.target.checked)} className="rounded" />
+                        ملاحظة داخلية (لن تظهر للعميل)
+                      </label>
+                    ) : <div />}
                     <button onClick={handleReply} disabled={!replyText.trim() || ticketReply.isPending} className="btn-primary flex items-center gap-2 text-sm">
                       <Send size={14} /> إرسال الرد
                     </button>

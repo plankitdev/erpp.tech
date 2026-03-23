@@ -8,6 +8,13 @@ export function useUsers(params?: Record<string, unknown>) {
   });
 }
 
+export function useUsersList(params?: Record<string, unknown>) {
+  return useQuery({
+    queryKey: ['users-list', params],
+    queryFn: () => usersApi.getList(params).then(r => r.data),
+  });
+}
+
 export function useUser(id: number) {
   return useQuery({
     queryKey: ['users', id],

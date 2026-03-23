@@ -128,6 +128,7 @@ class User extends Authenticatable
                 'expenses.view', 'expenses.create', 'expenses.edit',
                 'tasks.view', 'tasks.create', 'tasks.edit',
                 'reports.view',
+                'settings.view',
             ],
             'sales' => [
                 'dashboard.view',
@@ -135,12 +136,14 @@ class User extends Authenticatable
                 'contracts.view', 'contracts.create',
                 'invoices.view', 'invoices.create',
                 'tasks.view', 'tasks.create', 'tasks.edit',
+                'settings.view',
             ],
             'employee' => [
                 'dashboard.view',
                 'tasks.view', 'tasks.create',
                 'projects.view',
                 'clients.view',
+                'settings.view',
             ],
         ];
         return $defaults[$role] ?? [];

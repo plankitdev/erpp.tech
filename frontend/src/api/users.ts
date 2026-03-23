@@ -5,6 +5,9 @@ export const usersApi = {
   getAll: (params?: Record<string, unknown>) =>
     api.get<PaginatedResponse<User>>('/users', { params }),
 
+  getList: (params?: Record<string, unknown>) =>
+    api.get<ApiResponse<Pick<User, 'id' | 'name' | 'email' | 'role' | 'avatar'>[]>>('/users/list', { params }),
+
   getById: (id: number) =>
     api.get<ApiResponse<User>>(`/users/${id}`),
 

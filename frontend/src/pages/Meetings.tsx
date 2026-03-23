@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMeetings, useCreateMeeting, useUpdateMeeting, useDeleteMeeting, useRespondMeeting } from '../hooks/useMeetings';
-import { useUsers } from '../hooks/useUsers';
+import { useUsersList } from '../hooks/useUsers';
 import { formatDateTime } from '../utils';
 import { useAuthStore } from '../store/authStore';
 import type { Meeting } from '../types';
@@ -56,8 +56,8 @@ export default function Meetings() {
   if (statusFilter !== 'all') params.status = statusFilter;
 
   const { data, isLoading, isError, refetch } = useMeetings(params);
-  const { data: usersData } = useUsers({ per_page: 1000 });
-  const allUsers = usersData?.data || [];
+  const { data: usersListData } = useUsersList();
+  const allUsers = usersListData?.data || [];
   const createMutation = useCreateMeeting();
   const updateMutation = useUpdateMeeting();
   const deleteMutation = useDeleteMeeting();
@@ -75,12 +75,13 @@ export default function Meetings() {
   const [form, setForm] = useState({
     title: '', description: '', start_time: '', end_time: '',
     location: '', meeting_link: '', type: 'team' as string, status: 'scheduled' as string,
+    notes: '',
     participant_ids: [] as number[],
   });
 
   const openCreateModal = () => {
     setEditMeeting(null);
-    setForm({ title: '', description: '', start_time: '', end_time: '', location: '', meeting_link: '', type: 'team', status: 'scheduled', participant_ids: [] });
+    setForm({ title: '', description: '', start_time: '', end_time: '', location: '', meeting_link: '', type: 'team', status: 'scheduled', notes: '', participant_ids: [] });
     setShowModal(true);
   };
 
@@ -95,6 +96,7 @@ export default function Meetings() {
       meeting_link: m.meeting_link || '',
       type: m.type,
       status: m.status,
+      notes: m.notes || '',
       participant_ids: m.participants?.map(p => p.id) || [],
     });
     setShowModal(true);
@@ -253,6 +255,13 @@ export default function Meetings() {
                       <p className="text-sm text-gray-500 mb-3 line-clamp-2">{meeting.description}</p>
                     )}
 
+                    {meeting.notes && (
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">
+                        <p className="text-xs font-semibold text-amber-700 mb-1">📝 محضر الاجتماع</p>
+                        <p className="text-sm text-amber-900 whitespace-pre-line line-clamp-3">{meeting.notes}</p>
+                      </div>
+                    )}
+
                     <div className="flex items-center gap-4 text-xs text-gray-400 flex-wrap">
                       <span className="flex items-center gap-1">
                         <Clock size={13} />
@@ -336,14 +345,18 @@ export default function Meetings() {
                         </button>
                       </div>
                     )}
-                    <button onClick={() => openEditModal(meeting)}
-                      className="action-icon text-gray-400 hover:text-amber-600 hover:bg-amber-50">
-                      <Pencil size={15} />
-                    </button>
-                    <button onClick={() => setDeleteId(meeting.id)}
-                      className="action-icon text-gray-400 hover:text-red-600 hover:bg-red-50">
-                      <Trash2 size={15} />
-                    </button>
+                    {(user?.role === 'super_admin' || user?.role === 'manager' || meeting.created_by === user?.id) && (
+                      <button onClick={() => openEditModal(meeting)}
+                        className="action-icon text-gray-400 hover:text-amber-600 hover:bg-amber-50">
+                        <Pencil size={15} />
+                      </button>
+                    )}
+                    {(user?.role === 'super_admin' || user?.role === 'manager' || meeting.created_by === user?.id) && (
+                      <button onClick={() => setDeleteId(meeting.id)}
+                        className="action-icon text-gray-400 hover:text-red-600 hover:bg-red-50">
+                        <Trash2 size={15} />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -366,9 +379,9 @@ export default function Meetings() {
 
       {/* Create/Edit Modal */}
       {showModal && (
-        <div className="modal-overlay !items-start !pt-8">
+        <div className="modal-overlay !items-start !pt-4">
           <div className="modal-backdrop" onClick={() => setShowModal(false)} />
-          <div className="modal-content" style={{ maxWidth: '680px' }}>
+          <div className="modal-content !max-w-3xl w-full">
             <div className="modal-header">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white">
@@ -390,37 +403,37 @@ export default function Meetings() {
             <form onSubmit={handleSubmit}>
               <div className="modal-body space-y-4">
                 <div>
-                  <label className="form-label">عنوان الاجتماع *</label>
+                  <label className="input-label">عنوان الاجتماع *</label>
                   <input type="text" value={form.title}
                     onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                    className="form-input" placeholder="أدخل عنوان الاجتماع" required />
+                    className="input" placeholder="أدخل عنوان الاجتماع" required />
                 </div>
                 <div>
-                  <label className="form-label">الوصف</label>
+                  <label className="input-label">الوصف</label>
                   <textarea value={form.description}
                     onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                    className="form-input" rows={3} placeholder="وصف الاجتماع (اختياري)" />
+                    className="input" rows={3} placeholder="وصف الاجتماع (اختياري)" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="form-label">وقت البداية *</label>
+                    <label className="input-label">وقت البداية *</label>
                     <input type="datetime-local" value={form.start_time}
                       onChange={e => setForm(f => ({ ...f, start_time: e.target.value }))}
-                      className="form-input" required />
+                      className="input" required />
                   </div>
                   <div>
-                    <label className="form-label">وقت النهاية *</label>
+                    <label className="input-label">وقت النهاية *</label>
                     <input type="datetime-local" value={form.end_time}
                       onChange={e => setForm(f => ({ ...f, end_time: e.target.value }))}
-                      className="form-input" required />
+                      className="input" required />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="form-label">النوع</label>
+                    <label className="input-label">النوع</label>
                     <select value={form.type}
                       onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
-                      className="form-input">
+                      className="select">
                       <option value="team">فريق العمل</option>
                       <option value="sales">مبيعات</option>
                       <option value="client">عميل</option>
@@ -428,10 +441,10 @@ export default function Meetings() {
                     </select>
                   </div>
                   <div>
-                    <label className="form-label">الحالة</label>
+                    <label className="input-label">الحالة</label>
                     <select value={form.status}
                       onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
-                      className="form-input">
+                      className="select">
                       <option value="scheduled">مجدول</option>
                       <option value="in_progress">جاري</option>
                       <option value="completed">مكتمل</option>
@@ -440,22 +453,30 @@ export default function Meetings() {
                   </div>
                 </div>
                 <div>
-                  <label className="form-label">المكان</label>
+                  <label className="input-label">المكان</label>
                   <input type="text" value={form.location}
                     onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
-                    className="form-input" placeholder="مثال: قاعة الاجتماعات" />
+                    className="input" placeholder="مثال: قاعة الاجتماعات" />
                 </div>
                 <div>
-                  <label className="form-label">رابط الاجتماع</label>
+                  <label className="input-label">رابط الاجتماع</label>
                   <input type="url" value={form.meeting_link}
                     onChange={e => setForm(f => ({ ...f, meeting_link: e.target.value }))}
-                    className="form-input" placeholder="مثال: https://meet.google.com/..." dir="ltr" />
+                    className="input" placeholder="مثال: https://meet.google.com/..." dir="ltr" />
                 </div>
+                {editMeeting && (
                 <div>
-                  <label className="form-label flex items-center gap-1.5">
+                  <label className="input-label">📝 محضر / ملاحظات الاجتماع</label>
+                  <textarea value={form.notes}
+                    onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                    className="input" rows={4} placeholder="اكتب محضر الاجتماع أو ملاحظات بعد الانتهاء..." />
+                </div>
+                )}
+                <div>
+                  <label className="input-label flex items-center gap-1.5">
                     <Users size={14} /> المشاركون
                   </label>
-                  <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-xl p-2 space-y-1">
+                  <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-xl p-3 space-y-1 bg-gray-50/50">
                     {allUsers.length === 0 ? (
                       <p className="text-xs text-gray-400 text-center py-2">لا يوجد مستخدمين</p>
                     ) : allUsers.map((u: any) => (

@@ -2,10 +2,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { contractsApi } from '../api/contracts';
 import type { Contract } from '../types';
 
-export function useContracts(params?: Record<string, unknown>) {
+export function useContracts(params?: Record<string, unknown>, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['contracts', params],
     queryFn: () => contractsApi.getAll(params).then(r => r.data),
+    enabled: options?.enabled,
   });
 }
 

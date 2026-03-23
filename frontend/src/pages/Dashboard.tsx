@@ -744,46 +744,54 @@ export default function Dashboard() {
       />
 
       {/* Dashboard Filters */}
-      <div className="animate-fade-in-up flex flex-wrap items-center gap-3 bg-white rounded-xl border border-gray-100 px-4 py-3">
-        <div className="flex items-center gap-2 text-gray-500">
-          <Filter size={16} />
-          <span className="text-sm font-medium">تصفية</span>
+      <div className="animate-fade-in-up card card-body !py-4">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2.5 text-gray-600 border-l border-gray-200 pl-4">
+            <div className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center">
+              <Filter size={15} className="text-primary-600" />
+            </div>
+            <span className="text-sm font-semibold">تصفية البيانات</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-400 font-medium">السنة</label>
+            <select
+              value={year}
+              onChange={(e) => setYear(Number(e.target.value))}
+              className="select !py-2 !min-h-0 max-w-[110px]"
+            >
+              {Array.from({ length: 5 }, (_, i) => currentYear - i).map((y) => (
+                <option key={y} value={y}>{y}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-400 font-medium">من</label>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="input !py-2 !min-h-0 max-w-[160px] text-sm"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-400 font-medium">إلى</label>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="input !py-2 !min-h-0 max-w-[160px] text-sm"
+            />
+          </div>
+          {hasFilters && (
+            <button
+              onClick={resetFilters}
+              className="btn-ghost !py-2 !px-3 !min-h-0 text-xs mr-auto"
+            >
+              <RotateCcw size={13} />
+              إعادة ضبط
+            </button>
+          )}
         </div>
-        <select
-          value={year}
-          onChange={(e) => setYear(Number(e.target.value))}
-          className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-gray-50 focus:ring-2 focus:ring-primary-200 focus:border-primary-400 outline-none"
-        >
-          {Array.from({ length: 5 }, (_, i) => currentYear - i).map((y) => (
-            <option key={y} value={y}>{y}</option>
-          ))}
-        </select>
-        <div className="flex items-center gap-2">
-          <input
-            type="date"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-gray-50 focus:ring-2 focus:ring-primary-200 focus:border-primary-400 outline-none"
-            placeholder="من"
-          />
-          <span className="text-gray-400 text-xs">إلى</span>
-          <input
-            type="date"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-gray-50 focus:ring-2 focus:ring-primary-200 focus:border-primary-400 outline-none"
-            placeholder="إلى"
-          />
-        </div>
-        {hasFilters && (
-          <button
-            onClick={resetFilters}
-            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-primary-600 transition-colors mr-auto"
-          >
-            <RotateCcw size={14} />
-            إعادة ضبط
-          </button>
-        )}
       </div>
       <QuickActions role={role} />
       <KPIStrip stats={(stats || {}) as Record<string, any>} role={role} />

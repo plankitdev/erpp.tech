@@ -635,6 +635,7 @@ export interface Meeting {
   status: MeetingStatus;
   project_id: number | null;
   created_by: number;
+  notes: string | null;
   creator?: User;
   project?: Project;
   participants: (User & { pivot?: { status: string } })[];

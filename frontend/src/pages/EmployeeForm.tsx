@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEmployee } from '../hooks/useEmployees';
-import { useUsers } from '../hooks/useUsers';
+import { useUsersList } from '../hooks/useUsers';
 import { employeesApi } from '../api/employees';
 import toast from 'react-hot-toast';
 
@@ -32,8 +32,8 @@ export default function EmployeeForm() {
   const navigate = useNavigate();
   const editId = id ? parseInt(id) : 0;
   const { data: employee } = useEmployee(editId);
-  const { data: usersData } = useUsers();
-  const users = usersData?.data || [];
+  const { data: usersListData } = useUsersList();
+  const users = usersListData?.data || [];
   const [file, setFile] = useState<File | null>(null);
 
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<EmployeeFormData>({
