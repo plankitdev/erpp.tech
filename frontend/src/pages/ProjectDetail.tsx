@@ -205,12 +205,14 @@ export default function ProjectDetail() {
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
     try {
-      await projectsApi.uploadFile(slug || '', file);
+      for (const file of files) {
+        await projectsApi.uploadFile(slug || '', file);
+      }
       refetch();
-      toast.success('تم رفع الملف');
+      toast.success(files.length > 1 ? `تم رفع ${files.length} ملفات` : 'تم رفع الملف');
     } catch {
       toast.error('حدث خطأ في رفع الملف');
     }
@@ -222,6 +224,18 @@ export default function ProjectDetail() {
       await projectsApi.uploadFile(slug || '', file);
       refetch();
       toast.success('تم رفع الملف');
+    } catch {
+      toast.error('حدث خطأ في رفع الملف');
+    }
+  };
+
+  const handleFilesDrop = async (files: File[]) => {
+    try {
+      for (const file of files) {
+        await projectsApi.uploadFile(slug || '', file);
+      }
+      refetch();
+      toast.success(files.length > 1 ? `تم رفع ${files.length} ملفات` : 'تم رفع الملف');
     } catch {
       toast.error('حدث خطأ في رفع الملف');
     }
@@ -625,20 +639,20 @@ export default function ProjectDetail() {
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-gray-800">الملفات ({project.files?.length || 0})</h2>
             <label className="flex items-center gap-1.5 bg-primary-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-primary-700 transition-colors cursor-pointer shadow-sm">
-              <Upload size={16} /> رفع ملف
-              <input type="file" className="hidden" onChange={handleFileUpload} />
+              <Upload size={16} /> رفع ملفات
+              <input type="file" className="hidden" onChange={handleFileUpload} multiple />
             </label>
           </div>
           {(!project.files || project.files.length === 0) ? (
-            <FileDropZone onFileDrop={handleFileDrop}>
+            <FileDropZone onFileDrop={handleFileDrop} onFilesDrop={handleFilesDrop} multiple>
               <div className="bg-white rounded-2xl p-12 border-2 border-dashed border-gray-200 text-center hover:border-primary-300 transition-colors">
                 <Upload size={48} className="text-gray-200 mx-auto mb-3" />
                 <p className="text-gray-500 font-medium">لا توجد ملفات</p>
-                <p className="text-gray-400 text-sm mt-1">اسحب الملفات هنا أو اضغط لرفع ملف</p>
+                <p className="text-gray-400 text-sm mt-1">اسحب الملفات هنا أو اضغط لرفع ملفات</p>
               </div>
             </FileDropZone>
           ) : (
-            <FileDropZone onFileDrop={handleFileDrop} className="rounded-2xl">
+            <FileDropZone onFileDrop={handleFileDrop} onFilesDrop={handleFilesDrop} multiple className="rounded-2xl">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {project.files.map(file => {
                 const FileIcon = getFileIconComponent(file.name);

@@ -29,6 +29,9 @@ class TaskResource extends JsonResource
             'subtasks_count'        => $this->subtasks_count ?? $this->whenCounted('subtasks'),
             'completed_subtasks_count' => $this->completed_subtasks_count ?? 0,
             'comments'              => TaskCommentResource::collection($this->whenLoaded('comments')),
+            'files'                 => TaskFileResource::collection($this->whenLoaded('files')),
+            'total_time'            => $this->total_time ?? 0,
+            'start_date'            => $this->start_date?->format('Y-m-d'),
             'created_at'            => $this->created_at?->format('Y-m-d H:i'),
         ];
     }

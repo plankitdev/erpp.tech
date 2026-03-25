@@ -276,6 +276,16 @@ export interface ProjectFile {
   created_at: string;
 }
 
+export interface TaskFile {
+  id: number;
+  name: string;
+  file_path: string;
+  file_type: string | null;
+  file_size: number;
+  uploaded_by: User | null;
+  created_at: string;
+}
+
 // ========== Task ==========
 export interface Task {
   id: number;
@@ -300,6 +310,7 @@ export interface Task {
   completed_subtasks_count: number;
   assignee_ids?: number[];
   comments?: TaskComment[];
+  files?: TaskFile[];
   checklists?: TaskChecklist[];
   total_time?: number;
   checklist_progress?: { total: number; completed: number };

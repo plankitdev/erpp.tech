@@ -192,6 +192,10 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::delete('/tasks/{task}/checklists/{checklist}', [TaskChecklistController::class, 'destroy']);
     Route::post('/tasks/{task}/checklists/reorder', [TaskChecklistController::class, 'reorder']);
 
+    // ========== Task Files ==========
+    Route::post('/tasks/{task}/files', [TaskController::class, 'uploadFile']);
+    Route::delete('/tasks/{task}/files/{file}', [TaskController::class, 'deleteFile']);
+
     // ========== Time Tracking ==========
     Route::get('/time-entries', [TimeEntryController::class, 'index']);
     Route::post('/time-entries', [TimeEntryController::class, 'store']);

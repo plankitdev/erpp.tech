@@ -101,6 +101,11 @@ class Task extends Model
         return $this->hasMany(TaskChecklist::class)->orderBy('sort_order');
     }
 
+    public function files(): HasMany
+    {
+        return $this->hasMany(TaskFile::class);
+    }
+
     public function timeEntries(): HasMany
     {
         return $this->hasMany(TimeEntry::class);

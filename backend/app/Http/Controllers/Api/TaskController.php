@@ -7,13 +7,16 @@ use App\Http\Requests\StoreTaskRequest;
 use App\Http\Requests\UpdateTaskRequest;
 use App\Http\Resources\TaskCommentResource;
 use App\Http\Resources\TaskResource;
+use App\Http\Resources\TaskFileResource;
 use App\Models\Task;
+use App\Models\TaskFile;
 use App\Services\NotificationService;
 use App\Services\WorkflowService;
 use App\Models\WorkflowRule;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class TaskController extends Controller
 {
@@ -109,7 +112,7 @@ class TaskController extends Controller
 
         $task->load([
             'assignedUser', 'client', 'creator', 'project',
-            'assignees', 'comments.user',
+            'assignees', 'comments.user', 'files.uploader',
             'subtasks.assignedUser', 'subtasks.assignees',
             'parent',
         ]);
@@ -185,5 +188,42 @@ class TaskController extends Controller
 
         $comment = $task->comments()->create($data);
         return $this->successResponse(new TaskCommentResource($comment->load('user')), 'تم إضافة التعليق', 201);
+    }
+
+    public function uploadFile(Request $request, Task $task): JsonResponse
+    {
+        $this->authorize('update', $task);
+
+        $request->validate([
+            'file' => 'required|file|max:20480',
+            'name' => 'nullable|string|max:255',
+        ]);
+
+        $uploaded = $request->file('file');
+        $path = $uploaded->store("tasks/{$task->id}", 'public');
+
+        $file = $task->files()->create([
+            'uploaded_by' => $request->user()->id,
+            'name'        => $request->input('name', $uploaded->getClientOriginalName()),
+            'file_path'   => $path,
+            'file_type'   => $uploaded->getClientMimeType(),
+            'file_size'   => $uploaded->getSize(),
+        ]);
+
+        return $this->successResponse(new TaskFileResource($file->load('uploader')), 'تم رفع الملف بنجاح', 201);
+    }
+
+    public function deleteFile(Task $task, TaskFile $file): JsonResponse
+    {
+        $this->authorize('update', $task);
+
+        if ($file->task_id !== $task->id) {
+            return $this->errorResponse('الملف غير موجود', 404);
+        }
+
+        Storage::disk('public')->delete($file->file_path);
+        $file->delete();
+
+        return $this->successResponse(null, 'تم حذف الملف');
     }
 }

@@ -28,4 +28,16 @@ export const tasksApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+
+  uploadFile: (taskId: number, file: File, name?: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (name) formData.append('name', name);
+    return api.post(`/tasks/${taskId}/files`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+
+  deleteFile: (taskId: number, fileId: number) =>
+    api.delete(`/tasks/${taskId}/files/${fileId}`),
 };

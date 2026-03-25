@@ -3,13 +3,15 @@ import { Upload } from 'lucide-react';
 
 interface FileDropZoneProps {
   onFileDrop: (file: File) => void;
+  onFilesDrop?: (files: File[]) => void;
+  multiple?: boolean;
   children?: ReactNode;
   className?: string;
   accept?: string;
   label?: string;
 }
 
-export default function FileDropZone({ onFileDrop, children, className = '', accept, label = 'اسحب الملف هنا أو اضغط للاختيار' }: FileDropZoneProps) {
+export default function FileDropZone({ onFileDrop, onFilesDrop, multiple = false, children, className = '', accept, label = 'اسحب الملف هنا أو اضغط للاختيار' }: FileDropZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
@@ -38,15 +40,23 @@ export default function FileDropZone({ onFileDrop, children, className = '', acc
     e.stopPropagation();
     setIsDragging(false);
     dragCounter.current = 0;
-    const file = e.dataTransfer.files?.[0];
-    if (file) onFileDrop(file);
-  }, [onFileDrop]);
+    const files = Array.from(e.dataTransfer.files || []);
+    if (multiple && onFilesDrop && files.length > 0) {
+      onFilesDrop(files);
+    } else if (files[0]) {
+      onFileDrop(files[0]);
+    }
+  }, [onFileDrop, onFilesDrop, multiple]);
 
   const handleClick = () => inputRef.current?.click();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) onFileDrop(file);
+    const files = Array.from(e.target.files || []);
+    if (multiple && onFilesDrop && files.length > 0) {
+      onFilesDrop(files);
+    } else if (files[0]) {
+      onFileDrop(files[0]);
+    }
     e.target.value = '';
   };
 
@@ -63,7 +73,7 @@ export default function FileDropZone({ onFileDrop, children, className = '', acc
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-primary-50/90 rounded-2xl border-2 border-dashed border-primary-400">
           <div className="text-center">
             <Upload size={32} className="mx-auto text-primary-500 mb-2" />
-            <p className="text-primary-600 font-medium text-sm">أفلت الملف هنا</p>
+            <p className="text-primary-600 font-medium text-sm">{multiple ? 'أفلت الملفات هنا' : 'أفلت الملف هنا'}</p>
           </div>
         </div>
       )}
@@ -73,7 +83,7 @@ export default function FileDropZone({ onFileDrop, children, className = '', acc
           <p className="text-gray-500 text-sm">{label}</p>
         </div>
       )}
-      <input ref={inputRef} type="file" className="hidden" accept={accept} onChange={handleChange} />
+      <input ref={inputRef} type="file" className="hidden" accept={accept} onChange={handleChange} multiple={multiple} />
     </div>
   );
 }

@@ -4,14 +4,17 @@ import { useTask, useUpdateTask, useAddComment } from '../hooks/useTasks';
 import { useChecklists, useCreateChecklist, useUpdateChecklist, useDeleteChecklist } from '../hooks/useChecklists';
 import { useRunningTimer, useStartTimer, useStopTimer } from '../hooks/useTimeEntries';
 import { useUsersList } from '../hooks/useUsers';
+import { tasksApi } from '../api/tasks';
 import { formatDate, formatDateTime } from '../utils';
 import type { Task, TaskStatus, TaskPriority, TaskChecklist } from '../types';
 import StatusBadge from '../components/StatusBadge';
+import FileDropZone from '../components/FileDropZone';
+import { FileThumbnail, FilePreviewModal, isPreviewable, resolveFileUrl, getFileIconComponent, getFileIconColor } from '../components/FilePreview';
 import toast from 'react-hot-toast';
 import {
   ArrowRight, Paperclip, Send, Download, Clock, Calendar, User, FolderKanban,
   CheckSquare, Plus, Trash2, Timer, Play, Square, GripVertical, Pencil, X,
-  Users as UsersIcon,
+  Users as UsersIcon, Upload, Eye, Image,
 } from 'lucide-react';
 
 const statusOptions: { value: TaskStatus; label: string }[] = [
@@ -26,7 +29,7 @@ const priorityLabels: Record<TaskPriority, string> = { high: 'عالية', mediu
 export default function TaskDetail() {
   const { id } = useParams<{ id: string }>();
   const taskId = Number(id);
-  const { data: task, isLoading } = useTask(taskId);
+  const { data: task, isLoading, refetch } = useTask(taskId);
   const { data: checklists = [] } = useChecklists(taskId);
   const { data: usersListData } = useUsersList();
   const allUsers = usersListData?.data || [];
@@ -44,6 +47,7 @@ export default function TaskDetail() {
   const [newChecklistTitle, setNewChecklistTitle] = useState('');
   const [elapsed, setElapsed] = useState(0);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [previewFile, setPreviewFile] = useState<number | null>(null);
   const [editForm, setEditForm] = useState({
     title: '', description: '', priority: 'medium' as string,
     start_date: '', due_date: '', assignee_ids: [] as number[],
@@ -193,6 +197,44 @@ export default function TaskDetail() {
         await startTimer.mutateAsync(task.id);
         toast.success('تم بدء المؤقت');
       }
+    } catch {
+      toast.error('حدث خطأ');
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    try {
+      for (const file of files) {
+        await tasksApi.uploadFile(task.id, file);
+      }
+      refetch();
+      toast.success(files.length > 1 ? `تم رفع ${files.length} ملفات` : 'تم رفع الملف');
+    } catch {
+      toast.error('حدث خطأ في رفع الملف');
+    }
+    e.target.value = '';
+  };
+
+  const handleFilesDrop = async (files: File[]) => {
+    try {
+      for (const file of files) {
+        await tasksApi.uploadFile(task.id, file);
+      }
+      refetch();
+      toast.success(files.length > 1 ? `تم رفع ${files.length} ملفات` : 'تم رفع الملف');
+    } catch {
+      toast.error('حدث خطأ في رفع الملف');
+    }
+  };
+
+  const handleDeleteFile = async (fileId: number) => {
+    if (!confirm('هل أنت متأكد من حذف هذا الملف؟')) return;
+    try {
+      await tasksApi.deleteFile(task.id, fileId);
+      refetch();
+      toast.success('تم حذف الملف');
     } catch {
       toast.error('حدث خطأ');
     }
@@ -374,6 +416,104 @@ export default function TaskDetail() {
               </button>
             </form>
           </div>
+
+          {/* Files Card */}
+          <div className="card card-body">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center ring-1 ring-violet-100">
+                  <Image size={18} className="text-violet-600" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900">الملفات والصور</h3>
+                  <p className="text-[11px] text-gray-400">{task.files?.length || 0} ملف</p>
+                </div>
+              </div>
+              <label className="flex items-center gap-1.5 bg-primary-600 text-white px-3 py-1.5 rounded-xl text-sm hover:bg-primary-700 transition-colors cursor-pointer shadow-sm">
+                <Upload size={14} /> رفع ملفات
+                <input type="file" className="hidden" onChange={handleFileUpload} multiple />
+              </label>
+            </div>
+
+            {(!task.files || task.files.length === 0) ? (
+              <FileDropZone onFileDrop={(f) => handleFilesDrop([f])} onFilesDrop={handleFilesDrop} multiple>
+                <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center hover:border-primary-300 transition-colors">
+                  <Upload size={36} className="text-gray-200 mx-auto mb-2" />
+                  <p className="text-gray-500 text-sm font-medium">اسحب الملفات هنا أو اضغط للرفع</p>
+                </div>
+              </FileDropZone>
+            ) : (
+              <FileDropZone onFileDrop={(f) => handleFilesDrop([f])} onFilesDrop={handleFilesDrop} multiple className="rounded-xl">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {task.files.map((file: any) => {
+                    const FileIcon = getFileIconComponent(file.name);
+                    const iconColor = getFileIconColor(file.name);
+                    const canPreview = isPreviewable(file.name);
+                    return (
+                      <div key={file.id} className="bg-gray-50 rounded-xl border border-gray-100 p-3 hover:shadow-sm transition-all group">
+                        <div className="flex items-center gap-3">
+                          <FileThumbnail
+                            name={file.name}
+                            filePath={file.file_path}
+                            size="md"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-800 truncate">{file.name}</p>
+                            <p className="text-[11px] text-gray-400 mt-0.5">
+                              {file.uploaded_by?.name || '—'} · {file.created_at}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 mt-2 pt-2 border-t border-gray-100">
+                          {canPreview && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setPreviewFile(file.id); }}
+                              className="flex items-center gap-1 text-xs text-gray-500 hover:text-primary-600 px-2 py-1 rounded-lg hover:bg-primary-50 transition-all"
+                            >
+                              <Eye size={12} /> معاينة
+                            </button>
+                          )}
+                          <a
+                            href={resolveFileUrl(file.file_path)}
+                            download={file.name}
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600 px-2 py-1 rounded-lg hover:bg-blue-50 transition-all"
+                          >
+                            <Download size={12} /> تحميل
+                          </a>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDeleteFile(file.id); }}
+                            className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-600 px-2 py-1 rounded-lg hover:bg-red-50 transition-all mr-auto"
+                          >
+                            <Trash2 size={12} /> حذف
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </FileDropZone>
+            )}
+          </div>
+
+          {/* File Preview Modal */}
+          {previewFile !== null && task.files && (() => {
+            const previewableFiles = task.files.filter((f: any) => isPreviewable(f.name));
+            const currentIdx = previewableFiles.findIndex((f: any) => f.id === previewFile);
+            if (currentIdx === -1) return null;
+            const currentFile = previewableFiles[currentIdx];
+            return (
+              <FilePreviewModal
+                fileName={currentFile.name}
+                filePath={currentFile.file_path}
+                onClose={() => setPreviewFile(null)}
+                onPrev={currentIdx > 0 ? () => setPreviewFile(previewableFiles[currentIdx - 1].id) : undefined}
+                onNext={currentIdx < previewableFiles.length - 1 ? () => setPreviewFile(previewableFiles[currentIdx + 1].id) : undefined}
+                currentIndex={currentIdx}
+                totalCount={previewableFiles.length}
+              />
+            );
+          })()}
 
           {/* Comments Card */}
           <div className="card card-body">

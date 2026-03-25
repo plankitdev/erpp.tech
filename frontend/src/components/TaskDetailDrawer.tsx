@@ -2,9 +2,9 @@ import { useState, useRef } from 'react';
 import { useTask, useUpdateTask, useAddComment } from '../hooks/useTasks';
 import { formatDate, formatDateTime } from '../utils';
 import type { Task, TaskStatus, TaskPriority } from '../types';
-import { X, Paperclip, Send, Download, Eye } from 'lucide-react';
+import { X, Paperclip, Send, Download, Eye, Image } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { InlinePreview, resolveFileUrl, isPreviewable, getFileIconComponent } from './FilePreview';
+import { InlinePreview, resolveFileUrl, isPreviewable, getFileIconComponent, FileThumbnail, FilePreviewModal } from './FilePreview';
 
 const statusLabels: Record<TaskStatus, string> = { todo: 'جديد', in_progress: 'جاري التنفيذ', review: 'مراجعة', done: 'مكتمل' };
 const priorityLabels: Record<TaskPriority, string> = { high: 'عالية', medium: 'متوسطة', low: 'منخفضة' };
@@ -22,6 +22,7 @@ export default function TaskDetailDrawer({ taskId, onClose }: Props) {
 
   const [comment, setComment] = useState('');
   const [attachment, setAttachment] = useState<File | null>(null);
+  const [previewFile, setPreviewFile] = useState<number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   if (isLoading) {
@@ -119,6 +120,51 @@ export default function TaskDetailDrawer({ taskId, onClose }: Props) {
               <p className="mt-1 font-medium">{task.due_date ? formatDate(task.due_date) : 'غير محدد'}</p>
             </div>
           </div>
+
+          {/* Files */}
+          {task.files && task.files.length > 0 && (
+            <div>
+              <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                <Image size={16} className="text-violet-500" />
+                الملفات ({task.files.length})
+              </h4>
+              <div className="grid grid-cols-3 gap-2">
+                {task.files.map((file: any) => (
+                  <div key={file.id} className="relative group">
+                    <FileThumbnail name={file.name} filePath={file.file_path} size="lg" className="w-full h-20 rounded-lg object-cover" />
+                    {isPreviewable(file.name) && (
+                      <button
+                        onClick={() => setPreviewFile(file.id)}
+                        className="absolute inset-0 bg-black/0 group-hover:bg-black/30 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
+                      >
+                        <Eye size={16} className="text-white" />
+                      </button>
+                    )}
+                    <p className="text-[10px] text-gray-500 mt-1 truncate">{file.name}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* File Preview Modal */}
+          {previewFile !== null && task.files && (() => {
+            const previewableFiles = task.files.filter((f: any) => isPreviewable(f.name));
+            const currentIdx = previewableFiles.findIndex((f: any) => f.id === previewFile);
+            if (currentIdx === -1) return null;
+            const currentFile = previewableFiles[currentIdx];
+            return (
+              <FilePreviewModal
+                fileName={currentFile.name}
+                filePath={currentFile.file_path}
+                onClose={() => setPreviewFile(null)}
+                onPrev={currentIdx > 0 ? () => setPreviewFile(previewableFiles[currentIdx - 1].id) : undefined}
+                onNext={currentIdx < previewableFiles.length - 1 ? () => setPreviewFile(previewableFiles[currentIdx + 1].id) : undefined}
+                currentIndex={currentIdx}
+                totalCount={previewableFiles.length}
+              />
+            );
+          })()}
 
           {/* Comments */}
           <div>
