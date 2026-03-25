@@ -15,15 +15,18 @@ import Breadcrumbs from '../components/Breadcrumbs';
 import type { Expense, Currency } from '../types';
 import { useQuery } from '@tanstack/react-query';
 import { treasuryApi } from '../api/treasury';
+import { useAuthStore } from '../store/authStore';
 
 const COLORS = ['#2c9f8f', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
 export default function FinanceHub() {
+  const hasPermission = useAuthStore(s => s.hasPermission);
   const { data: dashData, isLoading: dashLoading } = useDashboard();
-  const { data: expensesData } = useExpenses({ per_page: 5 });
+  const { data: expensesData } = useExpenses({ per_page: 5, enabled: hasPermission('expenses') });
   const { data: balanceData } = useQuery({
     queryKey: ['treasury-balance'],
     queryFn: treasuryApi.getBalance,
+    enabled: hasPermission('treasury'),
   });
 
   const stats = (dashData || {}) as Record<string, any>;

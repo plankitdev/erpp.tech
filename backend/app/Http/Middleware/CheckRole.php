@@ -8,7 +8,7 @@ use Symfony\Component\HttpFoundation\Response;
 
 class CheckRole
 {
-    public function handle(Request $request, Closure $next, string ...$roles): Response
+    public function handle(Request $request, Closure $next, string ...$params): Response
     {
         $user = $request->user();
 
@@ -21,10 +21,18 @@ class CheckRole
             return $next($request);
         }
 
-        if (!in_array($user->role, $roles)) {
-            return response()->json(['message' => 'غير مصرح لك بالوصول.'], 403);
+        // Check if user's role matches any of the params
+        if (in_array($user->role, $params)) {
+            return $next($request);
         }
 
-        return $next($request);
+        // Check if user has custom permissions matching any param
+        foreach ($params as $param) {
+            if ($user->canAccess($param)) {
+                return $next($request);
+            }
+        }
+
+        return response()->json(['message' => 'غير مصرح لك بالوصول.'], 403);
     }
 }

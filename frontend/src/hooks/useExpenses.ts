@@ -3,9 +3,11 @@ import { expensesApi } from '../api/expenses';
 import type { Expense } from '../types';
 
 export function useExpenses(params?: Record<string, unknown>) {
+  const { enabled, ...queryParams } = params || {};
   return useQuery({
-    queryKey: ['expenses', params],
-    queryFn: () => expensesApi.getAll(params).then(r => r.data),
+    queryKey: ['expenses', queryParams],
+    queryFn: () => expensesApi.getAll(queryParams).then(r => r.data),
+    enabled: enabled !== false,
   });
 }
 
