@@ -19,8 +19,18 @@ const queryClient = new QueryClient({
   },
 });
 
-// Hydrate auth state from localStorage
+// Hydrate auth state from localStorage, then refresh from server
 useAuthStore.getState().hydrate();
+if (localStorage.getItem('token')) {
+  useAuthStore.getState().fetchUser();
+}
+
+// Re-fetch user permissions when browser tab gets focus
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && localStorage.getItem('token')) {
+    useAuthStore.getState().fetchUser();
+  }
+});
 
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
