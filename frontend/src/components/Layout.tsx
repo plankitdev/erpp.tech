@@ -95,7 +95,7 @@ const menuSections: MenuSection[] = [
     items: [
       { path: '/reports', label: 'التقارير', icon: BarChart3, permission: 'reports' },
       { path: '/reports/employees', label: 'تقارير الموظفين', icon: Users, permission: 'reports' },
-      { path: '/file-manager', label: 'مدير الملفات', icon: HardDrive, permission: 'users' },
+      { path: '/file-manager', label: 'مدير الملفات', icon: HardDrive, permission: null },
       { path: '/media', label: 'مكتبة الملفات', icon: ImageIcon, permission: 'users' },
       { path: '/file-templates', label: 'قوالب الملفات', icon: FolderOpen, permission: 'users' },
     ],

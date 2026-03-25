@@ -5,6 +5,7 @@ import { googleDriveApi } from '../api/googleDrive';
 import { useAuthStore } from '../store/authStore';
 import SearchInput from '../components/SearchInput';
 import { FilePreviewModal, resolveFileUrl, isPreviewable, getFileIconComponent, getFileIconColor } from '../components/FilePreview';
+import toast from 'react-hot-toast';
 import {
   FolderPlus, Upload, Trash2, Eye, Download, MoreVertical,
   FolderOpen, ChevronLeft, Home, Grid3X3, List, Search,
@@ -35,6 +36,7 @@ export default function FileManager() {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const isManager = user?.role === 'super_admin' || user?.role === 'manager';
+  const isEmployee = user?.role === 'employee';
 
   // State
   const [currentFolderId, setCurrentFolderId] = useState<number | null>(null);
@@ -91,7 +93,8 @@ export default function FileManager() {
   });
 
   const folders = data?.folders ?? [];
-  const files = data?.files ?? [];
+  const allFiles = data?.files ?? [];
+  const files = isEmployee ? allFiles.filter(f => f.uploaded_by?.id === user?.id) : allFiles;
   const breadcrumbs: FMBreadcrumb[] = data?.breadcrumbs ?? [];
 
   // Mutations
@@ -256,13 +259,15 @@ export default function FileManager() {
               </button>
             )
           )}
-          <button
-            onClick={() => setShowNewFolder(true)}
-            className="btn-secondary flex items-center gap-1.5 text-sm"
-          >
-            <FolderPlus className="w-4 h-4" />
-            مجلد جديد
-          </button>
+          {!isEmployee && (
+            <button
+              onClick={() => setShowNewFolder(true)}
+              className="btn-secondary flex items-center gap-1.5 text-sm"
+            >
+              <FolderPlus className="w-4 h-4" />
+              مجلد جديد
+            </button>
+          )}
           <button
             onClick={() => fileInputRef.current?.click()}
             className="btn-primary flex items-center gap-1.5 text-sm"
@@ -549,6 +554,10 @@ export default function FileManager() {
                         onCancelRename={() => setRenamingFile(null)}
                         onRenameChange={setRenameValue}
                         onDelete={() => {
+                          if (isEmployee) {
+                            toast('مش مسموحلك تحذف ملفات 🙅‍♂️\nتواصل مع المدير لو عايز تحذف حاجة', { icon: '🔒' });
+                            return;
+                          }
                           if (confirm(`حذف الملف "${file.name}"?`)) deleteFileMut.mutate(file.id);
                         }}
                         onApprove={() => approveFileMut.mutate(file.id)}
@@ -570,6 +579,10 @@ export default function FileManager() {
                         onCancelRename={() => setRenamingFile(null)}
                         onRenameChange={setRenameValue}
                         onDelete={() => {
+                          if (isEmployee) {
+                            toast('مش مسموحلك تحذف ملفات 🙅‍♂️\nتواصل مع المدير لو عايز تحذف حاجة', { icon: '🔒' });
+                            return;
+                          }
                           if (confirm(`حذف الملف "${file.name}"?`)) deleteFileMut.mutate(file.id);
                         }}
                         onApprove={() => approveFileMut.mutate(file.id)}
@@ -586,12 +599,14 @@ export default function FileManager() {
               <div className="text-center py-20">
                 <FolderOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <p className="text-gray-500 text-lg mb-2">هذا المجلد فارغ</p>
-                <p className="text-gray-400 text-sm mb-6">أنشئ مجلد جديد أو ارفع ملفات</p>
+                <p className="text-gray-400 text-sm mb-6">{isEmployee ? 'ارفع ملفاتك هنا' : 'أنشئ مجلد جديد أو ارفع ملفات'}</p>
                 <div className="flex items-center justify-center gap-3">
-                  <button onClick={() => setShowNewFolder(true)} className="btn-secondary flex items-center gap-1.5 text-sm">
-                    <FolderPlus className="w-4 h-4" />
-                    مجلد جديد
-                  </button>
+                  {!isEmployee && (
+                    <button onClick={() => setShowNewFolder(true)} className="btn-secondary flex items-center gap-1.5 text-sm">
+                      <FolderPlus className="w-4 h-4" />
+                      مجلد جديد
+                    </button>
+                  )}
                   <button onClick={() => fileInputRef.current?.click()} className="btn-primary flex items-center gap-1.5 text-sm">
                     <Upload className="w-4 h-4" />
                     رفع ملف
@@ -634,17 +649,19 @@ export default function FileManager() {
                 <FolderOpen className="w-4 h-4 text-gray-400" />
                 فتح
               </button>
-              <button
-                onClick={() => {
-                  setRenamingFolder((contextMenu.item as FMFolder).id);
-                  setRenameValue((contextMenu.item as FMFolder).name);
-                  setContextMenu(null);
-                }}
-                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-sm text-right"
-              >
-                <Edit3 className="w-4 h-4 text-gray-400" />
-                إعادة تسمية
-              </button>
+              {!isEmployee && (
+                <button
+                  onClick={() => {
+                    setRenamingFolder((contextMenu.item as FMFolder).id);
+                    setRenameValue((contextMenu.item as FMFolder).name);
+                    setContextMenu(null);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-sm text-right"
+                >
+                  <Edit3 className="w-4 h-4 text-gray-400" />
+                  إعادة تسمية
+                </button>
+              )}
               {isManager && (
                 <button
                   onClick={() => {
@@ -707,19 +724,22 @@ export default function FileManager() {
                   اعتماد
                 </button>
               )}
-              {isManager && (
-                <button
-                  onClick={() => {
-                    if (confirm(`حذف الملف "${(contextMenu.item as FMFile).name}"?`))
-                      deleteFileMut.mutate((contextMenu.item as FMFile).id);
+              <button
+                onClick={() => {
+                  if (isEmployee) {
+                    toast('مش مسموحلك تحذف ملفات 🙅‍♂️\nتواصل مع المدير لو عايز تحذف حاجة', { icon: '🔒' });
                     setContextMenu(null);
-                  }}
-                  className="w-full flex items-center gap-2 px-3 py-2 hover:bg-red-50 text-sm text-red-600 text-right"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  حذف
-                </button>
-              )}
+                    return;
+                  }
+                  if (confirm(`حذف الملف "${(contextMenu.item as FMFile).name}"?`))
+                    deleteFileMut.mutate((contextMenu.item as FMFile).id);
+                  setContextMenu(null);
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-red-50 text-sm text-red-600 text-right"
+              >
+                <Trash2 className="w-4 h-4" />
+                حذف
+              </button>
             </>
           )}
         </div>
@@ -761,13 +781,15 @@ function FolderCard({ folder, isRenaming, renameValue, onNavigate, onStartRename
       <div className="flex items-start justify-between mb-2">
         <FolderOpen className="w-10 h-10 text-amber-500" />
         <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5">
-          <button onClick={(e) => { e.stopPropagation(); onStartRename(); }} className="p-1 rounded hover:bg-white/80">
-            <Edit3 className="w-3.5 h-3.5 text-gray-500" />
-          </button>
           {isManager && (
-            <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="p-1 rounded hover:bg-red-100">
-              <Trash2 className="w-3.5 h-3.5 text-red-500" />
-            </button>
+            <>
+              <button onClick={(e) => { e.stopPropagation(); onStartRename(); }} className="p-1 rounded hover:bg-white/80">
+                <Edit3 className="w-3.5 h-3.5 text-gray-500" />
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="p-1 rounded hover:bg-red-100">
+                <Trash2 className="w-3.5 h-3.5 text-red-500" />
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -838,13 +860,15 @@ function FolderRow({ folder, isRenaming, renameValue, onNavigate, onStartRename,
       </span>
       <span className="text-xs text-gray-400 whitespace-nowrap">{folder.created_at && formatDate(folder.created_at)}</span>
       <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1">
-        <button onClick={(e) => { e.stopPropagation(); onStartRename(); }} className="p-1.5 rounded-lg hover:bg-gray-200">
-          <Edit3 className="w-4 h-4 text-gray-500" />
-        </button>
         {isManager && (
-          <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="p-1.5 rounded-lg hover:bg-red-100">
-            <Trash2 className="w-4 h-4 text-red-500" />
-          </button>
+          <>
+            <button onClick={(e) => { e.stopPropagation(); onStartRename(); }} className="p-1.5 rounded-lg hover:bg-gray-200">
+              <Edit3 className="w-4 h-4 text-gray-500" />
+            </button>
+            <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="p-1.5 rounded-lg hover:bg-red-100">
+              <Trash2 className="w-4 h-4 text-red-500" />
+            </button>
+          </>
         )}
       </div>
     </div>
@@ -939,11 +963,9 @@ function FileCard({ file, isRenaming, renameValue, onPreview, onStartRename, onR
                 <CheckCircle2 className="w-3 h-3 text-emerald-500" />
               </button>
             )}
-            {isManager && (
-              <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="p-0.5 rounded hover:bg-red-100">
-                <Trash2 className="w-3 h-3 text-red-500" />
-              </button>
-            )}
+            <button onClick={(e) => { e.stopPropagation(); onDelete(); }} className="p-0.5 rounded hover:bg-red-100">
+              <Trash2 className="w-3 h-3 text-red-500" />
+            </button>
           </div>
         </div>
       </div>
@@ -1021,11 +1043,9 @@ function FileRow({ file, isRenaming, renameValue, onPreview, onStartRename, onRe
             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
           </button>
         )}
-        {isManager && (
-          <button onClick={e => { e.stopPropagation(); onDelete(); }} className="p-1.5 rounded-lg hover:bg-red-100">
-            <Trash2 className="w-4 h-4 text-red-500" />
-          </button>
-        )}
+        <button onClick={e => { e.stopPropagation(); onDelete(); }} className="p-1.5 rounded-lg hover:bg-red-100">
+          <Trash2 className="w-4 h-4 text-red-500" />
+        </button>
       </div>
     </div>
   );

@@ -93,7 +93,7 @@ export default function App() {
         <Route index element={<Dashboard />} />
         <Route path="announcements" element={<Announcements />} />
         <Route path="chat" element={<Chat />} />
-        <Route path="kpi" element={<RoleGuard permission="reports"><KpiDashboard /></RoleGuard>} />
+        <Route path="kpi" element={<KpiDashboard />} />
         <Route path="notifications" element={<Notifications />} />
 
         {/* العملاء والمبيعات */}
@@ -155,7 +155,7 @@ export default function App() {
         <Route path="users" element={<RoleGuard permission="users"><Users /></RoleGuard>} />
         <Route path="activity-logs" element={<RoleGuard permission="activity_logs"><ActivityLogs /></RoleGuard>} />
         <Route path="media" element={<RoleGuard permission="users"><MediaLibrary /></RoleGuard>} />
-        <Route path="file-manager" element={<RoleGuard permission="users"><FileManagerPage /></RoleGuard>} />
+        <Route path="file-manager" element={<FileManagerPage />} />
         <Route path="file-templates" element={<RoleGuard permission="users"><FileTemplates /></RoleGuard>} />
         <Route path="settings" element={<RoleGuard permission="settings"><Settings /></RoleGuard>} />
         <Route path="workflows" element={<RoleGuard permission="users"><WorkflowAutomation /></RoleGuard>} />
