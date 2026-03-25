@@ -379,9 +379,9 @@ export default function Meetings() {
 
       {/* Create/Edit Modal */}
       {showModal && (
-        <div className="modal-overlay !items-start !pt-4">
+        <div className="modal-overlay">
           <div className="modal-backdrop" onClick={() => setShowModal(false)} />
-          <div className="modal-content !max-w-3xl w-full">
+          <div className="modal-content !max-w-3xl w-full !max-h-[95vh] sm:!max-h-[90vh]">
             <div className="modal-header">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white">
@@ -401,7 +401,7 @@ export default function Meetings() {
               </button>
             </div>
             <form onSubmit={handleSubmit}>
-              <div className="modal-body space-y-4">
+              <div className="modal-body space-y-3">
                 <div>
                   <label className="input-label">عنوان الاجتماع *</label>
                   <input type="text" value={form.title}
@@ -412,9 +412,9 @@ export default function Meetings() {
                   <label className="input-label">الوصف</label>
                   <textarea value={form.description}
                     onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                    className="input" rows={3} placeholder="وصف الاجتماع (اختياري)" />
+                    className="input" rows={2} placeholder="وصف الاجتماع (اختياري)" />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="input-label">وقت البداية *</label>
                     <input type="datetime-local" value={form.start_time}
@@ -428,7 +428,7 @@ export default function Meetings() {
                       className="input" required />
                   </div>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div>
                     <label className="input-label">النوع</label>
                     <select value={form.type}
@@ -451,32 +451,32 @@ export default function Meetings() {
                       <option value="cancelled">ملغي</option>
                     </select>
                   </div>
-                </div>
-                <div>
-                  <label className="input-label">المكان</label>
-                  <input type="text" value={form.location}
-                    onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
-                    className="input" placeholder="مثال: قاعة الاجتماعات" />
-                </div>
-                <div>
-                  <label className="input-label">رابط الاجتماع</label>
-                  <input type="url" value={form.meeting_link}
-                    onChange={e => setForm(f => ({ ...f, meeting_link: e.target.value }))}
-                    className="input" placeholder="مثال: https://meet.google.com/..." dir="ltr" />
+                  <div>
+                    <label className="input-label">المكان</label>
+                    <input type="text" value={form.location}
+                      onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
+                      className="input" placeholder="قاعة الاجتماعات" />
+                  </div>
+                  <div>
+                    <label className="input-label">رابط الاجتماع</label>
+                    <input type="url" value={form.meeting_link}
+                      onChange={e => setForm(f => ({ ...f, meeting_link: e.target.value }))}
+                      className="input" placeholder="https://meet..." dir="ltr" />
+                  </div>
                 </div>
                 {editMeeting && (
                 <div>
                   <label className="input-label">📝 محضر / ملاحظات الاجتماع</label>
                   <textarea value={form.notes}
                     onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                    className="input" rows={4} placeholder="اكتب محضر الاجتماع أو ملاحظات بعد الانتهاء..." />
+                    className="input" rows={2} placeholder="اكتب محضر الاجتماع أو ملاحظات بعد الانتهاء..." />
                 </div>
                 )}
                 <div>
                   <label className="input-label flex items-center gap-1.5">
                     <Users size={14} /> المشاركون
                   </label>
-                  <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-xl p-3 space-y-1 bg-gray-50/50">
+                  <div className="max-h-36 overflow-y-auto border border-gray-200 rounded-xl p-2 space-y-0.5 bg-gray-50/50 sidebar-scroll">
                     {allUsers.length === 0 ? (
                       <p className="text-xs text-gray-400 text-center py-2">لا يوجد مستخدمين</p>
                     ) : allUsers.map((u: any) => (

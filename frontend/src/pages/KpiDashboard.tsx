@@ -10,10 +10,10 @@ export default function KpiDashboard() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [tab, setTab] = useState<'personal' | 'team'>('personal');
 
-  const { data: personal, isLoading: pLoading } = usePersonalKpi(month, year);
-  const { data: team, isLoading: tLoading } = useTeamKpi(month, year);
-
   const isManager = user?.role === 'super_admin' || user?.role === 'manager';
+
+  const { data: personal, isLoading: pLoading } = usePersonalKpi(month, year);
+  const { data: team, isLoading: tLoading } = useTeamKpi(month, year, isManager);
 
   const prevMonth = () => {
     if (month === 1) { setMonth(12); setYear(y => y - 1); }
