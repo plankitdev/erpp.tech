@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use App\Traits\HasCompany;
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Meeting extends Model
 {
-    use HasCompany;
+    use HasCompany, LogsActivity;
 
     public const TYPE_TEAM   = 'team';
     public const TYPE_SALES  = 'sales';

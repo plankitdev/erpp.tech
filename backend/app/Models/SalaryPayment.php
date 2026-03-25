@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use App\Traits\HasCompany;
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SalaryPayment extends Model
 {
-    use HasCompany, HasFactory;
+    use HasCompany, HasFactory, LogsActivity;
 
     protected $fillable = [
         'company_id', 'employee_id', 'month', 'year', 'base_salary',

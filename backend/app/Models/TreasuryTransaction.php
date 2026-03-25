@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use App\Traits\HasCompany;
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TreasuryTransaction extends Model
 {
-    use HasCompany, HasFactory;
+    use HasCompany, HasFactory, LogsActivity;
 
     public const TYPE_IN  = 'in';
     public const TYPE_OUT = 'out';

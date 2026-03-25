@@ -5,10 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Traits\HasCompany;
+use App\Traits\LogsActivity;
 
 class ManagedFile extends Model
 {
-    use HasCompany;
+    use HasCompany, LogsActivity;
 
     protected $fillable = [
         'company_id', 'folder_id', 'name', 'file_path',

@@ -3,12 +3,13 @@
 namespace App\Models;
 
 use App\Traits\HasCompany;
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class WorkflowRule extends Model
 {
-    use HasCompany;
+    use HasCompany, LogsActivity;
 
     // Triggers
     const TRIGGER_LEAD_CONVERTED = 'lead_converted';

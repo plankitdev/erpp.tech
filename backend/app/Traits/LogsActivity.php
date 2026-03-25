@@ -6,6 +6,12 @@ use App\Models\ActivityLog;
 
 trait LogsActivity
 {
+    /** Fields to exclude from change logs */
+    protected static function logExcluded(): array
+    {
+        return ['password', 'remember_token', 'updated_at', 'created_at'];
+    }
+
     public static function bootLogsActivity(): void
     {
         static::created(function ($model) {
@@ -13,9 +19,13 @@ trait LogsActivity
         });
 
         static::updated(function ($model) {
-            if ($model->isDirty()) {
-                static::logAction($model, 'updated', $model->getChanges());
-            }
+            $dirty = collect($model->getDirty())->except(static::logExcluded());
+            if ($dirty->isEmpty()) return;
+
+            $old = collect($model->getOriginal())->only($dirty->keys())->toArray();
+            $new = $dirty->toArray();
+
+            static::logAction($model, 'updated', ['old' => $old, 'new' => $new]);
         });
 
         static::deleted(function ($model) {

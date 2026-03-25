@@ -3,12 +3,13 @@
 namespace App\Models;
 
 use App\Traits\HasCompany;
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class LeaveRequest extends Model
 {
-    use HasCompany;
+    use HasCompany, LogsActivity;
 
     const TYPE_ANNUAL = 'annual';
     const TYPE_SICK = 'sick';

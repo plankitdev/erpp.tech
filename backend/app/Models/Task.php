@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Traits\HasCompany;
 use App\Traits\HasTags;
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Task extends Model
 {
-    use HasCompany, HasFactory, HasTags;
+    use HasCompany, HasFactory, HasTags, LogsActivity;
 
     public const STATUS_TODO        = 'todo';
     public const STATUS_IN_PROGRESS = 'in_progress';

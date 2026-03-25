@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useActivityLogs } from '../hooks/useActivityLogs';
 import { formatDate } from '../utils';
-import { Activity } from 'lucide-react';
+import { Activity, ChevronDown, ChevronUp } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 import { SkeletonTable } from '../components/Skeletons';
 
@@ -10,7 +10,7 @@ interface LogEntry {
   action: string;
   model_type: string;
   model_id: number | null;
-  changes: Record<string, unknown> | null;
+  changes: { old?: Record<string, unknown>; new?: Record<string, unknown> } | Record<string, unknown> | null;
   user: { id: number; name: string } | null;
   created_at: string;
 }
@@ -27,7 +27,70 @@ const modelLabels: Record<string, string> = {
   Invoice: 'فاتورة',
   Employee: 'موظف',
   Expense: 'مصروف',
+  Lead: 'عميل محتمل',
+  Ticket: 'تذكرة',
+  Project: 'مشروع',
+  Task: 'مهمة',
+  Meeting: 'اجتماع',
+  Quotation: 'عرض سعر',
+  SalaryPayment: 'راتب',
+  Partner: 'شريك',
+  PartnerPayment: 'دفعة شريك',
+  TreasuryTransaction: 'حركة خزينة',
+  Installment: 'قسط',
+  LeaveRequest: 'طلب إجازة',
+  AttendanceRecord: 'حضور',
+  Announcement: 'إعلان',
+  WorkflowRule: 'قاعدة عمل',
+  InvoicePayment: 'دفعة فاتورة',
+  TimeEntry: 'وقت عمل',
+  ManagedFile: 'ملف',
+  User: 'مستخدم',
 };
+
+function ChangesDisplay({ changes }: { changes: LogEntry['changes'] }) {
+  const [open, setOpen] = useState(false);
+  if (!changes) return <span className="text-gray-400">—</span>;
+
+  const hasOldNew = changes && 'old' in changes && 'new' in changes;
+
+  if (hasOldNew) {
+    const oldValues = (changes as { old: Record<string, unknown> }).old || {};
+    const newValues = (changes as { new: Record<string, unknown> }).new || {};
+    const fields = Object.keys(newValues);
+    if (fields.length === 0) return <span className="text-gray-400">—</span>;
+
+    const preview = fields.slice(0, 2).map(f => modelLabels[f] || f).join('، ');
+
+    return (
+      <div className="max-w-xs">
+        <button onClick={() => setOpen(!open)} className="flex items-center gap-1 text-primary-600 hover:text-primary-700 text-xs">
+          <span>{preview}{fields.length > 2 ? ` (+${fields.length - 2})` : ''}</span>
+          {open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </button>
+        {open && (
+          <div className="mt-2 space-y-1 text-xs bg-gray-50 rounded-lg p-2">
+            {fields.map(field => (
+              <div key={field} className="flex flex-col">
+                <span className="font-medium text-gray-700">{field}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-red-500 line-through">{String(oldValues[field] ?? '—')}</span>
+                  <span className="text-gray-400">←</span>
+                  <span className="text-green-600">{String(newValues[field] ?? '—')}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Legacy format (flat object)
+  const keys = Object.keys(changes);
+  if (keys.length === 0) return <span className="text-gray-400">—</span>;
+  return <span className="text-gray-500 text-xs">{keys.join('، ')}</span>;
+}
 
 export default function ActivityLogs() {
   const [filters, setFilters] = useState<Record<string, unknown>>({ page: 1 });
@@ -44,7 +107,7 @@ export default function ActivityLogs() {
         </div>
       </div>
 
-      <div className="card card-body flex gap-4 mb-6">
+      <div className="card card-body flex flex-wrap gap-4 mb-6">
         <select
           value={(filters.model_type as string) || ''}
           onChange={e => setFilters({ ...filters, model_type: e.target.value || undefined, page: 1 })}
@@ -65,6 +128,20 @@ export default function ActivityLogs() {
             <option key={key} value={key}>{label}</option>
           ))}
         </select>
+        <input
+          type="date"
+          value={(filters.date_from as string) || ''}
+          onChange={e => setFilters({ ...filters, date_from: e.target.value || undefined, page: 1 })}
+          className="input max-w-[180px]"
+          placeholder="من تاريخ"
+        />
+        <input
+          type="date"
+          value={(filters.date_to as string) || ''}
+          onChange={e => setFilters({ ...filters, date_to: e.target.value || undefined, page: 1 })}
+          className="input max-w-[180px]"
+          placeholder="إلى تاريخ"
+        />
       </div>
 
       <div className="table-container">
@@ -94,8 +171,8 @@ export default function ActivityLogs() {
                   </td>
                   <td className="px-6 py-4 text-sm">{modelLabels[log.model_type] || log.model_type}</td>
                   <td className="px-6 py-4 text-sm">#{log.model_id}</td>
-                  <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
-                    {log.changes ? Object.keys(log.changes).join(', ') : '—'}
+                  <td className="px-6 py-4 text-sm">
+                    <ChangesDisplay changes={log.changes} />
                   </td>
                 </tr>
               ))}

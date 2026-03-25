@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\HasCompany;
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Partner extends Model
 {
-    use HasCompany, HasFactory;
+    use HasCompany, HasFactory, LogsActivity;
 
     protected $fillable = [
         'company_id', 'name', 'phone', 'bank_account',

@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use App\Traits\HasCompany;
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Quotation extends Model
 {
-    use HasCompany, HasFactory;
+    use HasCompany, HasFactory, LogsActivity;
 
     const STATUS_DRAFT = 'draft';
     const STATUS_SENT = 'sent';
