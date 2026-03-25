@@ -32,14 +32,13 @@ interface MenuSection {
   items: MenuItem[];
 }
 
+// Standalone items shown at top (outside sections)
+const standaloneItems: MenuItem[] = [
+  { path: '/announcements', label: 'الإعلانات', icon: Megaphone, permission: null },
+  { path: '/chat', label: 'المحادثات', icon: MessageSquare, permission: null },
+];
+
 const menuSections: MenuSection[] = [
-  {
-    title: 'التحديثات',
-    icon: Megaphone,
-    items: [
-      { path: '/announcements', label: 'التحديثات والإعلانات', icon: Megaphone, permission: null },
-    ],
-  },
   {
     title: 'العملاء والمبيعات',
     icon: Users,
@@ -66,7 +65,6 @@ const menuSections: MenuSection[] = [
       { path: '/tasks/board', label: 'لوحة Kanban', icon: Kanban, permission: 'tasks' },
       { path: '/calendar', label: 'التقويم', icon: CalendarDays, permission: 'tasks' },
       { path: '/meetings', label: 'الاجتماعات', icon: Video, permission: 'tasks' },
-      { path: '/chat', label: 'المحادثات', icon: MessageSquare, permission: null },
       { path: '/kpi', label: 'لوحة الأداء', icon: Target, permission: null },
     ],
   },
@@ -91,16 +89,22 @@ const menuSections: MenuSection[] = [
     ],
   },
   {
-    title: 'النظام',
-    icon: Settings,
+    title: 'التقارير والملفات',
+    icon: BarChart3,
     items: [
       { path: '/reports', label: 'التقارير', icon: BarChart3, permission: 'reports' },
       { path: '/reports/employees', label: 'تقارير الموظفين', icon: Users, permission: 'reports' },
-      { path: '/users', label: 'المستخدمين', icon: KeyRound, permission: 'users' },
-      { path: '/activity-logs', label: 'سجل النشاطات', icon: Activity, permission: 'activity_logs' },
       { path: '/file-manager', label: 'مدير الملفات', icon: HardDrive, permission: 'settings' },
       { path: '/media', label: 'مكتبة الملفات', icon: ImageIcon, permission: 'settings' },
       { path: '/file-templates', label: 'قوالب الملفات', icon: FolderOpen, permission: 'settings' },
+    ],
+  },
+  {
+    title: 'إدارة النظام',
+    icon: Settings,
+    items: [
+      { path: '/users', label: 'المستخدمين', icon: KeyRound, permission: 'users' },
+      { path: '/activity-logs', label: 'سجل النشاطات', icon: Activity, permission: 'activity_logs' },
       { path: '/settings', label: 'الإعدادات', icon: Settings, permission: 'settings' },
       { path: '/workflows', label: 'أتمتة العمليات', icon: Zap, permission: 'settings' },
       { path: '/tags', label: 'العلامات', icon: Tag, permission: 'settings' },
@@ -112,6 +116,7 @@ const menuSections: MenuSection[] = [
 
 const allMenuItems = [
   { path: '/', label: 'لوحة التحكم', icon: LayoutDashboard, permission: 'dashboard' },
+  ...standaloneItems,
   ...menuSections.flatMap(s => s.items),
 ];
 
@@ -162,7 +167,14 @@ export default function Layout() {
   const toggleSection = (title: string) => {
     const section = filteredSections.find(s => s.title === title);
     const currentlyOpen = isSectionOpen(title, section?.items || []);
-    setCollapsedSections(prev => ({ ...prev, [title]: currentlyOpen }));
+    if (currentlyOpen) {
+      setCollapsedSections(prev => ({ ...prev, [title]: true }));
+    } else {
+      // Accordion: close all others, open only this one
+      const newState: Record<string, boolean> = {};
+      filteredSections.forEach(s => { newState[s.title] = s.title !== title; });
+      setCollapsedSections(newState);
+    }
   };
 
   const currentPage = allMenuItems.find(m => m.path === location.pathname);
@@ -268,7 +280,57 @@ export default function Layout() {
           )}
         </div>
 
-        <div className="mx-2 mb-2 h-px bg-white/[0.05]" />
+        {/* Standalone items: Announcements, Chat */}
+        {standaloneItems.filter(item => !item.permission || hasPermission(item.permission)).map(item => {
+          const Icon = item.icon;
+          const isActive = location.pathname === item.path;
+          const badge = item.path === '/announcements' ? announcementUnread
+            : item.path === '/chat' ? chatUnread
+            : 0;
+
+          return sidebarOpen ? (
+            <Link
+              key={item.path}
+              to={item.path}
+              onClick={() => setMobileMenuOpen(false)}
+              className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 ${
+                isActive
+                  ? 'bg-primary-500/10 text-white shadow-sm'
+                  : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
+              }`}
+            >
+              {isActive && (
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-l-full bg-primary-400 shadow-[0_0_8px_rgba(44,159,143,0.4)]" />
+              )}
+              <Icon size={18} strokeWidth={isActive ? 2.2 : 1.7} className={isActive ? 'text-primary-400' : 'text-slate-500 group-hover:text-slate-300'} />
+              <span className="truncate">{item.label}</span>
+              {badge > 0 && (
+                <span className={`${item.path === '/announcements' ? 'bg-red-500' : 'bg-blue-500'} text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 mr-auto`}>
+                  {badge > 99 ? '99+' : badge}
+                </span>
+              )}
+            </Link>
+          ) : (
+            <Link
+              key={item.path}
+              to={item.path}
+              onClick={() => setMobileMenuOpen(false)}
+              title={item.label}
+              className={`group relative flex items-center justify-center px-3 py-2.5 rounded-xl transition-all duration-200 ${
+                isActive ? 'bg-primary-500/10 text-primary-400' : 'text-slate-500 hover:bg-white/[0.04] hover:text-slate-300'
+              }`}
+            >
+              <Icon size={18} />
+              {badge > 0 && (
+                <span className={`absolute top-1 left-1 ${item.path === '/announcements' ? 'bg-red-500' : 'bg-blue-500'} text-white text-[8px] font-bold rounded-full min-w-[14px] h-[14px] flex items-center justify-center px-0.5`}>
+                  {badge > 9 ? '9+' : badge}
+                </span>
+              )}
+            </Link>
+          );
+        })}
+
+        <div className="mx-2 my-2 h-px bg-white/[0.05]" />
 
         {filteredSections.map((section) => {
           const isOpen = isSectionOpen(section.title, section.items);
@@ -343,16 +405,6 @@ export default function Layout() {
                         </div>
                         {sidebarOpen && (
                           <span className="truncate">{item.label}</span>
-                        )}
-                        {item.path === '/announcements' && announcementUnread > 0 && (
-                          <span className="bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 mr-auto">
-                            {announcementUnread > 99 ? '99+' : announcementUnread}
-                          </span>
-                        )}
-                        {item.path === '/chat' && chatUnread > 0 && (
-                          <span className="bg-blue-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 mr-auto">
-                            {chatUnread > 99 ? '99+' : chatUnread}
-                          </span>
                         )}
                         {item.path === '/tasks' && (badges?.new_tasks ?? 0) > 0 && (
                           <span className="bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 mr-auto">

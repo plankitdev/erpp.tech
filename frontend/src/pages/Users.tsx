@@ -266,7 +266,7 @@ export default function Users() {
       {showModal && (
         <div className="modal-overlay">
           <div className="modal-backdrop" onClick={() => { setShowModal(false); setEditingUser(null); }} />
-          <div className="modal-content max-w-2xl">
+          <div className="modal-content max-w-2xl !max-h-[95vh] sm:!max-h-[90vh]">
             {/* Modal Header */}
             <div className="modal-header">
               <div className="flex items-center gap-3">
@@ -285,7 +285,7 @@ export default function Users() {
 
             {/* Modal Body */}
             <form onSubmit={handleSubmit} className="modal-body space-y-5">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="input-label">الاسم *</label>
                   <input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
@@ -298,7 +298,7 @@ export default function Users() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                 <div>
                   <label className="input-label">
                     كلمة المرور {editingUser ? '(اتركها فارغة لعدم التغيير)' : '*'}
@@ -334,38 +334,38 @@ export default function Users() {
                   <button
                     type="button"
                     onClick={() => setShowPermissions(!showPermissions)}
-                    className="w-full flex items-center justify-between px-5 py-3.5 bg-gray-50 hover:bg-gray-100 transition-colors"
+                    className="w-full flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-4 sm:px-5 py-3 sm:py-3.5 bg-gray-50 hover:bg-gray-100 transition-colors"
                   >
                     <div className="flex items-center gap-2">
                       <Shield size={16} className="text-primary-600" />
                       <span className="font-medium text-gray-700 text-sm">الصلاحيات</span>
                       <span className="text-xs text-gray-400 bg-white px-2 py-0.5 rounded-full border">
-                        {form.permissions.length} صلاحية محددة
+                        {form.permissions.length} محددة
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 mr-auto sm:mr-0">
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); loadDefaults(form.role); }}
                         className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-700 bg-primary-50 px-2.5 py-1 rounded-lg"
                       >
                         <RefreshCw size={12} />
-                        تحميل الافتراضي
+                        الافتراضي
                       </button>
                       {showPermissions ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
                     </div>
                   </button>
 
                   {showPermissions && (
-                    <div className="p-5 space-y-4 max-h-[300px] overflow-y-auto sidebar-scroll">
+                    <div className="p-3 sm:p-5 space-y-3 sm:space-y-4 max-h-[40vh] sm:max-h-[50vh] overflow-y-auto sidebar-scroll">
                       {Object.entries(permissionsData.permissions).map(([module, actions]) => {
                         const moduleLabel = permissionsData.permission_labels[module] || module;
                         const allChecked = actions.every(a => form.permissions.includes(a));
                         const someChecked = actions.some(a => form.permissions.includes(a));
 
                         return (
-                          <div key={module} className="bg-gray-50 rounded-xl p-4">
-                            <div className="flex items-center gap-2 mb-3">
+                          <div key={module} className="bg-gray-50 rounded-xl p-3 sm:p-4">
+                            <div className="flex items-center gap-2 mb-2 sm:mb-3">
                               <button
                                 type="button"
                                 onClick={() => toggleModule(actions)}
@@ -382,7 +382,7 @@ export default function Users() {
                               </button>
                               <span className="font-semibold text-gray-700 text-sm">{moduleLabel}</span>
                             </div>
-                            <div className="flex flex-wrap gap-2 mr-7">
+                            <div className="flex flex-wrap gap-1.5 sm:gap-2 mr-0 sm:mr-7">
                               {actions.map(action => {
                                 const actionKey = action.split('.')[1];
                                 const actionLabel = permissionsData.action_labels[actionKey] || actionKey;
