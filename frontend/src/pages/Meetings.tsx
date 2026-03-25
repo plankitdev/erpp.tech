@@ -1,13 +1,13 @@
 import { useState } from 'react';
-import { useMeetings, useCreateMeeting, useUpdateMeeting, useDeleteMeeting, useRespondMeeting } from '../hooks/useMeetings';
+import { useNavigate } from 'react-router-dom';
+import { useMeetings, useDeleteMeeting, useRespondMeeting } from '../hooks/useMeetings';
 import { useMarkBadgeSeen } from '../hooks/useDashboard';
-import { useUsersList } from '../hooks/useUsers';
 import { formatDateTime } from '../utils';
 import { useAuthStore } from '../store/authStore';
 import type { Meeting } from '../types';
 import toast from 'react-hot-toast';
 import {
-  Plus, Video, X, Clock, MapPin, Users, Calendar,
+  Plus, Video, Clock, MapPin, Users, Calendar,
   CheckCircle2, XCircle, Pencil, Trash2, Filter, Link2,
 } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -45,12 +45,11 @@ const statusColors: Record<string, string> = {
 export default function Meetings() {
   useMarkBadgeSeen('meetings');
   const { user } = useAuthStore();
+  const navigate = useNavigate();
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
   const [page, setPage] = useState(1);
-  const [showModal, setShowModal] = useState(false);
-  const [editMeeting, setEditMeeting] = useState<Meeting | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
   const params: Record<string, unknown> = { page };
@@ -58,10 +57,6 @@ export default function Meetings() {
   if (statusFilter !== 'all') params.status = statusFilter;
 
   const { data, isLoading, isError, refetch } = useMeetings(params);
-  const { data: usersListData } = useUsersList();
-  const allUsers = usersListData?.data || [];
-  const createMutation = useCreateMeeting();
-  const updateMutation = useUpdateMeeting();
   const deleteMutation = useDeleteMeeting();
   const respondMutation = useRespondMeeting();
 
@@ -73,56 +68,6 @@ export default function Meetings() {
     const meetingDate = new Date(m.start_time);
     return tab === 'upcoming' ? meetingDate >= now : meetingDate < now;
   });
-
-  const [form, setForm] = useState({
-    title: '', description: '', start_time: '', end_time: '',
-    location: '', meeting_link: '', type: 'team' as string, status: 'scheduled' as string,
-    notes: '',
-    participant_ids: [] as number[],
-  });
-
-  const openCreateModal = () => {
-    setEditMeeting(null);
-    setForm({ title: '', description: '', start_time: '', end_time: '', location: '', meeting_link: '', type: 'team', status: 'scheduled', notes: '', participant_ids: [] });
-    setShowModal(true);
-  };
-
-  const openEditModal = (m: Meeting) => {
-    setEditMeeting(m);
-    setForm({
-      title: m.title,
-      description: m.description || '',
-      start_time: m.start_time?.slice(0, 16) || '',
-      end_time: m.end_time?.slice(0, 16) || '',
-      location: m.location || '',
-      meeting_link: m.meeting_link || '',
-      type: m.type,
-      status: m.status,
-      notes: m.notes || '',
-      participant_ids: m.participants?.map(p => p.id) || [],
-    });
-    setShowModal(true);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.title || !form.start_time || !form.end_time) {
-      toast.error('يرجى ملء الحقول المطلوبة');
-      return;
-    }
-    try {
-      if (editMeeting) {
-        await updateMutation.mutateAsync({ id: editMeeting.id, data: form as Partial<Meeting> });
-        toast.success('تم تحديث الاجتماع');
-      } else {
-        await createMutation.mutateAsync(form as Partial<Meeting>);
-        toast.success('تم إنشاء الاجتماع');
-      }
-      setShowModal(false);
-    } catch {
-      toast.error('حدث خطأ');
-    }
-  };
 
   const handleDelete = () => {
     if (!deleteId) return;
@@ -163,7 +108,7 @@ export default function Meetings() {
           <h1 className="page-title">الاجتماعات</h1>
           <p className="page-subtitle">{meta?.total || meetings.length} اجتماع</p>
         </div>
-        <button onClick={openCreateModal} className="btn-primary">
+        <button onClick={() => navigate('/meetings/create')} className="btn-primary">
           <Plus size={16} /> اجتماع جديد
         </button>
       </div>
@@ -346,7 +291,7 @@ export default function Meetings() {
                       </div>
                     )}
                     {(user?.role === 'super_admin' || user?.role === 'manager' || meeting.created_by === user?.id) && (
-                      <button onClick={() => openEditModal(meeting)}
+                      <button onClick={() => navigate(`/meetings/${meeting.id}/edit`)}
                         className="action-icon text-gray-400 hover:text-amber-600 hover:bg-amber-50">
                         <Pencil size={15} />
                       </button>
@@ -374,143 +319,6 @@ export default function Meetings() {
               {i + 1}
             </button>
           ))}
-        </div>
-      )}
-
-      {/* Create/Edit Modal */}
-      {showModal && (
-        <div className="modal-overlay">
-          <div className="modal-backdrop" onClick={() => setShowModal(false)} />
-          <div className="modal-content !max-w-3xl w-full !max-h-[95vh] sm:!max-h-[90vh]">
-            <div className="modal-header">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white">
-                  <Video size={20} />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-gray-800">
-                    {editMeeting ? 'تعديل الاجتماع' : 'اجتماع جديد'}
-                  </h2>
-                  <p className="text-xs text-gray-400">
-                    {editMeeting ? 'تحديث بيانات الاجتماع' : 'إنشاء اجتماع جديد'}
-                  </p>
-                </div>
-              </div>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 p-1">
-                <X size={20} />
-              </button>
-            </div>
-            <form onSubmit={handleSubmit}>
-              <div className="modal-body space-y-3">
-                <div>
-                  <label className="input-label">عنوان الاجتماع *</label>
-                  <input type="text" value={form.title}
-                    onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                    className="input" placeholder="أدخل عنوان الاجتماع" required />
-                </div>
-                <div>
-                  <label className="input-label">الوصف</label>
-                  <textarea value={form.description}
-                    onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                    className="input" rows={2} placeholder="وصف الاجتماع (اختياري)" />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="input-label">وقت البداية *</label>
-                    <input type="datetime-local" value={form.start_time}
-                      onChange={e => setForm(f => ({ ...f, start_time: e.target.value }))}
-                      className="input" required />
-                  </div>
-                  <div>
-                    <label className="input-label">وقت النهاية *</label>
-                    <input type="datetime-local" value={form.end_time}
-                      onChange={e => setForm(f => ({ ...f, end_time: e.target.value }))}
-                      className="input" required />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div>
-                    <label className="input-label">النوع</label>
-                    <select value={form.type}
-                      onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
-                      className="select">
-                      <option value="team">فريق العمل</option>
-                      <option value="sales">مبيعات</option>
-                      <option value="client">عميل</option>
-                      <option value="other">أخرى</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="input-label">الحالة</label>
-                    <select value={form.status}
-                      onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
-                      className="select">
-                      <option value="scheduled">مجدول</option>
-                      <option value="in_progress">جاري</option>
-                      <option value="completed">مكتمل</option>
-                      <option value="cancelled">ملغي</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="input-label">المكان</label>
-                    <input type="text" value={form.location}
-                      onChange={e => setForm(f => ({ ...f, location: e.target.value }))}
-                      className="input" placeholder="قاعة الاجتماعات" />
-                  </div>
-                  <div>
-                    <label className="input-label">رابط الاجتماع</label>
-                    <input type="url" value={form.meeting_link}
-                      onChange={e => setForm(f => ({ ...f, meeting_link: e.target.value }))}
-                      className="input" placeholder="https://meet..." dir="ltr" />
-                  </div>
-                </div>
-                {editMeeting && (
-                <div>
-                  <label className="input-label">📝 محضر / ملاحظات الاجتماع</label>
-                  <textarea value={form.notes}
-                    onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                    className="input" rows={2} placeholder="اكتب محضر الاجتماع أو ملاحظات بعد الانتهاء..." />
-                </div>
-                )}
-                <div>
-                  <label className="input-label flex items-center gap-1.5">
-                    <Users size={14} /> المشاركون
-                  </label>
-                  <div className="max-h-36 overflow-y-auto border border-gray-200 rounded-xl p-2 space-y-0.5 bg-gray-50/50 sidebar-scroll">
-                    {allUsers.length === 0 ? (
-                      <p className="text-xs text-gray-400 text-center py-2">لا يوجد مستخدمين</p>
-                    ) : allUsers.map((u: any) => (
-                      <label key={u.id} className="flex items-center gap-2 p-1.5 hover:bg-gray-50 rounded-lg cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={form.participant_ids.includes(u.id)}
-                          onChange={() => setForm(f => ({
-                            ...f,
-                            participant_ids: f.participant_ids.includes(u.id)
-                              ? f.participant_ids.filter(id => id !== u.id)
-                              : [...f.participant_ids, u.id],
-                          }))}
-                          className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                        />
-                        <span className="text-sm text-gray-700">{u.name}</span>
-                        <span className="text-xs text-gray-400 mr-auto">{u.role}</span>
-                      </label>
-                    ))}
-                  </div>
-                  {form.participant_ids.length > 0 && (
-                    <p className="text-xs text-gray-400 mt-1">{form.participant_ids.length} مشارك محدد</p>
-                  )}
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button type="button" onClick={() => setShowModal(false)} className="btn-secondary">إلغاء</button>
-                <button type="submit" disabled={createMutation.isPending || updateMutation.isPending}
-                  className="btn-primary">
-                  {(createMutation.isPending || updateMutation.isPending) ? 'جاري الحفظ...' : editMeeting ? 'تحديث' : 'إنشاء'}
-                </button>
-              </div>
-            </form>
-          </div>
         </div>
       )}
 

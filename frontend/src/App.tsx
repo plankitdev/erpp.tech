@@ -46,6 +46,7 @@ const SalesDashboard = lazy(() => import('./pages/SalesDashboard'));
 const TaskDetail = lazy(() => import('./pages/TaskDetail'));
 const CalendarPage = lazy(() => import('./pages/CalendarPage'));
 const Meetings = lazy(() => import('./pages/Meetings'));
+const MeetingForm = lazy(() => import('./pages/MeetingForm'));
 const MediaLibrary = lazy(() => import('./pages/MediaLibrary'));
 const ClientsHub = lazy(() => import('./pages/ClientsHub'));
 const TasksHub = lazy(() => import('./pages/TasksHub'));
@@ -128,6 +129,8 @@ export default function App() {
         <Route path="calendar" element={<RoleGuard permission="tasks"><CalendarPage /></RoleGuard>} />
         <Route path="time-tracking" element={<RoleGuard permission="tasks"><TimeTracking /></RoleGuard>} />
         <Route path="meetings" element={<RoleGuard permission="tasks"><Meetings /></RoleGuard>} />
+        <Route path="meetings/create" element={<RoleGuard permission="tasks"><MeetingForm /></RoleGuard>} />
+        <Route path="meetings/:id/edit" element={<RoleGuard permission="tasks"><MeetingForm /></RoleGuard>} />
         <Route path="gantt" element={<RoleGuard permission="tasks"><GanttChart /></RoleGuard>} />
 
         {/* المالية */}

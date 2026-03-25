@@ -85,14 +85,16 @@ export default function Tasks() {
   });
 
   useEffect(() => {
-    Promise.all([
-      employeesApi.getAll({ per_page: 1000 }).catch(() => ({ data: { data: [] } })),
-      clientsApi.getAll({ per_page: 1000 }).catch(() => ({ data: { data: [] } })),
-    ]).then(([empRes, clientRes]) => {
-      setEmployees(empRes.data.data);
-      setClients(clientRes.data.data);
-    });
-  }, []);
+    if (showModal) {
+      Promise.all([
+        employeesApi.getAll({ per_page: 1000 }).catch(() => ({ data: { data: [] } })),
+        clientsApi.getAll({ per_page: 1000 }).catch(() => ({ data: { data: [] } })),
+      ]).then(([empRes, clientRes]) => {
+        setEmployees(empRes.data.data);
+        setClients(clientRes.data.data);
+      });
+    }
+  }, [showModal]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -95,9 +95,9 @@ const menuSections: MenuSection[] = [
     items: [
       { path: '/reports', label: 'التقارير', icon: BarChart3, permission: 'reports' },
       { path: '/reports/employees', label: 'تقارير الموظفين', icon: Users, permission: 'reports' },
-      { path: '/file-manager', label: 'مدير الملفات', icon: HardDrive, permission: 'settings' },
-      { path: '/media', label: 'مكتبة الملفات', icon: ImageIcon, permission: 'settings' },
-      { path: '/file-templates', label: 'قوالب الملفات', icon: FolderOpen, permission: 'settings' },
+      { path: '/file-manager', label: 'مدير الملفات', icon: HardDrive, permission: 'users' },
+      { path: '/media', label: 'مكتبة الملفات', icon: ImageIcon, permission: 'users' },
+      { path: '/file-templates', label: 'قوالب الملفات', icon: FolderOpen, permission: 'users' },
     ],
   },
   {
@@ -106,10 +106,10 @@ const menuSections: MenuSection[] = [
     items: [
       { path: '/users', label: 'المستخدمين', icon: KeyRound, permission: 'users' },
       { path: '/activity-logs', label: 'سجل النشاطات', icon: Activity, permission: 'activity_logs' },
-      { path: '/workflows', label: 'أتمتة العمليات', icon: Zap, permission: 'settings' },
-      { path: '/tags', label: 'العلامات', icon: Tag, permission: 'settings' },
-      { path: '/api-docs', label: 'توثيق الـ API', icon: BookOpen, permission: 'settings' },
-      { path: '/system-monitor', label: 'مراقبة النظام', icon: Monitor, permission: 'settings' },
+      { path: '/workflows', label: 'أتمتة العمليات', icon: Zap, permission: 'users' },
+      { path: '/tags', label: 'العلامات', icon: Tag, permission: 'users' },
+      { path: '/api-docs', label: 'توثيق الـ API', icon: BookOpen, permission: 'users' },
+      { path: '/system-monitor', label: 'مراقبة النظام', icon: Monitor, permission: 'users' },
     ],
   },
 ];
