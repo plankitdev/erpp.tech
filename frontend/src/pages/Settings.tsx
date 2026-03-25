@@ -1,17 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuthStore } from '../store/authStore';
 import { companiesApi } from '../api/companies';
+import { googleDriveApi } from '../api/googleDrive';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Building2, Key, Upload, Shield, Bell, Palette, User } from 'lucide-react';
+import { Building2, Key, Upload, Shield, Bell, Palette, User, Cloud, RefreshCw, Unplug, CheckCircle2, HardDrive, ExternalLink, CloudOff } from 'lucide-react';
 import api from '../api/axios';
 
-type SettingsTab = 'company' | 'profile' | 'security';
+type SettingsTab = 'company' | 'profile' | 'security' | 'integrations';
 
 const tabConfig = [
   { id: 'company' as const, label: 'بيانات الشركة', icon: Building2, roles: ['super_admin', 'manager'] },
   { id: 'profile' as const, label: 'الملف الشخصي', icon: User, roles: [] },
   { id: 'security' as const, label: 'الأمان', icon: Shield, roles: [] },
+  { id: 'integrations' as const, label: 'التكاملات', icon: Cloud, roles: ['super_admin'] },
 ];
 
 export default function Settings() {
@@ -365,6 +367,206 @@ export default function Settings() {
               <p className="text-xs text-gray-400">الجلسة محمية بنظام Sanctum Token Authentication</p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Integrations Tab */}
+      {activeTab === 'integrations' && user?.role === 'super_admin' && (
+        <GoogleDriveSettings />
+      )}
+    </div>
+  );
+}
+
+function GoogleDriveSettings() {
+  const qc = useQueryClient();
+
+  const { data: driveStatus, isLoading } = useQuery({
+    queryKey: ['google-drive-status'],
+    queryFn: () => googleDriveApi.status().then(r => r.data.data),
+  });
+
+  const { data: fmStats } = useQuery({
+    queryKey: ['file-manager-stats'],
+    queryFn: () => api.get('/file-manager/stats').then(r => r.data.data),
+  });
+
+  const authMut = useMutation({
+    mutationFn: () => googleDriveApi.getAuthUrl().then(r => {
+      window.open(r.data.data.url, '_blank', 'width=600,height=700');
+    }),
+  });
+
+  const syncMut = useMutation({
+    mutationFn: () => googleDriveApi.sync(),
+    onSuccess: (res) => {
+      const d = res.data.data;
+      toast.success(`تم مزامنة ${d.synced_files} ملف${d.errors > 0 ? ` (${d.errors} خطأ)` : ''}`);
+      qc.invalidateQueries({ queryKey: ['google-drive-status'] });
+    },
+    onError: () => toast.error('فشلت المزامنة'),
+  });
+
+  const disconnectMut = useMutation({
+    mutationFn: () => googleDriveApi.disconnect(),
+    onSuccess: () => {
+      toast.success('تم فصل جوجل درايف');
+      qc.invalidateQueries({ queryKey: ['google-drive-status'] });
+    },
+  });
+
+  // Listen for Drive auth popup callback
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      if (e.data?.type === 'google-drive-connected') {
+        toast.success('تم ربط جوجل درايف بنجاح!');
+        qc.invalidateQueries({ queryKey: ['google-drive-status'] });
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [qc]);
+
+  const connected = driveStatus?.connected;
+  const formatSize = (bytes: number) => {
+    if (!bytes) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Google Drive Card */}
+      <div className="card card-body">
+        <div className="flex items-center gap-2 mb-6">
+          <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
+            <Cloud size={18} className="text-blue-600" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">جوجل درايف</h2>
+            <p className="text-xs text-gray-400">مزامنة ملفات مدير الملفات مع Google Drive</p>
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="animate-pulse space-y-3">
+            <div className="h-20 bg-gray-100 rounded-xl" />
+            <div className="h-10 bg-gray-100 rounded-xl w-1/3" />
+          </div>
+        ) : connected ? (
+          <div className="space-y-4">
+            {/* Status */}
+            <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                <span className="font-medium text-emerald-800">متصل بجوجل درايف</span>
+              </div>
+              {driveStatus?.last_synced_at && (
+                <p className="text-sm text-emerald-600">آخر مزامنة: {driveStatus.last_synced_at}</p>
+              )}
+            </div>
+
+            {/* Stats */}
+            {fmStats && (
+              <div className="grid grid-cols-3 gap-3">
+                <div className="p-3 bg-surface-50 rounded-xl text-center border border-gray-100">
+                  <HardDrive className="w-5 h-5 text-blue-500 mx-auto mb-1" />
+                  <p className="text-lg font-bold text-gray-800">{fmStats.total_files}</p>
+                  <p className="text-xs text-gray-400">ملف</p>
+                </div>
+                <div className="p-3 bg-surface-50 rounded-xl text-center border border-gray-100">
+                  <Cloud className="w-5 h-5 text-amber-500 mx-auto mb-1" />
+                  <p className="text-lg font-bold text-gray-800">{fmStats.total_folders}</p>
+                  <p className="text-xs text-gray-400">مجلد</p>
+                </div>
+                <div className="p-3 bg-surface-50 rounded-xl text-center border border-gray-100">
+                  <HardDrive className="w-5 h-5 text-emerald-500 mx-auto mb-1" />
+                  <p className="text-lg font-bold text-gray-800">{formatSize(fmStats.total_size)}</p>
+                  <p className="text-xs text-gray-400">الحجم</p>
+                </div>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => syncMut.mutate()}
+                disabled={syncMut.isPending}
+                className="btn-primary flex items-center gap-2"
+              >
+                <RefreshCw className={`w-4 h-4 ${syncMut.isPending ? 'animate-spin' : ''}`} />
+                {syncMut.isPending ? 'جاري المزامنة...' : 'مزامنة الآن'}
+              </button>
+              <button
+                onClick={() => {
+                  if (confirm('هل تريد فصل جوجل درايف؟ لن يتم حذف الملفات من Drive.')) disconnectMut.mutate();
+                }}
+                disabled={disconnectMut.isPending}
+                className="btn-secondary text-red-600 border-red-200 hover:bg-red-50 flex items-center gap-2"
+              >
+                <Unplug className="w-4 h-4" />
+                فصل الاتصال
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+              <div className="flex items-center gap-2 mb-2">
+                <CloudOff className="w-5 h-5 text-gray-400" />
+                <span className="font-medium text-gray-600">غير متصل</span>
+              </div>
+              <p className="text-sm text-gray-500">
+                اربط حساب Google Drive لمزامنة ملفات مدير الملفات تلقائياً كنسخة احتياطية.
+              </p>
+            </div>
+            <button
+              onClick={() => authMut.mutate()}
+              disabled={authMut.isPending}
+              className="btn-primary flex items-center gap-2"
+            >
+              <Cloud className="w-4 h-4" />
+              {authMut.isPending ? 'جاري الاتصال...' : 'ربط جوجل درايف'}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Setup Guide */}
+      {!connected && (
+        <div className="card card-body">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center">
+              <Key size={18} className="text-amber-600" />
+            </div>
+            <h2 className="text-lg font-semibold text-gray-900">خطوات الإعداد</h2>
+          </div>
+          <ol className="space-y-3 text-sm text-gray-600" dir="rtl">
+            <li className="flex gap-2">
+              <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold shrink-0">1</span>
+              <span>ادخل على <strong>Google Cloud Console</strong> وأنشئ مشروع جديد أو استخدم مشروع موجود</span>
+            </li>
+            <li className="flex gap-2">
+              <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold shrink-0">2</span>
+              <span>فعّل <strong>Google Drive API</strong> من APIs & Services → Library</span>
+            </li>
+            <li className="flex gap-2">
+              <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold shrink-0">3</span>
+              <span>أنشئ <strong>OAuth Client ID</strong> (Web application) مع Redirect URI:<br />
+                <code className="bg-gray-100 px-2 py-0.5 rounded text-xs">https://erpp.tech/google-drive/callback</code>
+              </span>
+            </li>
+            <li className="flex gap-2">
+              <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-xs font-bold shrink-0">4</span>
+              <span>حط <strong>Client ID</strong> و <strong>Client Secret</strong> في ملف <code className="bg-gray-100 px-2 py-0.5 rounded text-xs">.env</code> على السيرفر</span>
+            </li>
+            <li className="flex gap-2">
+              <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold shrink-0">5</span>
+              <span>اضغط <strong>"ربط جوجل درايف"</strong> أعلاه وسجّل بحساب العمل</span>
+            </li>
+          </ol>
         </div>
       )}
     </div>
