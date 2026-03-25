@@ -50,6 +50,7 @@ export default function FileManager() {
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; type: 'folder' | 'file'; item: FMFolder | FMFile } | null>(null);
   const [previewFile, setPreviewFile] = useState<{ name: string; path: string } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [movingItem, setMovingItem] = useState<{ type: 'file' | 'folder'; item: FMFile | FMFolder } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropRef = useRef<HTMLDivElement>(null);
 
@@ -151,6 +152,25 @@ export default function FileManager() {
   const approveFileMut = useMutation({
     mutationFn: (id: number) => fileManagerApi.approveFile(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['file-manager'] }),
+  });
+
+  const moveFileMut = useMutation({
+    mutationFn: ({ id, folderId }: { id: number; folderId: number | null }) => fileManagerApi.moveFile(id, folderId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['file-manager'] });
+      setMovingItem(null);
+      toast.success('تم نقل الملف');
+    },
+  });
+
+  const moveFolderMut = useMutation({
+    mutationFn: ({ id, parentId }: { id: number; parentId: number | null }) => fileManagerApi.moveFolder(id, parentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['file-manager'] });
+      setMovingItem(null);
+      toast.success('تم نقل المجلد');
+    },
+    onError: () => toast.error('لا يمكن نقل المجلد داخل نفسه'),
   });
 
   // Handlers
@@ -553,6 +573,7 @@ export default function FileManager() {
                         onRename={name => renameFileMut.mutate({ id: file.id, name })}
                         onCancelRename={() => setRenamingFile(null)}
                         onRenameChange={setRenameValue}
+                        onMove={() => setMovingItem({ type: 'file', item: file })}
                         onDelete={() => {
                           if (isEmployee) {
                             toast('مش مسموحلك تحذف ملفات 🙅‍♂️\nتواصل مع المدير لو عايز تحذف حاجة', { icon: '🔒' });
@@ -578,6 +599,7 @@ export default function FileManager() {
                         onRename={name => renameFileMut.mutate({ id: file.id, name })}
                         onCancelRename={() => setRenamingFile(null)}
                         onRenameChange={setRenameValue}
+                        onMove={() => setMovingItem({ type: 'file', item: file })}
                         onDelete={() => {
                           if (isEmployee) {
                             toast('مش مسموحلك تحذف ملفات 🙅‍♂️\nتواصل مع المدير لو عايز تحذف حاجة', { icon: '🔒' });
@@ -662,6 +684,16 @@ export default function FileManager() {
                   إعادة تسمية
                 </button>
               )}
+              <button
+                onClick={() => {
+                  setMovingItem({ type: 'folder', item: contextMenu.item as FMFolder });
+                  setContextMenu(null);
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-sm text-right"
+              >
+                <FolderInput className="w-4 h-4 text-gray-400" />
+                نقل
+              </button>
               {isManager && (
                 <button
                   onClick={() => {
@@ -712,6 +744,16 @@ export default function FileManager() {
                 <Edit3 className="w-4 h-4 text-gray-400" />
                 إعادة تسمية
               </button>
+              <button
+                onClick={() => {
+                  setMovingItem({ type: 'file', item: contextMenu.item as FMFile });
+                  setContextMenu(null);
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-sm text-right"
+              >
+                <FolderInput className="w-4 h-4 text-gray-400" />
+                نقل
+              </button>
               {isManager && (contextMenu.item as FMFile).status === 'draft' && (
                 <button
                   onClick={() => {
@@ -743,6 +785,23 @@ export default function FileManager() {
             </>
           )}
         </div>
+      )}
+
+      {/* Move Modal */}
+      {movingItem && (
+        <FolderPickerModal
+          title={`نقل ${movingItem.type === 'file' ? 'ملف' : 'مجلد'}: ${movingItem.item.name}`}
+          excludeFolderId={movingItem.type === 'folder' ? movingItem.item.id : undefined}
+          isPending={moveFileMut.isPending || moveFolderMut.isPending}
+          onSelect={(folderId) => {
+            if (movingItem.type === 'file') {
+              moveFileMut.mutate({ id: movingItem.item.id, folderId });
+            } else {
+              moveFolderMut.mutate({ id: movingItem.item.id, parentId: folderId });
+            }
+          }}
+          onClose={() => setMovingItem(null)}
+        />
       )}
 
       {/* File Preview Modal */}
@@ -875,7 +934,7 @@ function FolderRow({ folder, isRenaming, renameValue, onNavigate, onStartRename,
   );
 }
 
-function FileCard({ file, isRenaming, renameValue, onPreview, onStartRename, onRename, onCancelRename, onRenameChange, onDelete, onApprove, isManager }: {
+function FileCard({ file, isRenaming, renameValue, onPreview, onStartRename, onRename, onCancelRename, onRenameChange, onMove, onDelete, onApprove, isManager }: {
   file: FMFile;
   isRenaming: boolean;
   renameValue: string;
@@ -884,6 +943,7 @@ function FileCard({ file, isRenaming, renameValue, onPreview, onStartRename, onR
   onRename: (name: string) => void;
   onCancelRename: () => void;
   onRenameChange: (v: string) => void;
+  onMove: () => void;
   onDelete: () => void;
   onApprove: () => void;
   isManager: boolean;
@@ -958,6 +1018,9 @@ function FileCard({ file, isRenaming, renameValue, onPreview, onStartRename, onR
             <button onClick={(e) => { e.stopPropagation(); onStartRename(); }} className="p-0.5 rounded hover:bg-white/80">
               <Edit3 className="w-3 h-3 text-gray-500" />
             </button>
+            <button onClick={(e) => { e.stopPropagation(); onMove(); }} className="p-0.5 rounded hover:bg-blue-100">
+              <FolderInput className="w-3 h-3 text-blue-500" />
+            </button>
             {isManager && file.status === 'draft' && (
               <button onClick={(e) => { e.stopPropagation(); onApprove(); }} className="p-0.5 rounded hover:bg-emerald-100">
                 <CheckCircle2 className="w-3 h-3 text-emerald-500" />
@@ -973,7 +1036,7 @@ function FileCard({ file, isRenaming, renameValue, onPreview, onStartRename, onR
   );
 }
 
-function FileRow({ file, isRenaming, renameValue, onPreview, onStartRename, onRename, onCancelRename, onRenameChange, onDelete, onApprove, isManager }: {
+function FileRow({ file, isRenaming, renameValue, onPreview, onStartRename, onRename, onCancelRename, onRenameChange, onMove, onDelete, onApprove, isManager }: {
   file: FMFile;
   isRenaming: boolean;
   renameValue: string;
@@ -982,6 +1045,7 @@ function FileRow({ file, isRenaming, renameValue, onPreview, onStartRename, onRe
   onRename: (name: string) => void;
   onCancelRename: () => void;
   onRenameChange: (v: string) => void;
+  onMove: () => void;
   onDelete: () => void;
   onApprove: () => void;
   isManager: boolean;
@@ -1038,6 +1102,9 @@ function FileRow({ file, isRenaming, renameValue, onPreview, onStartRename, onRe
         <button onClick={e => { e.stopPropagation(); onStartRename(); }} className="p-1.5 rounded-lg hover:bg-gray-200">
           <Edit3 className="w-4 h-4 text-gray-500" />
         </button>
+        <button onClick={e => { e.stopPropagation(); onMove(); }} className="p-1.5 rounded-lg hover:bg-blue-100">
+          <FolderInput className="w-4 h-4 text-blue-500" />
+        </button>
         {isManager && file.status === 'draft' && (
           <button onClick={e => { e.stopPropagation(); onApprove(); }} className="p-1.5 rounded-lg hover:bg-emerald-100">
             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
@@ -1046,6 +1113,108 @@ function FileRow({ file, isRenaming, renameValue, onPreview, onStartRename, onRe
         <button onClick={e => { e.stopPropagation(); onDelete(); }} className="p-1.5 rounded-lg hover:bg-red-100">
           <Trash2 className="w-4 h-4 text-red-500" />
         </button>
+      </div>
+    </div>
+  );
+}
+
+function FolderPickerModal({ title, excludeFolderId, isPending, onSelect, onClose }: {
+  title: string;
+  excludeFolderId?: number;
+  isPending: boolean;
+  onSelect: (folderId: number | null) => void;
+  onClose: () => void;
+}) {
+  const [browseFolderId, setBrowseFolderId] = useState<number | null>(null);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['file-manager-picker', browseFolderId],
+    queryFn: () => fileManagerApi.index(browseFolderId).then(r => r.data.data),
+  });
+
+  const folders = (data?.folders ?? []).filter(f => f.id !== excludeFolderId);
+  const breadcrumbs: FMBreadcrumb[] = data?.breadcrumbs ?? [];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4" dir="rtl" onClick={e => e.stopPropagation()}>
+        <div className="p-4 border-b flex items-center justify-between">
+          <h3 className="font-semibold text-gray-800 text-sm truncate">{title}</h3>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Breadcrumbs */}
+        <div className="px-4 pt-3 flex items-center gap-1 text-xs overflow-x-auto">
+          <button
+            onClick={() => setBrowseFolderId(null)}
+            className={`px-2 py-1 rounded-lg hover:bg-gray-100 whitespace-nowrap ${!browseFolderId ? 'text-blue-600 font-medium' : 'text-gray-500'}`}
+          >
+            <Home className="w-3.5 h-3.5 inline ml-1" />
+            الرئيسية
+          </button>
+          {breadcrumbs.map((bc, i) => (
+            <div key={bc.id} className="flex items-center gap-1">
+              <ChevronLeft className="w-3 h-3 text-gray-300" />
+              <button
+                onClick={() => setBrowseFolderId(bc.id)}
+                className={`px-2 py-1 rounded-lg hover:bg-gray-100 whitespace-nowrap ${i === breadcrumbs.length - 1 ? 'text-blue-600 font-medium' : 'text-gray-500'}`}
+              >
+                {bc.name}
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {/* Folder list */}
+        <div className="p-4 min-h-[200px] max-h-[300px] overflow-y-auto">
+          {isLoading ? (
+            <div className="space-y-2">
+              {[1,2,3].map(i => <div key={i} className="animate-pulse h-10 bg-gray-100 rounded-lg" />)}
+            </div>
+          ) : folders.length === 0 ? (
+            <div className="text-center py-8 text-gray-400 text-sm">
+              <FolderOpen className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+              لا توجد مجلدات فرعية
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {folders.map(folder => (
+                <button
+                  key={folder.id}
+                  onClick={() => setBrowseFolderId(folder.id)}
+                  className="w-full flex items-center gap-3 p-2.5 rounded-lg hover:bg-blue-50 text-right transition-colors"
+                >
+                  <FolderOpen className="w-7 h-7 text-amber-500 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-700 truncate">{folder.name}</p>
+                    <p className="text-xs text-gray-400">{folder.files_count} ملف</p>
+                  </div>
+                  <ChevronLeft className="w-4 h-4 text-gray-300 shrink-0" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="p-4 border-t flex items-center justify-between gap-3">
+          <p className="text-xs text-gray-400 truncate">
+            النقل إلى: <span className="font-medium text-gray-600">{breadcrumbs.length > 0 ? breadcrumbs[breadcrumbs.length - 1].name : 'الرئيسية'}</span>
+          </p>
+          <div className="flex items-center gap-2">
+            <button onClick={onClose} className="btn-secondary text-sm px-4">إلغاء</button>
+            <button
+              onClick={() => onSelect(browseFolderId)}
+              disabled={isPending}
+              className="btn-primary text-sm px-4 flex items-center gap-1.5"
+            >
+              <FolderInput className="w-4 h-4" />
+              {isPending ? 'جاري النقل...' : 'نقل هنا'}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
