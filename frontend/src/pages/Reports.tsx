@@ -3,6 +3,7 @@ import { useMonthlyReport, useYearlyReport, useClientsReport, useSalariesReport,
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Area, AreaChart } from 'recharts';
 import { Printer, TrendingUp, TrendingDown, Wallet, DollarSign, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { formatCurrency } from '../utils';
+import { SkeletonStat } from '../components/Skeletons';
 
 const tabs = [
   { id: 'monthly', label: 'التقرير الشهري' },
@@ -332,8 +333,14 @@ export default function Reports() {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        <div className="space-y-6 animate-pulse">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => <SkeletonStat key={i} />)}
+          </div>
+          <div className="card p-5">
+            <div className="skeleton-shimmer h-5 w-32 mb-4" />
+            <div className="skeleton-shimmer h-64 w-full rounded-xl" />
+          </div>
         </div>
       ) : (
         <div className="space-y-6" ref={printRef}>

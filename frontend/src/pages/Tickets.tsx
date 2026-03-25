@@ -11,6 +11,7 @@ import {
   AlertCircle, Clock, CheckCircle2, XCircle, Pause, MessageSquare, User,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { SkeletonTable } from '../components/Skeletons';
 
 const priorityLabels: Record<string, string> = { low: 'منخفضة', medium: 'متوسطة', high: 'عالية', urgent: 'عاجلة' };
 const priorityColors: Record<string, string> = {
@@ -188,7 +189,20 @@ export default function Tickets() {
 
       {/* Table */}
       {isLoading ? (
-        <div className="text-center py-12 text-gray-500">جاري التحميل...</div>
+        <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                <th className="px-4 py-3"><div className="skeleton-shimmer h-3 w-12 animate-pulse" /></th>
+                <th className="px-4 py-3"><div className="skeleton-shimmer h-3 w-20 animate-pulse" /></th>
+                <th className="px-4 py-3"><div className="skeleton-shimmer h-3 w-14 animate-pulse" /></th>
+                <th className="px-4 py-3"><div className="skeleton-shimmer h-3 w-14 animate-pulse" /></th>
+                <th className="px-4 py-3"><div className="skeleton-shimmer h-3 w-14 animate-pulse" /></th>
+              </tr>
+            </thead>
+            <tbody><SkeletonTable rows={5} cols={5} /></tbody>
+          </table>
+        </div>
       ) : tickets.length === 0 ? (
         <div className="text-center py-12">
           <TicketIcon size={48} className="mx-auto text-gray-300 mb-3" />

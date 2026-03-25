@@ -5,6 +5,7 @@ import { leadsApi } from '../api/leads';
 import { Link } from 'react-router-dom';
 import type { Lead, LeadStage, LeadTemperature } from '../types';
 import toast from 'react-hot-toast';
+import { SkeletonKanban } from '../components/Skeletons';
 import {
   Plus, X, Phone, Mail, User,
   Target, DollarSign, Trash2, Eye,
@@ -556,9 +557,7 @@ export default function LeadsPage() {
 
       {/* Kanban Board */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600" />
-        </div>
+        <SkeletonKanban columns={6} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-6 gap-3 min-h-[500px]">
           {stages.map(stage => {

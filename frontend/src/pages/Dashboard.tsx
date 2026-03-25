@@ -7,6 +7,7 @@ import type { RecentInvoice, RecentTask, ExpenseCategory } from '../types';
 import { useAuthStore } from '../store/authStore';
 import { Link } from 'react-router-dom';
 import StatusBadge from '../components/StatusBadge';
+import { SkeletonDashboard } from '../components/Skeletons';
 
 const COLORS = ['#2c9f8f', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
@@ -681,22 +682,7 @@ export default function Dashboard() {
   const { user } = useAuthStore();
   const role = user?.role || 'employee';
 
-  if (isLoading) {
-    return (
-      <div className="page-container">
-        <div className="h-24 bg-gradient-to-l from-primary-100 to-primary-50 rounded-2xl animate-pulse" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="h-36 bg-white rounded-2xl animate-pulse border border-gray-100" />
-          ))}
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <div className="lg:col-span-2 h-96 bg-white rounded-2xl animate-pulse border border-gray-100" />
-          <div className="h-96 bg-white rounded-2xl animate-pulse border border-gray-100" />
-        </div>
-      </div>
-    );
-  }
+  if (isLoading) return <SkeletonDashboard />;
 
   const subtitles: Record<string, string> = {
     super_admin: 'إليك ملخص أداء شركتك اليوم',

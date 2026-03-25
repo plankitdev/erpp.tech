@@ -4,6 +4,7 @@ import { useClients } from '../hooks/useClients';
 import { formatCurrency, formatDate } from '../utils';
 import StatusBadge from '../components/StatusBadge';
 import toast from 'react-hot-toast';
+import { SkeletonTable } from '../components/Skeletons';
 import { Plus, FileText, Trash2, Edit2, Download, Send, X } from 'lucide-react';
 import { quotationsApi } from '../api/quotations';
 import type { QuotationItem, Quotation } from '../api/quotations';
@@ -197,7 +198,17 @@ export default function Quotations() {
       {/* Table */}
       <div className="card overflow-hidden">
         {isLoading ? (
-          <div className="p-12 text-center text-gray-500">جاري التحميل...</div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="border-b border-gray-100 bg-gray-50">
+                <th className="px-4 py-3"><div className="skeleton-shimmer h-3 w-14 animate-pulse" /></th>
+                <th className="px-4 py-3"><div className="skeleton-shimmer h-3 w-20 animate-pulse" /></th>
+                <th className="px-4 py-3"><div className="skeleton-shimmer h-3 w-16 animate-pulse" /></th>
+                <th className="px-4 py-3"><div className="skeleton-shimmer h-3 w-14 animate-pulse" /></th>
+              </tr></thead>
+              <tbody><SkeletonTable rows={5} cols={4} /></tbody>
+            </table>
+          </div>
         ) : quotations.length === 0 ? (
           <div className="p-12 text-center">
             <FileText size={48} className="text-gray-300 mx-auto mb-3" />

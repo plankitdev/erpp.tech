@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import Breadcrumbs from '../components/Breadcrumbs';
-import { SkeletonTable } from '../components/Skeletons';
+import { SkeletonMeetingCard } from '../components/Skeletons';
 
 const typeLabels: Record<string, string> = {
   team: 'فريق العمل',
@@ -219,10 +219,8 @@ export default function Meetings() {
 
       {/* Meetings List */}
       {isLoading ? (
-        <div className="table-container">
-          <div className="table-wrapper">
-            <table className="data-table"><tbody><SkeletonTable rows={5} cols={6} /></tbody></table>
-          </div>
+        <div className="space-y-3">
+          {[1,2,3,4].map(i => <SkeletonMeetingCard key={i} />)}
         </div>
       ) : isError ? (
         <div className="bg-white rounded-xl p-12 border border-gray-100 text-center">

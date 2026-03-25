@@ -10,6 +10,7 @@ import type { Task, Project } from '../types';
 import { formatDate } from '../utils';
 import toast from 'react-hot-toast';
 import { CheckSquare, Clock, FolderKanban, User, AlertCircle, Filter } from 'lucide-react';
+import { SkeletonKanban } from '../components/Skeletons';
 
 const columns = [
   { id: 'todo', title: 'جديد', color: 'bg-gray-200', dot: 'bg-gray-400' },
@@ -96,8 +97,12 @@ export default function TaskBoard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <div className="page-container">
+        <div className="flex items-center justify-between mb-5">
+          <div className="skeleton-shimmer h-7 w-36 rounded animate-pulse" />
+          <div className="skeleton-shimmer h-10 w-40 rounded-xl animate-pulse" />
+        </div>
+        <SkeletonKanban columns={4} />
       </div>
     );
   }
