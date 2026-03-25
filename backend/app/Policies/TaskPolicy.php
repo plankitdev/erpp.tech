@@ -37,11 +37,11 @@ class TaskPolicy
 
     public function delete(User $user, Task $task): bool
     {
-        return $user->hasRole(['super_admin', 'manager']);
+        return $user->hasRole(['super_admin', 'manager', 'marketing_manager']);
     }
 
     public function deleteAny(User $user): bool
     {
-        return $user->hasRole(['super_admin', 'manager']);
+        return $user->hasRole(['super_admin', 'manager', 'marketing_manager']);
     }
 }

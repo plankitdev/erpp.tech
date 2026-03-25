@@ -23,7 +23,7 @@ const attendanceStatusLabels: Record<string, string> = { present: 'حاضر', ab
 
 export default function LeaveAttendance() {
   const { user } = useAuthStore();
-  const isManager = user && ['super_admin', 'manager'].includes(user.role);
+  const isManager = user && ['super_admin', 'manager', 'marketing_manager'].includes(user.role);
   const [tab, setTab] = useState<'leave' | 'attendance'>('leave');
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [leaveForm, setLeaveForm] = useState({ type: 'annual', start_date: '', end_date: '', reason: '' });

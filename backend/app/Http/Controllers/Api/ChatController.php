@@ -113,7 +113,7 @@ class ChatController extends Controller
     public function updateChannel(Request $request, ChatChannel $channel): JsonResponse
     {
         $user = Auth::user();
-        if ($channel->created_by !== $user->id && !$user->isSuperAdmin() && !$user->isManager()) {
+        if ($channel->created_by !== $user->id && !$user->isSuperAdmin() && !$user->isManager() && !$user->hasRole('marketing_manager')) {
             return $this->errorResponse('غير مسموح', 403);
         }
 

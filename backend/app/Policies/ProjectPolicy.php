@@ -29,6 +29,6 @@ class ProjectPolicy
 
     public function delete(User $user, Project $project): bool
     {
-        return $user->hasRole(['super_admin', 'manager']);
+        return $user->hasRole(['super_admin', 'manager', 'marketing_manager']);
     }
 }

@@ -17,7 +17,7 @@ class StoreUserRequest extends FormRequest
             'name'          => 'required|string|max:255',
             'email'         => 'required|email|unique:users',
             'password'      => 'required|string|min:8',
-            'role'          => 'required|in:super_admin,manager,accountant,sales,employee',
+            'role'          => 'required|in:super_admin,manager,accountant,sales,employee,marketing_manager',
             'company_id'    => 'required|exists:companies,id',
             'phone'         => 'nullable|string|max:20',
             'permissions'   => 'nullable|array',

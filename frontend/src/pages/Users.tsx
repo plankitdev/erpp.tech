@@ -18,6 +18,7 @@ const roleLabels: Record<string, string> = {
   accountant: 'محاسب',
   sales: 'مبيعات',
   employee: 'موظف',
+  marketing_manager: 'مدير تسويق',
 };
 
 const roleColors: Record<string, string> = {
@@ -26,6 +27,7 @@ const roleColors: Record<string, string> = {
   accountant: 'bg-emerald-100 text-emerald-700 border-emerald-200',
   sales: 'bg-amber-100 text-amber-700 border-amber-200',
   employee: 'bg-gray-100 text-gray-700 border-gray-200',
+  marketing_manager: 'bg-pink-100 text-pink-700 border-pink-200',
 };
 
 export default function Users() {
@@ -313,6 +315,7 @@ export default function Users() {
                     className="select">
                     <option value="super_admin">مدير النظام</option>
                     <option value="manager">مدير</option>
+                    <option value="marketing_manager">مدير تسويق</option>
                     <option value="accountant">محاسب</option>
                     <option value="sales">مبيعات</option>
                     <option value="employee">موظف</option>

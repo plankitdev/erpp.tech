@@ -17,7 +17,7 @@ class AttendanceController extends Controller
         $query = AttendanceRecord::with('user');
         $user = $request->user();
 
-        if (!in_array($user->role, ['super_admin', 'manager'])) {
+        if (!in_array($user->role, ['super_admin', 'manager', 'marketing_manager'])) {
             $query->where('user_id', $user->id);
         }
 

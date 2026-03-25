@@ -310,12 +310,12 @@ function TaskStatusChart({ data }: { data: Array<{ name: string; value: number }
 // ========== Quick Actions ==========
 function getQuickActions(role: string) {
   const actions: Array<{ label: string; icon: typeof Plus; to: string; roles: string[] }> = [
-    { label: 'مشروع جديد', icon: FolderKanban, to: '/projects', roles: ['super_admin', 'manager'] },
+    { label: 'مشروع جديد', icon: FolderKanban, to: '/projects', roles: ['super_admin', 'manager', 'marketing_manager'] },
     { label: 'فاتورة جديدة', icon: Receipt, to: '/invoices', roles: ['super_admin', 'accountant', 'sales'] },
     { label: 'عميل جديد', icon: Building2, to: '/clients', roles: ['super_admin', 'sales'] },
-    { label: 'مهمة جديدة', icon: CheckCircle2, to: '/tasks/board', roles: ['super_admin', 'manager', 'employee'] },
+    { label: 'مهمة جديدة', icon: CheckCircle2, to: '/tasks/board', roles: ['super_admin', 'manager', 'employee', 'marketing_manager'] },
     { label: 'عميل محتمل', icon: Target, to: '/leads', roles: ['super_admin', 'sales'] },
-    { label: 'التقويم', icon: CalendarDays, to: '/calendar', roles: ['super_admin', 'manager', 'employee'] },
+    { label: 'التقويم', icon: CalendarDays, to: '/calendar', roles: ['super_admin', 'manager', 'employee', 'marketing_manager'] },
   ];
   return actions.filter(a => a.roles.includes(role));
 }
@@ -354,7 +354,7 @@ function KPIStrip({ stats, role }: { stats: Record<string, any>; role: string })
       { label: 'عملاء نشطين', value: stats.clients_count || 0, icon: Users },
       { label: 'مشاريع قيد التنفيذ', value: stats.active_projects || 0, icon: Zap },
     );
-  } else if (role === 'manager') {
+  } else if (role === 'manager' || role === 'marketing_manager') {
     const total = stats.total_tasks || 0;
     const done = (stats.task_status_distribution || []).find((d: any) => d.name === 'مكتمل')?.value || 0;
     const rate = total > 0 ? Math.round((done / total) * 100) : 0;
@@ -687,6 +687,7 @@ export default function Dashboard() {
   const subtitles: Record<string, string> = {
     super_admin: 'إليك ملخص أداء شركتك اليوم',
     manager: 'تابع تقدم فريقك ومشاريعك',
+    marketing_manager: 'تابع مشاريعك ومهام فريقك',
     accountant: 'ملخص الحالة المالية',
     sales: 'تابع فرص المبيعات وأهدافك',
     employee: 'إليك ملخص مهامك اليوم',
@@ -703,7 +704,7 @@ export default function Dashboard() {
         <p className="text-lg font-bold text-emerald-300 mt-0.5">{formatCurrency((stats as any)?.net_profit || 0)}</p>
       </div>
     </div>
-  ) : role === 'manager' ? (
+  ) : (role === 'manager' || role === 'marketing_manager') ? (
     <div className="flex items-center gap-3">
       <div className="text-left bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 border border-white/10">
         <p className="text-xs text-primary-200">المشاريع النشطة</p>
@@ -742,7 +743,7 @@ export default function Dashboard() {
     const s = (stats || {}) as Record<string, any>;
     switch (role) {
       case 'super_admin': return <SuperAdminDashboard stats={s} />;
-      case 'manager': return <ManagerDashboard stats={s} />;
+      case 'manager': case 'marketing_manager': return <ManagerDashboard stats={s} />;
       case 'accountant': return <AccountantDashboard stats={s} />;
       case 'sales': return <SalesDashboard stats={s} />;
       case 'employee': return <EmployeeDashboard stats={s} />;

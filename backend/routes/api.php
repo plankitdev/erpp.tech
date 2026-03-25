@@ -78,7 +78,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     });
 
     // ========== Clients & Contracts ==========
-    Route::middleware('role:super_admin,manager,sales,accountant,employee')->group(function () {
+    Route::middleware('role:super_admin,manager,sales,accountant,employee,marketing_manager')->group(function () {
         Route::get('clients', [ClientController::class, 'index']);
         Route::get('clients/{client}', [ClientController::class, 'show']);
     });
@@ -92,7 +92,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     });
 
     // Contracts (standalone) - read access includes employee
-    Route::middleware('role:super_admin,manager,sales,accountant,employee')->group(function () {
+    Route::middleware('role:super_admin,manager,sales,accountant,employee,marketing_manager')->group(function () {
         Route::get('contracts', [ContractController::class, 'index']);
         Route::get('contracts/{contract}', [ContractController::class, 'show']);
         Route::get('/contracts/{contract}/installments', [InstallmentController::class, 'index']);
@@ -156,7 +156,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     });
 
     // ========== Employees & HR ==========
-    Route::middleware('role:super_admin,manager,employee')->group(function () {
+    Route::middleware('role:super_admin,manager,employee,marketing_manager')->group(function () {
         Route::get('employees', [EmployeeController::class, 'index']);
         Route::get('employees/{employee}', [EmployeeController::class, 'show']);
     });
@@ -177,6 +177,8 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::middleware('role:super_admin,manager,accountant')->group(function () {
         Route::get('/treasury/balance', [TreasuryController::class, 'balance']);
         Route::apiResource('treasury', TreasuryController::class)->except(['update', 'destroy']);
+    });
+    Route::middleware('role:super_admin,manager,accountant,marketing_manager')->group(function () {
         Route::apiResource('expenses', ExpenseController::class);
     });
 
@@ -258,7 +260,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     });
 
     // ========== Reports ==========
-    Route::middleware('role:super_admin,manager,accountant')->group(function () {
+    Route::middleware('role:super_admin,manager,accountant,marketing_manager')->group(function () {
         Route::get('/reports/monthly', [ReportController::class, 'monthly']);
         Route::get('/reports/yearly', [ReportController::class, 'yearly']);
         Route::get('/reports/clients', [ReportController::class, 'clients']);
@@ -314,7 +316,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
     // ========== KPI Dashboard ==========
     Route::get('/kpi/personal', [KpiController::class, 'personal']);
-    Route::middleware('role:super_admin,manager')->get('/kpi/team', [KpiController::class, 'team']);
+    Route::middleware('role:super_admin,manager,marketing_manager')->get('/kpi/team', [KpiController::class, 'team']);
 
     // ========== Tags ==========
     Route::apiResource('tags', TagController::class)->except(['show']);

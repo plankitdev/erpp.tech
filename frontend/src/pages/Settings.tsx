@@ -10,7 +10,7 @@ import api from '../api/axios';
 type SettingsTab = 'company' | 'profile' | 'security' | 'integrations';
 
 const tabConfig = [
-  { id: 'company' as const, label: 'بيانات الشركة', icon: Building2, roles: ['super_admin', 'manager'] },
+  { id: 'company' as const, label: 'بيانات الشركة', icon: Building2, roles: ['super_admin', 'manager', 'marketing_manager'] },
   { id: 'profile' as const, label: 'الملف الشخصي', icon: User, roles: [] },
   { id: 'security' as const, label: 'الأمان', icon: Shield, roles: [] },
   { id: 'integrations' as const, label: 'التكاملات', icon: Cloud, roles: ['super_admin'] },
@@ -21,7 +21,7 @@ export default function Settings() {
   const qc = useQueryClient();
   const companyId = user?.company?.id;
   const [activeTab, setActiveTab] = useState<SettingsTab>(
-    (user?.role === 'super_admin' || user?.role === 'manager') ? 'company' : 'profile'
+    (user?.role === 'super_admin' || user?.role === 'manager' || user?.role === 'marketing_manager') ? 'company' : 'profile'
   );
 
   const availableTabs = tabConfig.filter(
@@ -29,7 +29,7 @@ export default function Settings() {
   );
 
   // Company data
-  const canViewCompany = user?.role === 'super_admin' || user?.role === 'manager';
+  const canViewCompany = user?.role === 'super_admin' || user?.role === 'manager' || user?.role === 'marketing_manager';
   const { data: company } = useQuery({
     queryKey: ['company', companyId],
     queryFn: () => companiesApi.getById(companyId!).then(r => r.data.data),
@@ -188,7 +188,7 @@ export default function Settings() {
       </div>
 
       {/* Company Tab */}
-      {activeTab === 'company' && (user?.role === 'super_admin' || user?.role === 'manager') && (
+      {activeTab === 'company' && (user?.role === 'super_admin' || user?.role === 'manager' || user?.role === 'marketing_manager') && (
         <div className="card card-body">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-9 h-9 rounded-xl bg-primary-50 flex items-center justify-center">

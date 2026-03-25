@@ -345,13 +345,13 @@ export default function Meetings() {
                         </button>
                       </div>
                     )}
-                    {(user?.role === 'super_admin' || user?.role === 'manager' || meeting.created_by === user?.id) && (
+                    {(user?.role === 'super_admin' || user?.role === 'manager' || user?.role === 'marketing_manager' || meeting.created_by === user?.id) && (
                       <button onClick={() => openEditModal(meeting)}
                         className="action-icon text-gray-400 hover:text-amber-600 hover:bg-amber-50">
                         <Pencil size={15} />
                       </button>
                     )}
-                    {(user?.role === 'super_admin' || user?.role === 'manager' || meeting.created_by === user?.id) && (
+                    {(user?.role === 'super_admin' || user?.role === 'manager' || user?.role === 'marketing_manager' || meeting.created_by === user?.id) && (
                       <button onClick={() => setDeleteId(meeting.id)}
                         className="action-icon text-gray-400 hover:text-red-600 hover:bg-red-50">
                         <Trash2 size={15} />

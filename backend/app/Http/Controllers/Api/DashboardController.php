@@ -37,7 +37,7 @@ class DashboardController extends Controller
 
         $roleData = match ($role) {
             'super_admin' => $this->getSuperAdminData($year, $dateFrom, $dateTo),
-            'manager' => $this->getManagerData($year, $dateFrom, $dateTo),
+            'manager', 'marketing_manager' => $this->getManagerData($year, $dateFrom, $dateTo),
             'accountant' => $this->getAccountantData($year, $dateFrom, $dateTo),
             'sales' => $this->getSalesData($dateFrom, $dateTo),
             'employee' => $this->getEmployeeData($user->id),

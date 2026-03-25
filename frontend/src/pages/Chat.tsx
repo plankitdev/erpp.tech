@@ -303,7 +303,7 @@ export default function Chat() {
           channel={activeChannel}
           allUsers={chatUsers}
           currentUserId={user?.id || 0}
-          canManage={activeChannel.created_by === user?.id || user?.role === 'super_admin' || user?.role === 'manager'}
+          canManage={activeChannel.created_by === user?.id || user?.role === 'super_admin' || user?.role === 'manager' || user?.role === 'marketing_manager'}
           onAddMembers={(ids) => addMembers.mutate({ channelId: activeChannel.id, memberIds: ids })}
           onRemoveMember={(userId) => removeMember.mutate({ channelId: activeChannel.id, userId })}
           onClose={() => setShowMembers(false)}

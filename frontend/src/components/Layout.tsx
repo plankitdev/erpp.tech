@@ -202,6 +202,7 @@ export default function Layout() {
     accountant: 'from-emerald-500 to-teal-600',
     sales: 'from-orange-500 to-amber-600',
     employee: 'from-gray-500 to-slate-600',
+    marketing_manager: 'from-pink-500 to-rose-600',
   };
 
   const sidebarContent = (

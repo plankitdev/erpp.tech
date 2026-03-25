@@ -34,7 +34,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: typeof 
 export default function FileManager() {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
-  const isManager = user?.role === 'super_admin' || user?.role === 'manager';
+  const isManager = user?.role === 'super_admin' || user?.role === 'manager' || user?.role === 'marketing_manager';
 
   // State
   const [currentFolderId, setCurrentFolderId] = useState<number | null>(null);

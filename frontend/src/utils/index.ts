@@ -41,7 +41,7 @@ export const statusLabels = {
   task: { todo: 'قيد الانتظار', in_progress: 'قيد التنفيذ', review: 'مراجعة', done: 'مكتملة' },
   priority: { high: 'عالية', medium: 'متوسطة', low: 'منخفضة' },
   payment_type: { monthly: 'شهري', installments: 'أقساط', one_time: 'دفعة واحدة' },
-  role: { super_admin: 'مدير النظام', manager: 'مدير', accountant: 'محاسب', sales: 'مبيعات', employee: 'موظف' },
+  role: { super_admin: 'مدير النظام', manager: 'مدير', accountant: 'محاسب', sales: 'مبيعات', employee: 'موظف', marketing_manager: 'مدير تسويق' },
 } as const;
 
 export const statusColors = {

@@ -51,7 +51,7 @@ export interface User {
   created_at: string;
 }
 
-export type UserRole = 'super_admin' | 'manager' | 'accountant' | 'sales' | 'employee';
+export type UserRole = 'super_admin' | 'manager' | 'accountant' | 'sales' | 'employee' | 'marketing_manager';
 
 // ========== Permissions ==========
 export interface PermissionsData {

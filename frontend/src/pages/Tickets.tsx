@@ -35,7 +35,7 @@ const categoryLabels: Record<string, string> = { bug: 'خطأ', feature: 'ميز
 
 export default function Tickets() {
   const { user } = useAuthStore();
-  const isAdmin = user?.role === 'super_admin' || user?.role === 'manager';
+  const isAdmin = user?.role === 'super_admin' || user?.role === 'manager' || user?.role === 'marketing_manager';
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
