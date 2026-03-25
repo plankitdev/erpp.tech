@@ -8,7 +8,7 @@ import {
   CheckSquare, Kanban, Handshake, BarChart3, KeyRound, ChevronRight, ChevronLeft,
   LogOut, CreditCard, Settings, Activity, ChevronDown, Building2, User, Shield, FolderKanban, FolderOpen,
   PanelRightOpen, PanelRightClose, Search, Target, UserPlus, Menu, X,
-  CalendarDays, ImageIcon, Video, Heart, Timer, ClipboardList, Ticket, GanttChartSquare, Mail, Zap, BookOpen, MessageSquare, Tag, Monitor, Megaphone,
+  CalendarDays, ImageIcon, Video, Heart, Timer, ClipboardList, Ticket, GanttChartSquare, Mail, Zap, BookOpen, MessageSquare, Tag, Monitor, Megaphone, HardDrive,
 } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import Breadcrumbs, { type BreadcrumbItem } from './Breadcrumbs';
@@ -98,6 +98,7 @@ const menuSections: MenuSection[] = [
       { path: '/reports/employees', label: 'تقارير الموظفين', icon: Users, permission: 'reports' },
       { path: '/users', label: 'المستخدمين', icon: KeyRound, permission: 'users' },
       { path: '/activity-logs', label: 'سجل النشاطات', icon: Activity, permission: 'activity_logs' },
+      { path: '/file-manager', label: 'مدير الملفات', icon: HardDrive, permission: 'settings' },
       { path: '/media', label: 'مكتبة الملفات', icon: ImageIcon, permission: 'settings' },
       { path: '/file-templates', label: 'قوالب الملفات', icon: FolderOpen, permission: 'settings' },
       { path: '/settings', label: 'الإعدادات', icon: Settings, permission: 'settings' },

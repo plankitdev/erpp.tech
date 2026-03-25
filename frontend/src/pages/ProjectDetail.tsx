@@ -10,6 +10,7 @@ import { formatDate } from '../utils';
 import toast from 'react-hot-toast';
 import ConfirmDialog from '../components/ConfirmDialog';
 import FileDropZone from '../components/FileDropZone';
+import { FilePreviewModal, FileThumbnail, getFileIconComponent, getFileIconColor, resolveFileUrl, isPreviewable } from '../components/FilePreview';
 import {
   ArrowRight, Plus, X, FolderKanban, CheckSquare, FileText, Users, Upload,
   Calendar, AlertCircle, Trash2, ChevronDown, ChevronUp, CircleDot, Download,
@@ -49,13 +50,6 @@ function formatMinutes(mins: number) {
   if (h === 0) return `${m} د`;
   if (m === 0) return `${h} س`;
   return `${h} س ${m} د`;
-}
-
-function getFileIcon(name: string) {
-  const ext = name.split('.').pop()?.toLowerCase();
-  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext || '')) return Image;
-  if (ext === 'pdf') return FileText;
-  return File;
 }
 
 // ============ Stat Card ============
@@ -124,6 +118,7 @@ export default function ProjectDetail() {
   const [editingStatus, setEditingStatus] = useState(false);
   const [taskFilter, setTaskFilter] = useState<string>('all');
   const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; message: string; action: () => void }>({ open: false, message: '', action: () => {} });
+  const [previewFile, setPreviewFile] = useState<{ name: string; path: string } | null>(null);
 
   const [taskForm, setTaskForm] = useState({
     title: '', description: '', assigned_to: '', priority: 'medium' as string,
@@ -646,15 +641,23 @@ export default function ProjectDetail() {
             <FileDropZone onFileDrop={handleFileDrop} className="rounded-2xl">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {project.files.map(file => {
-                const FileIcon = getFileIcon(file.name);
+                const FileIcon = getFileIconComponent(file.name);
+                const iconColor = getFileIconColor(file.name);
+                const canPreview = isPreviewable(file.name);
                 return (
                   <div key={file.id} className="bg-white rounded-xl border border-gray-100 p-4 hover:shadow-md transition-all group">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-primary-50 flex items-center justify-center text-primary-600 flex-shrink-0">
-                        <FileIcon size={20} />
-                      </div>
+                      <FileThumbnail
+                        name={file.name}
+                        path={file.file_path}
+                        className={`w-12 h-12 rounded-xl flex-shrink-0 ${iconColor}`}
+                        onClick={canPreview ? () => setPreviewFile({ name: file.name, path: file.file_path }) : undefined}
+                      />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-800 truncate">{file.name}</p>
+                        <p className={`text-sm font-medium text-gray-800 truncate ${canPreview ? 'cursor-pointer hover:text-primary-600' : ''}`}
+                          onClick={canPreview ? () => setPreviewFile({ name: file.name, path: file.file_path }) : undefined}>
+                          {file.name}
+                        </p>
                         <p className="text-xs text-gray-400 mt-0.5">
                           {file.uploaded_by?.name && `${file.uploaded_by.name} · `}
                           {formatDate(file.created_at)}
@@ -662,8 +665,14 @@ export default function ProjectDetail() {
                         </p>
                       </div>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {canPreview && (
+                          <button onClick={() => setPreviewFile({ name: file.name, path: file.file_path })}
+                            className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all">
+                            <Eye size={14} />
+                          </button>
+                        )}
                         {file.file_path && (
-                          <a href={file.file_path} target="_blank" rel="noreferrer"
+                          <a href={resolveFileUrl(file.file_path)} download target="_blank" rel="noreferrer"
                             className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all">
                             <Download size={14} />
                           </a>
@@ -682,6 +691,14 @@ export default function ProjectDetail() {
                 <p className="text-gray-400 text-sm">اسحب ملف هنا لرفعه</p>
               </div>
             </FileDropZone>
+          )}
+
+          {previewFile && (
+            <FilePreviewModal
+              file={previewFile}
+              files={(project.files || []).filter(f => isPreviewable(f.name)).map(f => ({ name: f.name, path: f.file_path }))}
+              onClose={() => setPreviewFile(null)}
+            />
           )}
         </div>
       )}

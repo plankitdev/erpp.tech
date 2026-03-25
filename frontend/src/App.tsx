@@ -64,6 +64,8 @@ const Chat = lazy(() => import('./pages/Chat'));
 const KpiDashboard = lazy(() => import('./pages/KpiDashboard'));
 const TagsManager = lazy(() => import('./pages/TagsManager'));
 const SystemMonitor = lazy(() => import('./pages/SystemMonitor'));
+const FileManagerPage = lazy(() => import('./pages/FileManager'));
+const GoogleDriveCallback = lazy(() => import('./pages/GoogleDriveCallback'));
 const Announcements = lazy(() => import('./pages/Announcements'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
@@ -85,6 +87,7 @@ export default function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/change-password" element={<ChangePassword />} />
       <Route path="/select-company" element={<SelectCompany />} />
+      <Route path="/google-drive/callback" element={<GoogleDriveCallback />} />
       <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
         <Route index element={<Dashboard />} />
         <Route path="announcements" element={<Announcements />} />
@@ -149,6 +152,7 @@ export default function App() {
         <Route path="users" element={<RoleGuard permission="users"><Users /></RoleGuard>} />
         <Route path="activity-logs" element={<RoleGuard permission="activity_logs"><ActivityLogs /></RoleGuard>} />
         <Route path="media" element={<RoleGuard permission="settings"><MediaLibrary /></RoleGuard>} />
+        <Route path="file-manager" element={<FileManagerPage />} />
         <Route path="file-templates" element={<RoleGuard permission="settings"><FileTemplates /></RoleGuard>} />
         <Route path="settings" element={<RoleGuard permission="settings"><Settings /></RoleGuard>} />
         <Route path="workflows" element={<RoleGuard permission="settings"><WorkflowAutomation /></RoleGuard>} />

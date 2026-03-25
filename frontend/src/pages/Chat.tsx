@@ -3,6 +3,7 @@ import { MessageSquare, Plus, Send, Paperclip, Trash2, Users, Hash, X, Search, A
 import { useChatChannels, useChatMessages, useChatUsers, useCreateChannel, useSendMessage, useDeleteMessage, useDeleteChannel, useMarkRead, useAddMembers, useRemoveMember } from '../hooks/useChat';
 import { useAuthStore } from '../store/authStore';
 import type { ChatChannel, ChatMessage } from '../types';
+import { InlinePreview, resolveFileUrl, isPreviewable } from '../components/FilePreview';
 
 export default function Chat() {
   const { user } = useAuthStore();
@@ -205,14 +206,24 @@ export default function Chat() {
                         {!isMe && <p className="text-xs font-bold mb-1 text-blue-600">{msg.user?.name}</p>}
                         {msg.body && <p className="text-sm whitespace-pre-wrap">{msg.body}</p>}
                         {msg.attachment && (
-                          <a
-                            href={`${import.meta.env.VITE_API_URL?.replace('/api', '')}/storage/${msg.attachment}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`text-xs underline mt-1 block ${isMe ? 'text-blue-100' : 'text-blue-500'}`}
-                          >
-                            📎 {msg.attachment_name || 'مرفق'}
-                          </a>
+                          <div className="mt-1">
+                            {isPreviewable(msg.attachment_name || msg.attachment) ? (
+                              <InlinePreview
+                                name={msg.attachment_name || msg.attachment}
+                                path={msg.attachment}
+                                className="w-40 h-28 rounded-lg mt-1"
+                              />
+                            ) : (
+                              <a
+                                href={resolveFileUrl(msg.attachment)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`text-xs underline block ${isMe ? 'text-blue-100' : 'text-blue-500'}`}
+                              >
+                                📎 {msg.attachment_name || 'مرفق'}
+                              </a>
+                            )}
+                          </div>
                         )}
                       </div>
                       <div className={`flex items-center gap-2 mt-1 ${isMe ? '' : 'justify-end'}`}>

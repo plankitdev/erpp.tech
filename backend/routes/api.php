@@ -41,6 +41,8 @@ use App\Http\Controllers\Api\MediaLibraryController;
 use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\PushController;
+use App\Http\Controllers\Api\FileManagerController;
+use App\Http\Controllers\Api\GoogleDriveController;
 use Illuminate\Support\Facades\Route;
 
 // ========== Health Check (public) ==========
@@ -320,6 +322,27 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::apiResource('project-templates', ProjectTemplateController::class)->except(['show']);
         Route::post('/project-templates/{projectTemplate}/apply', [ProjectTemplateController::class, 'apply']);
     });
+
+    // ========== File Manager ==========
+    Route::get('/file-manager', [FileManagerController::class, 'index']);
+    Route::get('/file-manager/search', [FileManagerController::class, 'search']);
+    Route::get('/file-manager/stats', [FileManagerController::class, 'stats']);
+    Route::post('/file-manager/folders', [FileManagerController::class, 'createFolder']);
+    Route::put('/file-manager/folders/{folder}/rename', [FileManagerController::class, 'renameFolder']);
+    Route::put('/file-manager/folders/{folder}/move', [FileManagerController::class, 'moveFolder']);
+    Route::delete('/file-manager/folders/{folder}', [FileManagerController::class, 'deleteFolder']);
+    Route::post('/file-manager/files', [FileManagerController::class, 'uploadFile']);
+    Route::put('/file-manager/files/{managedFile}/rename', [FileManagerController::class, 'renameFile']);
+    Route::put('/file-manager/files/{managedFile}/move', [FileManagerController::class, 'moveFile']);
+    Route::post('/file-manager/files/{managedFile}/approve', [FileManagerController::class, 'approveFile']);
+    Route::delete('/file-manager/files/{managedFile}', [FileManagerController::class, 'deleteFile']);
+
+    // ========== Google Drive Sync ==========
+    Route::get('/google-drive/status', [GoogleDriveController::class, 'status']);
+    Route::get('/google-drive/auth-url', [GoogleDriveController::class, 'authUrl']);
+    Route::post('/google-drive/callback', [GoogleDriveController::class, 'callback']);
+    Route::post('/google-drive/sync', [GoogleDriveController::class, 'sync']);
+    Route::post('/google-drive/disconnect', [GoogleDriveController::class, 'disconnect']);
 
     // ========== System Monitoring ==========
     Route::middleware('role:super_admin')->get('/system/status', [HealthController::class, 'systemStatus']);

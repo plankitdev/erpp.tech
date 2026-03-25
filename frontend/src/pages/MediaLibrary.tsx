@@ -3,6 +3,7 @@ import api from '../api/axios';
 import type { MediaFile } from '../types';
 import { formatDate } from '../utils';
 import SearchInput from '../components/SearchInput';
+import { FilePreviewModal, resolveFileUrl, isPreviewable } from '../components/FilePreview';
 import {
   Image, FileText, File, Download, Eye, Filter,
   FolderOpen, HardDrive,
@@ -39,6 +40,7 @@ export default function MediaLibrary() {
   const [sourceFilter, setSourceFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [previewFile, setPreviewFile] = useState<{ name: string; path: string } | null>(null);
 
   useEffect(() => {
     const params: Record<string, string> = {};
@@ -121,7 +123,8 @@ export default function MediaLibrary() {
               <div key={`${file.source}-${file.id}`}
                 className={`animate-fade-in-up stagger-${Math.min(idx + 1, 8)} bg-white rounded-xl border border-gray-100 overflow-hidden hover:shadow-lg transition-all duration-200 group`}>
                 {/* Preview */}
-                <div className="h-32 bg-gray-50 flex items-center justify-center relative overflow-hidden">
+                <div className="h-32 bg-gray-50 flex items-center justify-center relative overflow-hidden cursor-pointer"
+                  onClick={() => file.path && setPreviewFile({ name: file.name, path: file.path })}>
                   {isImage && file.path ? (
                     <img src={file.path} alt={file.name} className="w-full h-full object-cover" />
                   ) : (
@@ -129,8 +132,12 @@ export default function MediaLibrary() {
                   )}
                   {/* Overlay on hover */}
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                    <span className="w-9 h-9 rounded-full bg-white/90 flex items-center justify-center text-gray-700">
+                      <Eye size={16} />
+                    </span>
                     {file.path && (
-                      <a href={file.path} target="_blank" rel="noreferrer"
+                      <a href={resolveFileUrl(file.path)} download target="_blank" rel="noreferrer"
+                        onClick={e => e.stopPropagation()}
                         className="w-9 h-9 rounded-full bg-white/90 flex items-center justify-center text-gray-700 hover:bg-white transition-colors">
                         <Download size={16} />
                       </a>
@@ -157,6 +164,14 @@ export default function MediaLibrary() {
             );
           })}
         </div>
+      )}
+
+      {previewFile && (
+        <FilePreviewModal
+          file={previewFile}
+          files={files.filter(f => f.path).map(f => ({ name: f.name, path: f.path }))}
+          onClose={() => setPreviewFile(null)}
+        />
       )}
     </div>
   );

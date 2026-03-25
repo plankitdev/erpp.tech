@@ -2,8 +2,9 @@ import { useState, useRef } from 'react';
 import { useTask, useUpdateTask, useAddComment } from '../hooks/useTasks';
 import { formatDate, formatDateTime } from '../utils';
 import type { Task, TaskStatus, TaskPriority } from '../types';
-import { X, Paperclip, Send, Download } from 'lucide-react';
+import { X, Paperclip, Send, Download, Eye } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { InlinePreview, resolveFileUrl, isPreviewable, getFileIconComponent } from './FilePreview';
 
 const statusLabels: Record<TaskStatus, string> = { todo: 'جديد', in_progress: 'جاري التنفيذ', review: 'مراجعة', done: 'مكتمل' };
 const priorityLabels: Record<TaskPriority, string> = { high: 'عالية', medium: 'متوسطة', low: 'منخفضة' };
@@ -133,10 +134,16 @@ export default function TaskDetailDrawer({ taskId, onClose }: Props) {
                   </div>
                   <p className="text-sm text-gray-600">{c.comment}</p>
                   {c.attachment && (
-                    <a href={c.attachment} target="_blank" rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-primary-600 text-xs mt-1 hover:underline">
-                      <Download size={12} /> تحميل المرفق
-                    </a>
+                    <div className="mt-2">
+                      {isPreviewable(c.attachment) ? (
+                        <InlinePreview name={c.attachment.split('/').pop() || 'file'} path={c.attachment} className="w-32 h-24 rounded-lg" />
+                      ) : (
+                        <a href={resolveFileUrl(c.attachment)} target="_blank" rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-primary-600 text-xs hover:underline">
+                          <Download size={12} /> تحميل المرفق
+                        </a>
+                      )}
+                    </div>
                   )}
                 </div>
               ))}

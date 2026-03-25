@@ -8,6 +8,7 @@ import {
   Phone, Mail, MapPin, Building2, Calendar, Shield, AlertCircle, Loader2, Download,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { InlinePreview, resolveFileUrl, isPreviewable, getFileIconComponent, getFileIconColor } from '../components/FilePreview';
 import ConfirmDialog from '../components/ConfirmDialog';
 
 const fileTypes: Record<string, string> = {
@@ -266,33 +267,40 @@ export default function EmployeeProfile() {
             </div>
           ) : (
             <div className="bg-white rounded-xl border border-gray-100 divide-y divide-gray-50">
-              {files.map(file => (
-                <div key={file.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-gray-50 transition-colors group">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center text-primary-600">
-                      <FileText size={18} />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-800">{file.file_name}</p>
-                      <div className="flex items-center gap-2 mt-0.5 text-[11px] text-gray-400">
-                        <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">{fileTypes[file.type || 'other'] || file.type}</span>
-                        {file.uploaded_by && <span>رفع بواسطة: {file.uploaded_by.name}</span>}
-                        <span>{formatDate(file.created_at)}</span>
+              {files.map(file => {
+                const FileIcon = getFileIconComponent(file.file_name);
+                const iconColor = getFileIconColor(file.file_name);
+                return (
+                  <div key={file.id} className="flex items-center justify-between px-5 py-3.5 hover:bg-gray-50 transition-colors group">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${iconColor}`}>
+                        <FileIcon size={18} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-800">{file.file_name}</p>
+                        <div className="flex items-center gap-2 mt-0.5 text-[11px] text-gray-400">
+                          <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">{fileTypes[file.type || 'other'] || file.type}</span>
+                          {file.uploaded_by && <span>رفع بواسطة: {file.uploaded_by.name}</span>}
+                          <span>{formatDate(file.created_at)}</span>
+                        </div>
                       </div>
                     </div>
+                    <div className="flex items-center gap-1">
+                      {isPreviewable(file.file_name) && (
+                        <InlinePreview name={file.file_name} path={file.file_path} className="w-8 h-8 rounded" />
+                      )}
+                      <a href={resolveFileUrl(file.file_path)} target="_blank" rel="noopener noreferrer"
+                        className="text-gray-400 hover:text-primary-600 p-1 opacity-0 group-hover:opacity-100 transition-all">
+                        <Download size={14} />
+                      </a>
+                      <button onClick={() => handleDeleteFile(file.id)}
+                        className="text-gray-400 hover:text-red-600 p-1 opacity-0 group-hover:opacity-100 transition-all">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <a href={`/storage/${file.file_path}`} target="_blank" rel="noopener noreferrer"
-                      className="text-gray-400 hover:text-primary-600 p-1 opacity-0 group-hover:opacity-100 transition-all">
-                      <Download size={14} />
-                    </a>
-                    <button onClick={() => handleDeleteFile(file.id)}
-                      className="text-gray-400 hover:text-red-600 p-1 opacity-0 group-hover:opacity-100 transition-all">
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
