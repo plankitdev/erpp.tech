@@ -131,7 +131,7 @@ export default function TaskDetailDrawer({ taskId, onClose }: Props) {
               <div className="grid grid-cols-3 gap-2">
                 {task.files.map((file: any) => (
                   <div key={file.id} className="relative group">
-                    <FileThumbnail name={file.name} filePath={file.file_path} size="lg" className="w-full h-20 rounded-lg object-cover" />
+                    <FileThumbnail name={file.name} path={file.file_path} className="w-full h-20 rounded-lg" />
                     {isPreviewable(file.name) && (
                       <button
                         onClick={() => setPreviewFile(file.id)}
@@ -155,13 +155,9 @@ export default function TaskDetailDrawer({ taskId, onClose }: Props) {
             const currentFile = previewableFiles[currentIdx];
             return (
               <FilePreviewModal
-                fileName={currentFile.name}
-                filePath={currentFile.file_path}
+                file={{ name: currentFile.name, path: currentFile.file_path }}
+                files={previewableFiles.map((f: any) => ({ name: f.name, path: f.file_path }))}
                 onClose={() => setPreviewFile(null)}
-                onPrev={currentIdx > 0 ? () => setPreviewFile(previewableFiles[currentIdx - 1].id) : undefined}
-                onNext={currentIdx < previewableFiles.length - 1 ? () => setPreviewFile(previewableFiles[currentIdx + 1].id) : undefined}
-                currentIndex={currentIdx}
-                totalCount={previewableFiles.length}
               />
             );
           })()}

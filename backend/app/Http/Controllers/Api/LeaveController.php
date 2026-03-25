@@ -19,7 +19,7 @@ class LeaveController extends Controller
         $user = $request->user();
 
         // Non-managers see only their own requests
-        if (!in_array($user->role, ['super_admin', 'manager', 'marketing_manager'])) {
+        if (!in_array($user->role, ['super_admin', 'manager'])) {
             $query->where('user_id', $user->id);
         }
 
@@ -71,7 +71,7 @@ class LeaveController extends Controller
 
     public function approve(Request $request, LeaveRequest $leaveRequest): JsonResponse
     {
-        if (!in_array($request->user()->role, ['super_admin', 'manager', 'marketing_manager'])) {
+        if (!in_array($request->user()->role, ['super_admin', 'manager'])) {
             return $this->errorResponse('غير مصرح', 403);
         }
 
@@ -92,7 +92,7 @@ class LeaveController extends Controller
 
     public function reject(Request $request, LeaveRequest $leaveRequest): JsonResponse
     {
-        if (!in_array($request->user()->role, ['super_admin', 'manager', 'marketing_manager'])) {
+        if (!in_array($request->user()->role, ['super_admin', 'manager'])) {
             return $this->errorResponse('غير مصرح', 403);
         }
 
@@ -118,7 +118,7 @@ class LeaveController extends Controller
 
     public function destroy(LeaveRequest $leaveRequest, Request $request): JsonResponse
     {
-        if ($leaveRequest->user_id !== $request->user()->id && !in_array($request->user()->role, ['super_admin', 'manager', 'marketing_manager'])) {
+        if ($leaveRequest->user_id !== $request->user()->id && !in_array($request->user()->role, ['super_admin', 'manager'])) {
             return $this->errorResponse('غير مصرح', 403);
         }
 

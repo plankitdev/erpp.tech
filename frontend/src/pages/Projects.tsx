@@ -187,8 +187,10 @@ export default function Projects() {
   });
 
   useEffect(() => {
-    clientsApi.getAll({ per_page: 1000 }).then(res => setClients(res.data.data)).catch(() => {});
-  }, []);
+    if (showModal) {
+      clientsApi.getAll({ per_page: 1000 }).then(res => setClients(res.data.data)).catch(() => {});
+    }
+  }, [showModal]);
 
   const openModal = () => {
     setForm({ name: '', description: '', client_id: '', status: 'active', start_date: '', end_date: '', budget: '', currency: 'EGP' });

@@ -14,7 +14,7 @@ import toast from 'react-hot-toast';
 import {
   ArrowRight, Paperclip, Send, Download, Clock, Calendar, User, FolderKanban,
   CheckSquare, Plus, Trash2, Timer, Play, Square, GripVertical, Pencil, X,
-  Users as UsersIcon, Upload, Eye, Image,
+  Users as UsersIcon, Upload, Eye, Image, ZoomIn,
 } from 'lucide-react';
 
 const statusOptions: { value: TaskStatus; label: string }[] = [
@@ -444,54 +444,90 @@ export default function TaskDetail() {
               </FileDropZone>
             ) : (
               <FileDropZone onFileDrop={(f) => handleFilesDrop([f])} onFilesDrop={handleFilesDrop} multiple className="rounded-xl">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {task.files.map((file: any) => {
-                    const FileIcon = getFileIconComponent(file.name);
-                    const iconColor = getFileIconColor(file.name);
-                    const canPreview = isPreviewable(file.name);
-                    return (
-                      <div key={file.id} className="bg-gray-50 rounded-xl border border-gray-100 p-3 hover:shadow-sm transition-all group">
-                        <div className="flex items-center gap-3">
-                          <FileThumbnail
-                            name={file.name}
-                            filePath={file.file_path}
-                            size="md"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-800 truncate">{file.name}</p>
-                            <p className="text-[11px] text-gray-400 mt-0.5">
-                              {file.uploaded_by?.name || '—'} · {file.created_at}
-                            </p>
-                          </div>
+                {/* Image files - inline gallery */}
+                {(() => {
+                  const imageFiles = task.files.filter((f: any) => ['jpg','jpeg','png','gif','webp','svg','bmp'].includes((f.name?.split('.').pop() || '').toLowerCase()));
+                  const otherFiles = task.files.filter((f: any) => !['jpg','jpeg','png','gif','webp','svg','bmp'].includes((f.name?.split('.').pop() || '').toLowerCase()));
+                  return (
+                    <>
+                      {imageFiles.length > 0 && (
+                        <div className={`grid gap-2 mb-3 ${imageFiles.length === 1 ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-3'}`}>
+                          {imageFiles.map((file: any) => (
+                            <div key={file.id} className="relative group rounded-xl overflow-hidden border border-gray-100 bg-gray-50">
+                              <img
+                                src={resolveFileUrl(file.file_path)}
+                                alt={file.name}
+                                className={`w-full object-cover cursor-pointer ${imageFiles.length === 1 ? 'max-h-80' : 'h-40'}`}
+                                loading="lazy"
+                                onClick={() => setPreviewFile(file.id)}
+                              />
+                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors pointer-events-none" />
+                              <div className="absolute top-2 left-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onClick={(e) => { e.stopPropagation(); setPreviewFile(file.id); }}
+                                  className="p-1.5 bg-white/90 rounded-lg text-gray-600 hover:text-primary-600 shadow-sm">
+                                  <ZoomIn size={14} />
+                                </button>
+                                <a href={resolveFileUrl(file.file_path)} download={file.name} onClick={(e) => e.stopPropagation()}
+                                  className="p-1.5 bg-white/90 rounded-lg text-gray-600 hover:text-blue-600 shadow-sm">
+                                  <Download size={14} />
+                                </a>
+                                <button onClick={(e) => { e.stopPropagation(); handleDeleteFile(file.id); }}
+                                  className="p-1.5 bg-white/90 rounded-lg text-gray-600 hover:text-red-600 shadow-sm">
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                              <p className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/50 to-transparent text-white text-[11px] px-2 py-1.5 truncate opacity-0 group-hover:opacity-100 transition-opacity">
+                                {file.name}
+                              </p>
+                            </div>
+                          ))}
                         </div>
-                        <div className="flex items-center gap-1 mt-2 pt-2 border-t border-gray-100">
-                          {canPreview && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setPreviewFile(file.id); }}
-                              className="flex items-center gap-1 text-xs text-gray-500 hover:text-primary-600 px-2 py-1 rounded-lg hover:bg-primary-50 transition-all"
-                            >
-                              <Eye size={12} /> معاينة
-                            </button>
-                          )}
-                          <a
-                            href={resolveFileUrl(file.file_path)}
-                            download={file.name}
-                            onClick={(e) => e.stopPropagation()}
-                            className="flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600 px-2 py-1 rounded-lg hover:bg-blue-50 transition-all"
-                          >
-                            <Download size={12} /> تحميل
-                          </a>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleDeleteFile(file.id); }}
-                            className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-600 px-2 py-1 rounded-lg hover:bg-red-50 transition-all mr-auto"
-                          >
-                            <Trash2 size={12} /> حذف
-                          </button>
+                      )}
+
+                      {/* Non-image files - compact list */}
+                      {otherFiles.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {otherFiles.map((file: any) => {
+                            const canPreview = isPreviewable(file.name);
+                            return (
+                              <div key={file.id} className="bg-gray-50 rounded-xl border border-gray-100 p-3 hover:shadow-sm transition-all group">
+                                <div className="flex items-center gap-3">
+                                  <FileThumbnail
+                                    name={file.name}
+                                    path={file.file_path}
+                                    className="w-10 h-10 rounded-lg flex-shrink-0"
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-gray-800 truncate">{file.name}</p>
+                                    <p className="text-[11px] text-gray-400 mt-0.5">
+                                      {file.uploaded_by?.name || '—'} · {file.created_at}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1 mt-2 pt-2 border-t border-gray-100">
+                                  {canPreview && (
+                                    <button onClick={(e) => { e.stopPropagation(); setPreviewFile(file.id); }}
+                                      className="flex items-center gap-1 text-xs text-gray-500 hover:text-primary-600 px-2 py-1 rounded-lg hover:bg-primary-50 transition-all">
+                                      <Eye size={12} /> معاينة
+                                    </button>
+                                  )}
+                                  <a href={resolveFileUrl(file.file_path)} download={file.name} onClick={(e) => e.stopPropagation()}
+                                    className="flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600 px-2 py-1 rounded-lg hover:bg-blue-50 transition-all">
+                                    <Download size={12} /> تحميل
+                                  </a>
+                                  <button onClick={(e) => { e.stopPropagation(); handleDeleteFile(file.id); }}
+                                    className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-600 px-2 py-1 rounded-lg hover:bg-red-50 transition-all mr-auto">
+                                    <Trash2 size={12} /> حذف
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      )}
+                    </>
+                  );
+                })()}
               </FileDropZone>
             )}
           </div>
@@ -504,13 +540,9 @@ export default function TaskDetail() {
             const currentFile = previewableFiles[currentIdx];
             return (
               <FilePreviewModal
-                fileName={currentFile.name}
-                filePath={currentFile.file_path}
+                file={{ name: currentFile.name, path: currentFile.file_path }}
+                files={previewableFiles.map((f: any) => ({ name: f.name, path: f.file_path }))}
                 onClose={() => setPreviewFile(null)}
-                onPrev={currentIdx > 0 ? () => setPreviewFile(previewableFiles[currentIdx - 1].id) : undefined}
-                onNext={currentIdx < previewableFiles.length - 1 ? () => setPreviewFile(previewableFiles[currentIdx + 1].id) : undefined}
-                currentIndex={currentIdx}
-                totalCount={previewableFiles.length}
               />
             );
           })()}

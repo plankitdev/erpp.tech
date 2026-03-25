@@ -177,7 +177,7 @@ class TimeEntryController extends Controller
 
     public function destroy(TimeEntry $timeEntry): JsonResponse
     {
-        if ($timeEntry->user_id !== auth()->id() && !in_array(auth()->user()->role, ['super_admin', 'manager', 'marketing_manager'])) {
+        if ($timeEntry->user_id !== auth()->id() && !in_array(auth()->user()->role, ['super_admin', 'manager'])) {
             return $this->errorResponse('غير مصرح لك بحذف هذا السجل', 403);
         }
 

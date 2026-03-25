@@ -17,7 +17,7 @@ class ActivityLogController extends Controller
             ->orderByDesc('created_at');
 
         // Non-admin users only see their own logs
-        if (!in_array($user->role, ['super_admin', 'manager', 'marketing_manager'])) {
+        if (!in_array($user->role, ['super_admin', 'manager'])) {
             $query->where('user_id', $user->id);
         } elseif ($request->filled('user_id')) {
             $query->where('user_id', $request->user_id);

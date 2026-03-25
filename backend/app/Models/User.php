@@ -142,12 +142,7 @@ class User extends Authenticatable
                 'dashboard.view',
                 'projects.view', 'projects.create', 'projects.edit', 'projects.delete',
                 'tasks.view', 'tasks.create', 'tasks.edit', 'tasks.delete',
-                'clients.view',
-                'contracts.view',
-                'employees.view',
-                'expenses.view', 'expenses.create', 'expenses.edit',
                 'reports.view',
-                'activity_logs.view',
                 'settings.view',
             ],
             'employee' => [

@@ -4,6 +4,7 @@ import { X, Download, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize2, Fil
 // ── Helpers ──────────────────────────────────────────────
 
 function getExtension(name: string): string {
+  if (!name) return '';
   return (name.split('.').pop() || '').toLowerCase();
 }
 
@@ -107,6 +108,7 @@ export function FilePreviewModal({ file, files = [], onClose }: FilePreviewModal
   const [zoom, setZoom] = useState(1);
 
   const currentFile = files.length > 0 ? files[Math.max(0, currentIndex)] : file;
+  if (!currentFile) { onClose(); return null; }
   const cat = getFileCategory(currentFile.name);
   const url = resolveFileUrl(currentFile.path);
   const hasMultiple = files.length > 1;
