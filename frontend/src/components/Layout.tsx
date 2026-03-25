@@ -36,6 +36,7 @@ interface MenuSection {
 const standaloneItems: MenuItem[] = [
   { path: '/announcements', label: 'الإعلانات', icon: Megaphone, permission: null },
   { path: '/chat', label: 'المحادثات', icon: MessageSquare, permission: null },
+  { path: '/settings', label: 'الإعدادات', icon: Settings, permission: null },
 ];
 
 const menuSections: MenuSection[] = [
@@ -105,7 +106,6 @@ const menuSections: MenuSection[] = [
     items: [
       { path: '/users', label: 'المستخدمين', icon: KeyRound, permission: 'users' },
       { path: '/activity-logs', label: 'سجل النشاطات', icon: Activity, permission: 'activity_logs' },
-      { path: '/settings', label: 'الإعدادات', icon: Settings, permission: 'settings' },
       { path: '/workflows', label: 'أتمتة العمليات', icon: Zap, permission: 'settings' },
       { path: '/tags', label: 'العلامات', icon: Tag, permission: 'settings' },
       { path: '/api-docs', label: 'توثيق الـ API', icon: BookOpen, permission: 'settings' },

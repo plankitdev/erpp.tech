@@ -154,7 +154,7 @@ export default function App() {
         <Route path="media" element={<RoleGuard permission="settings"><MediaLibrary /></RoleGuard>} />
         <Route path="file-manager" element={<FileManagerPage />} />
         <Route path="file-templates" element={<RoleGuard permission="settings"><FileTemplates /></RoleGuard>} />
-        <Route path="settings" element={<RoleGuard permission="settings"><Settings /></RoleGuard>} />
+        <Route path="settings" element={<Settings />} />
         <Route path="workflows" element={<RoleGuard permission="settings"><WorkflowAutomation /></RoleGuard>} />
         <Route path="tags" element={<RoleGuard permission="settings"><TagsManager /></RoleGuard>} />
         <Route path="api-docs" element={<RoleGuard permission="settings"><ApiDocs /></RoleGuard>} />

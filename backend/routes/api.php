@@ -78,7 +78,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     });
 
     // ========== Clients & Contracts ==========
-    Route::middleware('role:super_admin,manager,sales,employee')->group(function () {
+    Route::middleware('role:super_admin,manager,sales,accountant,employee')->group(function () {
         Route::get('clients', [ClientController::class, 'index']);
         Route::get('clients/{client}', [ClientController::class, 'show']);
     });

@@ -142,7 +142,6 @@ class User extends Authenticatable
                 'dashboard.view',
                 'tasks.view', 'tasks.create',
                 'projects.view',
-                'settings.view',
             ],
         ];
         return $defaults[$role] ?? [];
