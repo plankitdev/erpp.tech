@@ -213,9 +213,9 @@ export default function Layout() {
       <div className="relative px-5 py-5">
         <div className="flex items-center gap-3">
           {user?.company?.icon ? (
-            <img src={user.company.icon} alt="" className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-primary-500/20 flex-shrink-0 ring-1 ring-white/10" />
+            <img src={user.company.icon} alt="" className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-primary-500/20 flex-shrink-0 ring-1 ring-white/10" onError={e => (e.currentTarget.style.display = 'none')} />
           ) : user?.company?.logo ? (
-            <img src={user.company.logo} alt="" className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-primary-500/20 flex-shrink-0 ring-1 ring-white/10" />
+            <img src={user.company.logo} alt="" className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-primary-500/20 flex-shrink-0 ring-1 ring-white/10" onError={e => (e.currentTarget.style.display = 'none')} />
           ) : (
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-lg shadow-primary-500/20 flex-shrink-0 ring-1 ring-white/10">
               <span className="text-white font-bold text-lg">E</span>
@@ -446,7 +446,7 @@ export default function Layout() {
         {sidebarOpen ? (
           <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-white/[0.03] border border-white/[0.05] hover:bg-white/[0.05] transition-all duration-200">
             {user?.avatar ? (
-              <img src={user.avatar} alt={user.name} className="w-9 h-9 rounded-lg object-cover shadow-md flex-shrink-0" />
+              <img src={user.avatar} alt={user.name} className="w-9 h-9 rounded-lg object-cover shadow-md flex-shrink-0" onError={e => (e.currentTarget.style.display = 'none')} />
             ) : (
               <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${roleColors[user?.role || 'employee']} flex items-center justify-center text-white font-bold text-sm shadow-md flex-shrink-0`}>
                 {user?.name?.charAt(0) || 'U'}
@@ -562,7 +562,7 @@ export default function Layout() {
                 className="flex items-center gap-2.5 hover:bg-gray-50 px-2.5 py-1.5 rounded-xl transition-all border border-transparent hover:border-gray-200/80"
               >
                 {user?.avatar ? (
-                  <img src={user.avatar} alt={user.name} className="w-8 h-8 rounded-lg object-cover shadow-sm ring-2 ring-white" />
+                  <img src={user.avatar} alt={user.name} className="w-8 h-8 rounded-lg object-cover shadow-sm ring-2 ring-white" onError={e => (e.currentTarget.style.display = 'none')} />
                 ) : (
                   <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${roleColors[user?.role || 'employee']} flex items-center justify-center text-white font-bold text-xs shadow-sm ring-2 ring-white`}>
                     {user?.name?.charAt(0) || 'U'}

@@ -203,7 +203,7 @@ export default function Settings() {
                 <label className="cursor-pointer group">
                   <input type="file" accept="image/*" onChange={handleLogoChange} className="hidden" />
                   {currentLogo ? (
-                    <img src={currentLogo} alt="Logo" className="w-16 h-16 rounded-xl object-cover shadow-soft border border-gray-200 group-hover:opacity-80 transition-opacity" />
+                    <img src={currentLogo} alt="Logo" className="w-16 h-16 rounded-xl object-cover shadow-soft border border-gray-200 group-hover:opacity-80 transition-opacity" onError={e => (e.currentTarget.style.display = 'none')} />
                   ) : (
                     <div className="w-16 h-16 rounded-xl bg-surface-50 flex flex-col items-center justify-center group-hover:bg-surface-100 transition-colors border border-gray-200">
                       <Upload size={20} className="text-gray-400" />
@@ -222,7 +222,7 @@ export default function Settings() {
                 <label className="cursor-pointer group">
                   <input type="file" accept="image/*" onChange={handleIconChange} className="hidden" />
                   {currentIcon ? (
-                    <img src={currentIcon} alt="Icon" className="w-12 h-12 rounded-xl object-cover shadow-soft border border-gray-200 group-hover:opacity-80 transition-opacity" />
+                    <img src={currentIcon} alt="Icon" className="w-12 h-12 rounded-xl object-cover shadow-soft border border-gray-200 group-hover:opacity-80 transition-opacity" onError={e => (e.currentTarget.style.display = 'none')} />
                   ) : (
                     <div className="w-12 h-12 rounded-xl bg-surface-50 flex flex-col items-center justify-center group-hover:bg-surface-100 transition-colors border border-gray-200">
                       <Upload size={16} className="text-gray-400" />
@@ -274,7 +274,7 @@ export default function Settings() {
                 <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleAvatarChange} className="hidden" />
                 {(avatarPreview || user?.avatar) ? (
                   <img src={avatarPreview || user?.avatar || ''} alt="Avatar"
-                    className="w-16 h-16 rounded-full object-cover shadow-soft border-2 border-gray-200 group-hover:opacity-80 transition-opacity" />
+                    className="w-16 h-16 rounded-full object-cover shadow-soft border-2 border-gray-200 group-hover:opacity-80 transition-opacity" onError={e => (e.currentTarget.style.display = 'none')} />
                 ) : (
                   <div className="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center group-hover:bg-primary-200 transition-colors border-2 border-gray-200">
                     <span className="text-xl font-bold text-primary-600">{user?.name?.charAt(0)}</span>

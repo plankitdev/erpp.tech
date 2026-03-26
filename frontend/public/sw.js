@@ -1,4 +1,4 @@
-const CACHE_NAME = 'erpflex-v2';
+const CACHE_NAME = 'erpflex-v3';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',

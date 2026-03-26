@@ -186,7 +186,7 @@ export default function SelectCompany() {
 
                     <div className="flex items-start gap-4 mb-5">
                       {company.logo ? (
-                        <img src={company.logo} alt={company.name} className="w-16 h-16 rounded-2xl object-cover shadow-lg ring-2 ring-white/10 group-hover:ring-white/20 transition-all" />
+                        <img src={company.logo} alt={company.name} className="w-16 h-16 rounded-2xl object-cover shadow-lg ring-2 ring-white/10 group-hover:ring-white/20 transition-all" onError={e => (e.currentTarget.style.display = 'none')} />
                       ) : (
                         <div
                           className="w-16 h-16 rounded-2xl flex items-center justify-center text-white font-bold text-2xl shadow-lg ring-2 ring-white/10 group-hover:ring-white/20 transition-all"

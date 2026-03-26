@@ -485,7 +485,7 @@ function MembersModal({ channel, allUsers, currentUserId, canManage, onAddMember
           {channel.members.map(m => (
             <div key={m.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50">
               <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-sm font-bold">
-                {m.avatar ? <img src={m.avatar} className="w-8 h-8 rounded-full object-cover" /> : m.name.charAt(0)}
+                {m.avatar ? <img src={m.avatar} className="w-8 h-8 rounded-full object-cover" onError={e => (e.currentTarget.style.display = 'none')} /> : m.name.charAt(0)}
               </div>
               <div className="flex-1">
                 <span className="text-sm font-medium">{m.name}</span>
