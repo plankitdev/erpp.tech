@@ -24,6 +24,7 @@ interface MenuItem {
   label: string;
   icon: typeof LayoutDashboard;
   permission: string | null;
+  roles?: string[];
 }
 
 interface MenuSection {
@@ -96,20 +97,20 @@ const menuSections: MenuSection[] = [
       { path: '/reports', label: 'التقارير', icon: BarChart3, permission: 'reports' },
       { path: '/reports/employees', label: 'تقارير الموظفين', icon: Users, permission: 'reports' },
       { path: '/file-manager', label: 'مدير الملفات', icon: HardDrive, permission: null },
-      { path: '/media', label: 'مكتبة الملفات', icon: ImageIcon, permission: 'users' },
-      { path: '/file-templates', label: 'قوالب الملفات', icon: FolderOpen, permission: 'users' },
+      { path: '/media', label: 'مكتبة الملفات', icon: ImageIcon, permission: 'users', roles: ['super_admin', 'manager'] },
+      { path: '/file-templates', label: 'قوالب الملفات', icon: FolderOpen, permission: 'users', roles: ['super_admin', 'manager'] },
     ],
   },
   {
     title: 'إدارة النظام',
     icon: Settings,
     items: [
-      { path: '/users', label: 'المستخدمين', icon: KeyRound, permission: 'users' },
-      { path: '/activity-logs', label: 'سجل النشاطات', icon: Activity, permission: 'activity_logs' },
-      { path: '/workflows', label: 'أتمتة العمليات', icon: Zap, permission: 'users' },
-      { path: '/tags', label: 'العلامات', icon: Tag, permission: 'users' },
-      { path: '/api-docs', label: 'توثيق الـ API', icon: BookOpen, permission: 'users' },
-      { path: '/system-monitor', label: 'مراقبة النظام', icon: Monitor, permission: 'users' },
+      { path: '/users', label: 'المستخدمين', icon: KeyRound, permission: 'users', roles: ['super_admin', 'manager'] },
+      { path: '/activity-logs', label: 'سجل النشاطات', icon: Activity, permission: 'activity_logs', roles: ['super_admin', 'manager'] },
+      { path: '/workflows', label: 'أتمتة العمليات', icon: Zap, permission: 'users', roles: ['super_admin', 'manager'] },
+      { path: '/tags', label: 'العلامات', icon: Tag, permission: 'users', roles: ['super_admin', 'manager'] },
+      { path: '/api-docs', label: 'توثيق الـ API', icon: BookOpen, permission: 'users', roles: ['super_admin', 'manager'] },
+      { path: '/system-monitor', label: 'مراقبة النظام', icon: Monitor, permission: 'users', roles: ['super_admin'] },
     ],
   },
 ];
@@ -152,6 +153,7 @@ export default function Layout() {
     .map(section => ({
       ...section,
       items: section.items.filter(item => {
+        if (item.roles && item.roles.length > 0 && !item.roles.includes(user?.role || '')) return false;
         if (!item.permission) return true;
         return hasPermission(item.permission);
       }),
