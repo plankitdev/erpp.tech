@@ -22,16 +22,20 @@ foreach ($tables as $table) {
         $type = strtolower($col->Type);
         // Only search text/varchar/json columns
         if (str_contains($type, 'char') || str_contains($type, 'text') || str_contains($type, 'json') || str_contains($type, 'blob')) {
-            $results = Illuminate\Support\Facades\DB::select(
-                "SELECT id, `$colName` FROM `$tableName` WHERE `$colName` LIKE ?",
-                ["%$search%"]
-            );
-            if (count($results) > 0) {
-                echo "FOUND in $tableName.$colName:\n";
-                foreach ($results as $r) {
-                    echo "  ID: {$r->id} | Value: " . substr($r->$colName, 0, 200) . "\n";
+            try {
+                $results = Illuminate\Support\Facades\DB::select(
+                    "SELECT `$colName` FROM `$tableName` WHERE `$colName` LIKE ?",
+                    ["%$search%"]
+                );
+                if (count($results) > 0) {
+                    echo "FOUND in $tableName.$colName (" . count($results) . " rows):\n";
+                    foreach ($results as $r) {
+                        echo "  Value: " . substr($r->$colName, 0, 300) . "\n";
+                    }
+                    echo "\n";
                 }
-                echo "\n";
+            } catch (Exception $e) {
+                // skip tables with issues
             }
         }
     }
