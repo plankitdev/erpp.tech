@@ -1,7 +1,8 @@
 <?php
 require __DIR__ . '/vendor/autoload.php';
 $app = require_once __DIR__ . '/bootstrap/app.php';
-$app->handleRequest(Illuminate\Http\Request::capture());
+$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+$kernel->bootstrap();
 
 $users = App\Models\User::whereIn('role', ['employee', 'manager', 'accountant', 'sales'])
     ->get(['id', 'name', 'email', 'role', 'permissions']);
