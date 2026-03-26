@@ -86,7 +86,7 @@ const menuSections: MenuSection[] = [
       { path: '/hr-hub', label: 'نظرة عامة', icon: LayoutDashboard, permission: 'employees' },
       { path: '/employees', label: 'الموظفين', icon: UserCog, permission: 'employees' },
       { path: '/salaries', label: 'الرواتب', icon: Wallet, permission: 'salaries' },
-      { path: '/leave-attendance', label: 'الإجازات والحضور', icon: CalendarDays, permission: 'employees' },
+      { path: '/leave-attendance', label: 'الإجازات والحضور', icon: CalendarDays, permission: null },
     ],
   },
   {

@@ -86,21 +86,16 @@ function WelcomeBanner({ userName, subtitle, rightContent, year, onYearChange, q
           </div>
           <div className="flex items-center gap-3 flex-wrap">
             {rightContent}
-            <div className="flex items-center bg-white/[0.08] backdrop-blur-sm rounded-full border border-white/[0.12] p-0.5">
+            <select
+              value={year}
+              onChange={(e) => onYearChange(parseInt(e.target.value))}
+              className="bg-white/[0.08] backdrop-blur-sm text-white text-sm font-medium rounded-xl border border-white/[0.12] px-4 py-2 appearance-none cursor-pointer hover:bg-white/[0.15] transition-all focus:outline-none focus:ring-2 focus:ring-white/20"
+              style={{ backgroundImage: 'none' }}
+            >
               {Array.from({ length: 4 }, (_, i) => currentYear - i).map((y) => (
-                <button
-                  key={y}
-                  onClick={() => onYearChange(y)}
-                  className={`px-3 sm:px-3.5 py-1 rounded-full text-[11px] font-semibold tracking-wide transition-all duration-300 ${
-                    year === y
-                      ? 'bg-white text-primary-700 shadow-md shadow-black/10'
-                      : 'text-white/50 hover:text-white/80'
-                  }`}
-                >
-                  {y}
-                </button>
+                <option key={y} value={y} className="bg-gray-800 text-white">{y}</option>
               ))}
-            </div>
+            </select>
           </div>
         </div>
         {quickActions && (

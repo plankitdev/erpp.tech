@@ -147,7 +147,7 @@ export default function App() {
         <Route path="employees/:id" element={<RoleGuard permission="employees"><EmployeeProfile /></RoleGuard>} />
         <Route path="employees/:id/edit" element={<RoleGuard permission="employees"><EmployeeForm /></RoleGuard>} />
         <Route path="salaries" element={<RoleGuard permission="salaries"><Salaries /></RoleGuard>} />
-        <Route path="leave-attendance" element={<RoleGuard permission="employees"><LeaveAttendance /></RoleGuard>} />
+        <Route path="leave-attendance" element={<LeaveAttendance />} />
 
         {/* النظام والإدارة */}
         <Route path="reports" element={<RoleGuard permission="reports"><Reports /></RoleGuard>} />
@@ -157,7 +157,7 @@ export default function App() {
         <Route path="media" element={<RoleGuard permission="users"><MediaLibrary /></RoleGuard>} />
         <Route path="file-manager" element={<FileManagerPage />} />
         <Route path="file-templates" element={<RoleGuard permission="users"><FileTemplates /></RoleGuard>} />
-        <Route path="settings" element={<RoleGuard permission="settings"><Settings /></RoleGuard>} />
+        <Route path="settings" element={<Settings />} />
         <Route path="workflows" element={<RoleGuard permission="users"><WorkflowAutomation /></RoleGuard>} />
         <Route path="tags" element={<RoleGuard permission="users"><TagsManager /></RoleGuard>} />
         <Route path="api-docs" element={<RoleGuard permission="users"><ApiDocs /></RoleGuard>} />

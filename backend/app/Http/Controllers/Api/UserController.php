@@ -18,13 +18,20 @@ class UserController extends Controller
     /**
      * Lightweight user list for dropdowns/assignments (all authenticated users).
      */
-    public function list(): JsonResponse
+    public function list(Request $request): JsonResponse
     {
-        $users = User::select('id', 'name', 'email', 'role', 'avatar')
-            ->where('is_active', true)
-            ->get();
+        $query = User::select('id', 'name', 'email', 'role', 'avatar')
+            ->where('is_active', true);
 
-        return $this->successResponse($users);
+        // Exclude users already linked to an employee, except the one being edited
+        $query->where(function ($q) use ($request) {
+            $q->whereDoesntHave('employee');
+            if ($exceptUserId = $request->input('include_user_id')) {
+                $q->orWhere('id', $exceptUserId);
+            }
+        });
+
+        return $this->successResponse($query->get());
     }
 
     public function index(): JsonResponse

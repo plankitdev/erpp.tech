@@ -4,8 +4,10 @@ import { employeesApi } from '../api/employees';
 import { formatCurrency, formatDate } from '../utils';
 import type { Employee } from '../types';
 import toast from 'react-hot-toast';
-import { Wallet, Plus, X, Pencil } from 'lucide-react';
+import { Wallet, Plus, X, Pencil, Sparkles, ArrowUpRight, DollarSign, TrendingDown, Users, Download, Search } from 'lucide-react';
 import { SkeletonTable } from '../components/Skeletons';
+import { exportToCSV } from '../utils/exportCsv';
+import Breadcrumbs from '../components/Breadcrumbs';
 
 export default function Salaries() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
@@ -13,6 +15,7 @@ export default function Salaries() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [search, setSearch] = useState('');
 
   const { data, isLoading, isError, refetch } = useSalaries({ month: selectedMonth, year: selectedYear });
   const createMutation = useCreateSalary();
@@ -127,29 +130,100 @@ export default function Salaries() {
   const total = baseSalary + bonus - deductions;
   const remaining = total - transferAmount;
 
+  const monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+
+  const totalBase = salaries.reduce((sum: number, s: any) => sum + (s.base_salary || 0), 0);
+  const totalBonuses = salaries.reduce((sum: number, s: any) => sum + (s.bonus || 0), 0);
+  const totalDeductions = salaries.reduce((sum: number, s: any) => sum + (s.deductions || 0), 0);
+  const totalNet = salaries.reduce((sum: number, s: any) => sum + (s.total || 0), 0);
+
+  const filtered = search
+    ? salaries.filter((s: any) => s.employee?.name?.toLowerCase().includes(search.toLowerCase()))
+    : salaries;
+
+  const statCards = [
+    { label: 'إجمالي الرواتب', value: formatCurrency(totalNet), icon: Wallet, bg: 'bg-blue-500' },
+    { label: 'عدد المرتبات', value: salaries.length, icon: Users, bg: 'bg-emerald-500' },
+    { label: 'إجمالي المكافآت', value: formatCurrency(totalBonuses), icon: DollarSign, bg: 'bg-violet-500' },
+    { label: 'إجمالي الخصومات', value: formatCurrency(totalDeductions), icon: TrendingDown, bg: 'bg-red-500' },
+  ];
+
   return (
     <div className="page-container">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">الرواتب الشهرية</h1>
-          <p className="page-subtitle">شهر {selectedMonth} / {selectedYear}</p>
+      <Breadcrumbs items={[{ label: 'الموارد البشرية' }, { label: 'الرواتب' }]} />
+
+      {/* Hero Banner */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-teal-600 via-teal-700 to-emerald-800 p-7">
+        <div className="absolute top-0 left-0 w-72 h-72 bg-white/[0.04] rounded-full -translate-x-1/2 -translate-y-1/2" />
+        <div className="absolute bottom-0 right-0 w-56 h-56 bg-white/[0.03] rounded-full translate-x-1/4 translate-y-1/4" />
+        <div className="relative z-10 flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles size={18} className="text-teal-300" />
+              <span className="text-teal-200 text-sm font-medium">الرواتب الشهرية</span>
+            </div>
+            <h1 className="text-2xl font-bold text-white mb-1">{monthNames[selectedMonth - 1]} {selectedYear}</h1>
+            <p className="text-teal-200/80 text-sm">{salaries.length} راتب مسجل هذا الشهر</p>
+          </div>
+          <div className="hidden md:flex items-center gap-3">
+            <select value={selectedMonth} onChange={e => setSelectedMonth(parseInt(e.target.value))} className="bg-white/10 border border-white/10 text-white rounded-xl px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-white/20 appearance-none cursor-pointer">
+              {monthNames.map((name, i) => (
+                <option key={i + 1} value={i + 1} className="text-gray-900">{name}</option>
+              ))}
+            </select>
+            <select value={selectedYear} onChange={e => setSelectedYear(parseInt(e.target.value))} className="bg-white/10 border border-white/10 text-white rounded-xl px-3 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-white/20 appearance-none cursor-pointer">
+              {[2024, 2025, 2026, 2027].map(y => (
+                <option key={y} value={y} className="text-gray-900">{y}</option>
+              ))}
+            </select>
+            <button onClick={() => exportToCSV('salaries', ['الموظف', 'الأساسي', 'المكافأة', 'الخصومات', 'الإجمالي', 'المحول', 'المتبقي', 'التاريخ'], salaries.map((s: any) => [s.employee?.name, String(s.base_salary || 0), String(s.bonus || 0), String(s.deductions || 0), String(s.total || 0), String(s.transfer_amount || 0), String(s.remaining || 0), s.payment_date || '']))} disabled={salaries.length === 0} className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-all border border-white/10">
+              <Download size={16} /> تصدير
+            </button>
+            <button onClick={() => { if (showForm) resetForm(); else setShowForm(true); }} className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-all border border-white/10">
+              {showForm ? <><X size={16} /> إلغاء</> : <><Plus size={16} /> تسجيل راتب</>}
+            </button>
+          </div>
         </div>
-        <button onClick={() => { if (showForm) resetForm(); else setShowForm(true); }} className={showForm ? 'btn-secondary' : 'btn-primary'}>
+      </div>
+
+      {/* Mobile: month/year selectors + action buttons */}
+      <div className="md:hidden flex flex-wrap items-center gap-2">
+        <select value={selectedMonth} onChange={e => setSelectedMonth(parseInt(e.target.value))} className="select flex-1">
+          {monthNames.map((name, i) => <option key={i + 1} value={i + 1}>{name}</option>)}
+        </select>
+        <select value={selectedYear} onChange={e => setSelectedYear(parseInt(e.target.value))} className="select flex-1">
+          {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
+        </select>
+        <button onClick={() => { if (showForm) resetForm(); else setShowForm(true); }} className={showForm ? 'btn-secondary flex-1' : 'btn-primary flex-1'}>
           {showForm ? <><X size={16} /> إلغاء</> : <><Plus size={16} /> تسجيل راتب</>}
         </button>
       </div>
 
-      <div className="card card-body !py-3 flex items-center gap-3">
-        <select value={selectedMonth} onChange={e => setSelectedMonth(parseInt(e.target.value))} className="select max-w-[140px]">
-          {[...Array(12)].map((_, i) => (
-            <option key={i + 1} value={i + 1}>شهر {i + 1}</option>
-          ))}
-        </select>
-        <select value={selectedYear} onChange={e => setSelectedYear(parseInt(e.target.value))} className="select max-w-[120px]">
-          {[2024, 2025, 2026, 2027].map(y => (
-            <option key={y} value={y}>{y}</option>
-          ))}
-        </select>
+      {/* Stat Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {statCards.map((card, i) => {
+          const Icon = card.icon;
+          return (
+            <div key={i} className={`stat-card group animate-fade-in-up stagger-${i + 1}`}>
+              <div className="relative z-10">
+                <div className="flex items-start justify-between mb-4">
+                  <div className={`w-11 h-11 rounded-xl ${card.bg} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                    <Icon size={20} className="text-white" />
+                  </div>
+                  <ArrowUpRight size={16} className="text-gray-300 group-hover:text-primary-500 transition-colors" />
+                </div>
+                <p className="text-2xl font-bold text-gray-900 mb-1">{card.value}</p>
+                <p className="text-sm text-gray-500">{card.label}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Search */}
+      <div className="relative max-w-md">
+        <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input type="text" placeholder="ابحث بالاسم..." value={search} onChange={e => setSearch(e.target.value)} className="input pr-10 !py-2.5" />
       </div>
 
       {showForm && (
@@ -231,12 +305,12 @@ export default function Salaries() {
                 <SkeletonTable rows={5} cols={9} />
               ) : isError ? (
                 <tr><td colSpan={9} className="text-center py-12"><div className="text-red-400 mb-2">حدث خطأ في تحميل البيانات</div><button onClick={() => refetch()} className="text-sm text-primary-600 hover:underline">إعادة المحاولة</button></td></tr>
-              ) : salaries.length === 0 ? (
+              ) : filtered.length === 0 ? (
                 <tr><td colSpan={9} className="text-center py-12">
                   <Wallet size={40} className="mx-auto mb-3 text-gray-300" />
                   <p className="text-gray-400">لا يوجد رواتب لهذا الشهر</p>
                 </td></tr>
-              ) : salaries.map((s) => (
+              ) : filtered.map((s) => (
                 <tr key={s.id}>
                   <td className="font-semibold text-gray-900">{s.employee?.name}</td>
                   <td className="font-medium">{s.base_salary?.toLocaleString()}</td>

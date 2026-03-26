@@ -32,7 +32,8 @@ export default function EmployeeForm() {
   const navigate = useNavigate();
   const editId = id ? parseInt(id) : 0;
   const { data: employee } = useEmployee(editId);
-  const { data: usersListData } = useUsersList();
+  const currentUserId = employee?.user?.id;
+  const { data: usersListData } = useUsersList(currentUserId ? { include_user_id: currentUserId } : undefined);
   const users = usersListData?.data || [];
   const [file, setFile] = useState<File | null>(null);
 
