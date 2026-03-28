@@ -103,7 +103,7 @@ function ProgressRing({ progress, size = 120 }: { progress: number; size?: numbe
 export default function ProjectDetail() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { user, hasPermission } = useAuthStore();
   const { data: project, isLoading, isError, refetch } = useProject(slug || '');
   const updateProject = useUpdateProject();
   const createTask = useCreateTask();
@@ -511,7 +511,7 @@ export default function ProjectDetail() {
                     {formatDate(project.start_date)}{project.end_date ? ` → ${formatDate(project.end_date)}` : ''}
                   </span>
                 )}
-                {project.budget && user?.role !== 'employee' && (
+                {project.budget && hasPermission('treasury.view') && (
                   <span className="flex items-center gap-1.5">
                     <DollarSign size={13} />الميزانية: {Number(project.budget).toLocaleString()} {project.currency}
                   </span>
@@ -726,7 +726,7 @@ export default function ProjectDetail() {
               { label: 'الاسم', value: project.name },
               { label: 'الحالة', value: pStatus.label, badge: pStatus.bg },
               { label: 'العميل', value: project.client?.company_name || project.client?.name || 'بدون عميل' },
-              ...(user?.role !== 'employee' ? [{ label: 'الميزانية', value: project.budget ? `${Number(project.budget).toLocaleString()} ${project.currency}` : 'غير محددة' }] : []),
+              ...(hasPermission('treasury.view') ? [{ label: 'الميزانية', value: project.budget ? `${Number(project.budget).toLocaleString()} ${project.currency}` : 'غير محددة' }] : []),
               { label: 'تاريخ البداية', value: project.start_date ? formatDate(project.start_date) : 'غير محدد' },
               { label: 'تاريخ النهاية', value: project.end_date ? formatDate(project.end_date) : 'غير محدد' },
               { label: 'إجمالي المهام', value: String(project.tasks_count) },

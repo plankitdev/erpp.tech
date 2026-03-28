@@ -6,6 +6,7 @@ import { clientsApi } from '../api/clients';
 import type { Client } from '../types';
 import { formatDate } from '../utils';
 import toast from 'react-hot-toast';
+import { useAuthStore } from '../store/authStore';
 import {
   Plus, FolderKanban, AlertCircle, Calendar, Users,
   MoreVertical, Trash2, Eye, CircleDot, X, Sparkles,
@@ -163,6 +164,8 @@ const PROJECT_TEMPLATES = [
 
 export default function Projects() {
   useMarkBadgeSeen('projects');
+  const { hasPermission } = useAuthStore();
+  const canViewBudget = hasPermission('treasury.view');
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
@@ -564,6 +567,7 @@ export default function Projects() {
                   </div>
 
                   {/* Budget Section */}
+                  {canViewBudget && (
                   <div className="p-4 bg-gray-50 rounded-xl space-y-3">
                     <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-700">
                       <DollarSign size={14} className="text-gray-400" /> الميزانية
@@ -584,6 +588,7 @@ export default function Projects() {
                       </div>
                     </div>
                   </div>
+                  )}
                 </form>
                 <div className="modal-footer">
                   <button type="submit" form="create-project-form" disabled={createMutation.isPending}

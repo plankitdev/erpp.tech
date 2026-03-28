@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { SkeletonTable } from '../components/Skeletons';
 import Breadcrumbs from '../components/Breadcrumbs';
+import { useAuthStore } from '../store/authStore';
 
 export default function Employees() {
   const { data, isLoading, isError, refetch } = useEmployees();
@@ -27,6 +28,8 @@ export default function Employees() {
     }
   };
 
+  const { hasPermission } = useAuthStore();
+  const canViewSalaries = hasPermission('salaries.view');
   const totalSalaries = employees.reduce((sum, emp) => sum + (emp.base_salary || 0), 0);
   const filtered = search
     ? employees.filter(e => e.name?.toLowerCase().includes(search.toLowerCase()) || e.position?.toLowerCase().includes(search.toLowerCase()))
@@ -34,8 +37,10 @@ export default function Employees() {
 
   const statCards = [
     { label: 'إجمالي الموظفين', value: employees.length, icon: Users, bg: 'bg-blue-500' },
-    { label: 'إجمالي الرواتب', value: formatCurrency(totalSalaries), icon: Wallet, bg: 'bg-emerald-500' },
-    { label: 'متوسط الراتب', value: formatCurrency(employees.length > 0 ? totalSalaries / employees.length : 0), icon: CalendarDays, bg: 'bg-violet-500' },
+    ...(canViewSalaries ? [
+      { label: 'إجمالي الرواتب', value: formatCurrency(totalSalaries), icon: Wallet, bg: 'bg-emerald-500' },
+      { label: 'متوسط الراتب', value: formatCurrency(employees.length > 0 ? totalSalaries / employees.length : 0), icon: CalendarDays, bg: 'bg-violet-500' },
+    ] : []),
   ];
 
   return (
@@ -56,7 +61,7 @@ export default function Employees() {
             <p className="text-blue-200/80 text-sm">{employees.length} موظف مسجل في النظام</p>
           </div>
           <div className="hidden md:flex items-center gap-3">
-            <button onClick={() => exportToCSV('employees', ['الاسم', 'المسمى الوظيفي', 'الراتب الأساسي', 'تاريخ التعيين'], employees.map(emp => [emp.name, emp.position, String(emp.base_salary), emp.join_date]))} disabled={employees.length === 0} className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-all border border-white/10">
+            <button onClick={() => exportToCSV('employees', canViewSalaries ? ['الاسم', 'المسمى الوظيفي', 'الراتب الأساسي', 'تاريخ التعيين'] : ['الاسم', 'المسمى الوظيفي', 'تاريخ التعيين'], employees.map(emp => canViewSalaries ? [emp.name, emp.position, String(emp.base_salary), emp.join_date] : [emp.name, emp.position, emp.join_date]))} disabled={employees.length === 0} className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-all border border-white/10">
               <Download size={16} /> تصدير CSV
             </button>
             <Link to="/employees/create" className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-all border border-white/10">
@@ -111,7 +116,7 @@ export default function Employees() {
               <tr>
                 <th>الاسم</th>
                 <th className="hidden sm:table-cell">المسمى الوظيفي</th>
-                <th>الراتب الأساسي</th>
+                {canViewSalaries && <th>الراتب الأساسي</th>}
                 <th className="hidden md:table-cell">تاريخ التعيين</th>
                 <th>إجراءات</th>
               </tr>
@@ -137,7 +142,7 @@ export default function Employees() {
                     </div>
                   </td>
                   <td className="hidden sm:table-cell">{emp.position}</td>
-                  <td className="font-medium">{formatCurrency(emp.base_salary)}</td>
+                  {canViewSalaries && <td className="font-medium">{formatCurrency(emp.base_salary)}</td>}
                   <td className="hidden md:table-cell">{formatDate(emp.join_date)}</td>
                   <td>
                     <div className="flex gap-1">

@@ -78,7 +78,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     });
 
     // ========== Clients & Contracts ==========
-    Route::middleware('role:super_admin,manager,sales,accountant,employee,clients')->group(function () {
+    Route::middleware('role:super_admin,manager,sales,accountant,employee,marketing_manager,clients')->group(function () {
         Route::get('clients', [ClientController::class, 'index']);
         Route::get('clients/{client}', [ClientController::class, 'show']);
     });
@@ -156,7 +156,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     });
 
     // ========== Employees & HR ==========
-    Route::middleware('role:super_admin,manager,employee,employees')->group(function () {
+    Route::middleware('role:super_admin,manager,employee,marketing_manager,employees')->group(function () {
         Route::get('employees', [EmployeeController::class, 'index']);
         Route::get('employees/{employee}', [EmployeeController::class, 'show']);
     });

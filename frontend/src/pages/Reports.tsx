@@ -50,6 +50,7 @@ interface PLData {
 }
 
 function ProfitLossView({ data, currency }: { data: PLData['data']; currency: string }) {
+  if (!data || !data.monthly) return <div className="text-center py-10 text-gray-400">لا توجد بيانات</div>;
   const t = data.totals || {} as Record<string, number>;
   const fmt = (v: number) => formatCurrency(v || 0, currency as any);
 
@@ -163,6 +164,7 @@ interface CFData {
 }
 
 function CashFlowView({ data, currency }: { data: CFData['data']; currency: string }) {
+  if (!data || !data.monthly) return <div className="text-center py-10 text-gray-400">لا توجد بيانات</div>;
   const t = data.totals || {} as Record<string, number>;
   const fmt = (v: number) => formatCurrency(v || 0, currency as any);
 

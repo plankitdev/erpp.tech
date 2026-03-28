@@ -10,6 +10,7 @@ import {
 import toast from 'react-hot-toast';
 import { InlinePreview, resolveFileUrl, isPreviewable, getFileIconComponent, getFileIconColor } from '../components/FilePreview';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { useAuthStore } from '../store/authStore';
 
 const fileTypes: Record<string, string> = {
   national_id: 'هوية وطنية',
@@ -81,6 +82,8 @@ export default function EmployeeProfile() {
   const totalPaid = salaries.reduce((sum, s) => sum + (s.transfer_amount || 0), 0);
   const totalDeductions = salaries.reduce((sum, s) => sum + (s.deductions || 0), 0);
   const files = employee.files || [];
+  const { hasPermission } = useAuthStore();
+  const canViewSalaries = hasPermission('salaries.view');
 
   const InfoItem = ({ icon: Icon, label, value }: { icon: typeof User; label: string; value: string | null | undefined }) => (
     value ? (
@@ -132,32 +135,40 @@ export default function EmployeeProfile() {
 
         {/* Summary Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">
+          {canViewSalaries && (
           <div className="bg-emerald-50 rounded-xl p-3 text-center">
             <p className="text-[11px] text-emerald-600">الراتب الأساسي</p>
             <p className="text-lg font-bold text-emerald-700">{formatCurrency(employee.base_salary)}</p>
           </div>
+          )}
+          {canViewSalaries && (
           <div className="bg-blue-50 rounded-xl p-3 text-center">
             <p className="text-[11px] text-blue-600">إجمالي المدفوع</p>
             <p className="text-lg font-bold text-blue-700">{formatCurrency(totalPaid)}</p>
           </div>
+          )}
+          {canViewSalaries && (
           <div className="bg-red-50 rounded-xl p-3 text-center">
             <p className="text-[11px] text-red-600">الخصومات</p>
             <p className="text-lg font-bold text-red-700">{formatCurrency(totalDeductions)}</p>
           </div>
+          )}
+          {canViewSalaries && (
           <div className="bg-purple-50 rounded-xl p-3 text-center">
             <p className="text-[11px] text-purple-600">أشهر مسجلة</p>
             <p className="text-lg font-bold text-purple-700">{salaries.length}</p>
           </div>
+          )}
         </div>
       </div>
 
       {/* Tabs */}
       <div className="tab-bar w-fit">
-        {[
+        {([
           { key: 'info' as const, label: 'البيانات', icon: User },
-          { key: 'salary' as const, label: 'الرواتب والتحويلات', icon: Wallet },
+          ...(canViewSalaries ? [{ key: 'salary' as const, label: 'الرواتب والتحويلات', icon: Wallet }] : []),
           { key: 'files' as const, label: 'الملفات', icon: FileText },
-        ].map(tab => (
+        ] as const).map(tab => (
           <button key={tab.key} onClick={() => setActiveTab(tab.key)}
             className={`tab-item flex items-center gap-1.5 ${activeTab === tab.key ? 'active' : ''}`}>
             <tab.icon size={14} />{tab.label}
@@ -178,7 +189,7 @@ export default function EmployeeProfile() {
             <InfoItem icon={MapPin} label="العنوان" value={employee.address} />
             <InfoItem icon={Building2} label="البنك" value={employee.bank_name} />
             <InfoItem icon={CreditCard} label="رقم الحساب البنكي" value={employee.bank_account} />
-            <InfoItem icon={Wallet} label="الراتب الأساسي" value={formatCurrency(employee.base_salary)} />
+            {canViewSalaries && <InfoItem icon={Wallet} label="الراتب الأساسي" value={formatCurrency(employee.base_salary)} />}
             <InfoItem icon={Calendar} label="تاريخ التعيين" value={formatDate(employee.join_date)} />
             <InfoItem icon={Calendar} label="بداية العقد" value={employee.contract_start ? formatDate(employee.contract_start) : null} />
             <InfoItem icon={Calendar} label="نهاية العقد" value={employee.contract_end ? formatDate(employee.contract_end) : null} />
@@ -193,7 +204,7 @@ export default function EmployeeProfile() {
       )}
 
       {/* Salary Tab */}
-      {activeTab === 'salary' && (
+      {activeTab === 'salary' && canViewSalaries && (
         <div className="table-container">
           <div className="px-6 py-4 border-b border-gray-100">
             <h2 className="font-semibold text-gray-800">سجل الرواتب والتحويلات</h2>
