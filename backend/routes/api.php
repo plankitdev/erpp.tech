@@ -343,6 +343,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::put('/file-manager/files/{managedFile}/move', [FileManagerController::class, 'moveFile']);
     Route::post('/file-manager/files/{managedFile}/approve', [FileManagerController::class, 'approveFile']);
     Route::delete('/file-manager/files/{managedFile}', [FileManagerController::class, 'deleteFile']);
+    Route::get('/file-manager/files/{managedFile}/download', [FileManagerController::class, 'downloadFile']);
 
     // ========== Google Drive Sync ==========
     Route::get('/google-drive/status', [GoogleDriveController::class, 'status']);

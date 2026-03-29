@@ -87,4 +87,7 @@ export const fileManagerApi = {
 
   deleteFile: (id: number) =>
     api.delete<ApiResponse<null>>(`/file-manager/files/${id}`),
+
+  downloadFile: (id: number) =>
+    api.get(`/file-manager/files/${id}/download`, { responseType: 'blob' }),
 };

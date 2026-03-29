@@ -14,6 +14,7 @@ class Folder extends Model
     protected $fillable = [
         'company_id', 'parent_id', 'name', 'type',
         'client_id', 'project_id', 'created_by',
+        'drive_folder_id',
     ];
 
     public function parent(): BelongsTo

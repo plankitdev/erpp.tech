@@ -98,6 +98,24 @@ export default function FileManager() {
   const files = isEmployee ? allFiles.filter(f => f.uploaded_by?.id === user?.id) : allFiles;
   const breadcrumbs: FMBreadcrumb[] = data?.breadcrumbs ?? [];
 
+  // Download file via API (works for both local and Drive-stored files)
+  const handleDownload = async (fileId: number, fileName: string) => {
+    try {
+      const response = await fileManagerApi.downloadFile(fileId);
+      const blob = new Blob([response.data]);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch {
+      toast.error('فشل تحميل الملف');
+    }
+  };
+
   // Mutations
   const createFolderMut = useMutation({
     mutationFn: (name: string) => fileManagerApi.createFolder({ name, parent_id: currentFolderId }),
@@ -477,13 +495,12 @@ export default function FileManager() {
                                 <Eye className="w-4 h-4" />
                               </button>
                             )}
-                            <a
-                              href={resolveFileUrl(f.file_path)}
-                              download
+                            <button
+                              onClick={() => handleDownload(f.id, f.name)}
                               className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500"
                             >
                               <Download className="w-4 h-4" />
-                            </a>
+                            </button>
                           </div>
                         );
                       })}
@@ -582,6 +599,7 @@ export default function FileManager() {
                           if (confirm(`حذف الملف "${file.name}"?`)) deleteFileMut.mutate(file.id);
                         }}
                         onApprove={() => approveFileMut.mutate(file.id)}
+                        onDownload={() => handleDownload(file.id, file.name)}
                         isManager={isManager}
                       />
                     ))}
@@ -608,6 +626,7 @@ export default function FileManager() {
                           if (confirm(`حذف الملف "${file.name}"?`)) deleteFileMut.mutate(file.id);
                         }}
                         onApprove={() => approveFileMut.mutate(file.id)}
+                        onDownload={() => handleDownload(file.id, file.name)}
                         isManager={isManager}
                       />
                     ))}
@@ -724,15 +743,13 @@ export default function FileManager() {
                   معاينة
                 </button>
               )}
-              <a
-                href={resolveFileUrl((contextMenu.item as FMFile).file_path)}
-                download
+              <button
+                onClick={() => { handleDownload((contextMenu.item as FMFile).id, (contextMenu.item as FMFile).name); setContextMenu(null); }}
                 className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-sm"
-                onClick={() => setContextMenu(null)}
               >
                 <Download className="w-4 h-4 text-gray-400" />
                 تحميل
-              </a>
+              </button>
               <button
                 onClick={() => {
                   setRenamingFile((contextMenu.item as FMFile).id);
@@ -934,7 +951,7 @@ function FolderRow({ folder, isRenaming, renameValue, onNavigate, onStartRename,
   );
 }
 
-function FileCard({ file, isRenaming, renameValue, onPreview, onStartRename, onRename, onCancelRename, onRenameChange, onMove, onDelete, onApprove, isManager }: {
+function FileCard({ file, isRenaming, renameValue, onPreview, onStartRename, onRename, onCancelRename, onRenameChange, onMove, onDelete, onApprove, onDownload, isManager }: {
   file: FMFile;
   isRenaming: boolean;
   renameValue: string;
@@ -946,6 +963,7 @@ function FileCard({ file, isRenaming, renameValue, onPreview, onStartRename, onR
   onMove: () => void;
   onDelete: () => void;
   onApprove: () => void;
+  onDownload: () => void;
   isManager: boolean;
 }) {
   const IconComp = getFileIconComponent(file.name);
@@ -983,9 +1001,9 @@ function FileCard({ file, isRenaming, renameValue, onPreview, onStartRename, onR
                 <Eye className="w-4 h-4 text-gray-700" />
               </button>
             )}
-            <a href={resolveFileUrl(file.file_path)} download className="p-2 bg-white rounded-full shadow hover:bg-gray-100" onClick={e => e.stopPropagation()}>
+            <button onClick={e => { e.stopPropagation(); onDownload(); }} className="p-2 bg-white rounded-full shadow hover:bg-gray-100">
               <Download className="w-4 h-4 text-gray-700" />
-            </a>
+            </button>
           </div>
         </div>
         {/* Status badge */}
@@ -1036,7 +1054,7 @@ function FileCard({ file, isRenaming, renameValue, onPreview, onStartRename, onR
   );
 }
 
-function FileRow({ file, isRenaming, renameValue, onPreview, onStartRename, onRename, onCancelRename, onRenameChange, onMove, onDelete, onApprove, isManager }: {
+function FileRow({ file, isRenaming, renameValue, onPreview, onStartRename, onRename, onCancelRename, onRenameChange, onMove, onDelete, onApprove, onDownload, isManager }: {
   file: FMFile;
   isRenaming: boolean;
   renameValue: string;
@@ -1048,6 +1066,7 @@ function FileRow({ file, isRenaming, renameValue, onPreview, onStartRename, onRe
   onMove: () => void;
   onDelete: () => void;
   onApprove: () => void;
+  onDownload: () => void;
   isManager: boolean;
 }) {
   const IconComp = getFileIconComponent(file.name);
@@ -1096,9 +1115,9 @@ function FileRow({ file, isRenaming, renameValue, onPreview, onStartRename, onRe
             <Eye className="w-4 h-4 text-blue-500" />
           </button>
         )}
-        <a href={resolveFileUrl(file.file_path)} download className="p-1.5 rounded-lg hover:bg-gray-200" onClick={e => e.stopPropagation()}>
+        <button onClick={e => { e.stopPropagation(); onDownload(); }} className="p-1.5 rounded-lg hover:bg-gray-200">
           <Download className="w-4 h-4 text-gray-500" />
-        </a>
+        </button>
         <button onClick={e => { e.stopPropagation(); onStartRename(); }} className="p-1.5 rounded-lg hover:bg-gray-200">
           <Edit3 className="w-4 h-4 text-gray-500" />
         </button>

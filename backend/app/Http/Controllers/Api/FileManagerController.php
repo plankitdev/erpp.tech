@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Folder;
 use App\Models\ManagedFile;
+use App\Services\GoogleDriveService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -94,6 +95,16 @@ class FileManagerController extends Controller
             'created_by' => auth()->id(),
         ]);
 
+        // Sync to Google Drive in background
+        $driveService = GoogleDriveService::forCompany(auth()->user()->company_id);
+        if ($driveService) {
+            $parentDriveId = $driveService->resolveParentDriveFolderId($request->parent_id);
+            $driveFolderId = $driveService->createFolder($request->name, $parentDriveId);
+            if ($driveFolderId) {
+                $folder->update(['drive_folder_id' => $driveFolderId]);
+            }
+        }
+
         return $this->successResponse($folder, 'تم إنشاء المجلد', 201);
     }
 
@@ -103,7 +114,15 @@ class FileManagerController extends Controller
     public function renameFolder(Request $request, Folder $folder): JsonResponse
     {
         $request->validate(['name' => 'required|string|max:255']);
+        $oldName = $folder->name;
         $folder->update(['name' => $request->name]);
+
+        // Sync rename to Drive
+        if ($folder->drive_folder_id) {
+            $driveService = GoogleDriveService::forCompany(auth()->user()->company_id);
+            $driveService?->renameFolder($folder->drive_folder_id, $request->name);
+        }
+
         return $this->successResponse($folder, 'تم تعديل الاسم');
     }
 
@@ -112,7 +131,13 @@ class FileManagerController extends Controller
      */
     public function deleteFolder(Folder $folder): JsonResponse
     {
-        // Delete all files recursively
+        // Delete from Drive first
+        if ($folder->drive_folder_id) {
+            $driveService = GoogleDriveService::forCompany(auth()->user()->company_id);
+            $driveService?->deleteFolder($folder->drive_folder_id);
+        }
+
+        // Delete all files recursively (local)
         $this->deleteFilesRecursively($folder);
         $folder->delete();
         return $this->successResponse(null, 'تم حذف المجلد');
@@ -138,6 +163,16 @@ class FileManagerController extends Controller
         }
 
         $folder->update(['parent_id' => $request->parent_id]);
+
+        // Sync move to Drive
+        if ($folder->drive_folder_id) {
+            $driveService = GoogleDriveService::forCompany(auth()->user()->company_id);
+            if ($driveService) {
+                $newParentDriveId = $driveService->resolveParentDriveFolderId($request->parent_id);
+                $driveService->moveFolder($folder->drive_folder_id, $newParentDriveId);
+            }
+        }
+
         return $this->successResponse($folder, 'تم نقل المجلد');
     }
 
@@ -155,15 +190,27 @@ class FileManagerController extends Controller
         $uploaded = $request->file('file');
         $path = $uploaded->store('file-manager', 'public');
 
+        $fileName = $request->name ?: $uploaded->getClientOriginalName();
+
         $managedFile = ManagedFile::create([
             'folder_id' => $request->folder_id,
-            'name' => $request->name ?: $uploaded->getClientOriginalName(),
+            'name' => $fileName,
             'file_path' => $path,
             'mime_type' => $uploaded->getClientMimeType(),
             'file_size' => $uploaded->getSize(),
             'status' => 'draft',
             'uploaded_by' => auth()->id(),
         ]);
+
+        // Auto-upload to Google Drive
+        $driveService = GoogleDriveService::forCompany(auth()->user()->company_id);
+        if ($driveService) {
+            $parentDriveId = $driveService->resolveParentDriveFolderId($request->folder_id);
+            $driveFileId = $driveService->uploadFile($path, $fileName, $uploaded->getClientMimeType(), $parentDriveId);
+            if ($driveFileId) {
+                $managedFile->update(['drive_file_id' => $driveFileId]);
+            }
+        }
 
         $managedFile->load('uploader:id,name');
 
@@ -184,6 +231,12 @@ class FileManagerController extends Controller
      */
     public function deleteFile(ManagedFile $managedFile): JsonResponse
     {
+        // Delete from Drive
+        if ($managedFile->drive_file_id) {
+            $driveService = GoogleDriveService::forCompany(auth()->user()->company_id);
+            $driveService?->deleteFile($managedFile->drive_file_id);
+        }
+
         Storage::disk('public')->delete($managedFile->file_path);
         $managedFile->delete();
         return $this->successResponse(null, 'تم حذف الملف');
@@ -196,6 +249,16 @@ class FileManagerController extends Controller
     {
         $request->validate(['folder_id' => 'nullable|exists:folders,id']);
         $managedFile->update(['folder_id' => $request->folder_id]);
+
+        // Sync move to Drive
+        if ($managedFile->drive_file_id) {
+            $driveService = GoogleDriveService::forCompany(auth()->user()->company_id);
+            if ($driveService) {
+                $newParentDriveId = $driveService->resolveParentDriveFolderId($request->folder_id);
+                $driveService->moveFile($managedFile->drive_file_id, $newParentDriveId);
+            }
+        }
+
         return $this->successResponse($managedFile, 'تم نقل الملف');
     }
 
@@ -206,6 +269,13 @@ class FileManagerController extends Controller
     {
         $request->validate(['name' => 'required|string|max:255']);
         $managedFile->update(['name' => $request->name]);
+
+        // Sync rename to Drive
+        if ($managedFile->drive_file_id) {
+            $driveService = GoogleDriveService::forCompany(auth()->user()->company_id);
+            $driveService?->renameFile($managedFile->drive_file_id, $request->name);
+        }
+
         return $this->successResponse($managedFile, 'تم تعديل الاسم');
     }
 
@@ -282,6 +352,35 @@ class FileManagerController extends Controller
             'folders' => $folders,
             'files' => $files,
         ]);
+    }
+
+    /**
+     * Download a file — serves from local storage or fetches from Drive if deleted locally.
+     */
+    public function downloadFile(ManagedFile $managedFile)
+    {
+        $localPath = Storage::disk('public')->path($managedFile->file_path);
+
+        // If file exists locally, serve it
+        if (file_exists($localPath)) {
+            return response()->download($localPath, $managedFile->name);
+        }
+
+        // File deleted locally — try fetching from Drive
+        if ($managedFile->drive_file_id) {
+            $driveService = GoogleDriveService::forCompany(auth()->user()->company_id);
+            if ($driveService) {
+                $content = $driveService->downloadFile($managedFile->drive_file_id);
+                if ($content) {
+                    return response($content, 200, [
+                        'Content-Type' => $managedFile->mime_type ?? 'application/octet-stream',
+                        'Content-Disposition' => 'attachment; filename="' . $managedFile->name . '"',
+                    ]);
+                }
+            }
+        }
+
+        return response()->json(['message' => 'الملف غير متوفر'], 404);
     }
 
     private function deleteFilesRecursively(Folder $folder): void

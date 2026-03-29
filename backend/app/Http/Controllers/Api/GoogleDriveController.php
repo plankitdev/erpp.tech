@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\GoogleDriveToken;
 use App\Models\ManagedFile;
 use App\Models\Folder;
+use App\Services\GoogleDriveService;
 use App\Traits\ApiResponse;
 use Google\Client as GoogleClient;
 use Google\Service\Drive as GoogleDrive;
@@ -136,162 +137,14 @@ class GoogleDriveController extends Controller
     public function sync(): JsonResponse
     {
         $companyId = $this->getCompanyId();
-        $driveToken = GoogleDriveToken::where('company_id', $companyId)->first();
+        $driveService = GoogleDriveService::forCompany($companyId);
 
-        if (!$driveToken) {
-            return $this->errorResponse('جوجل درايف غير مربوط', 400);
+        if (!$driveService) {
+            return $this->errorResponse('جوجل درايف غير مربوط أو انتهت الصلاحية', 400);
         }
 
-        $client = $this->getClient();
-        $client->setAccessToken($driveToken->access_token);
+        $result = $driveService->syncAll();
 
-        // Refresh token if expired
-        if ($driveToken->expires_at && $driveToken->expires_at->isPast()) {
-            if (!$driveToken->refresh_token) {
-                return $this->errorResponse('انتهت صلاحية الاتصال، يرجى إعادة الربط', 401);
-            }
-            $client->fetchAccessTokenWithRefreshToken($driveToken->refresh_token);
-            $newToken = $client->getAccessToken();
-            $driveToken->update([
-                'access_token' => $newToken['access_token'],
-                'expires_at' => now()->addSeconds($newToken['expires_in'] ?? 3600),
-            ]);
-        }
-
-        $drive = new GoogleDrive($client);
-        $rootFolderId = $driveToken->drive_folder_id;
-
-        // Get all folders and files
-        $folders = Folder::where('company_id', $companyId)->get();
-        $files = ManagedFile::where('company_id', $companyId)->get();
-
-        $syncedFiles = 0;
-        $errors = 0;
-
-        // Map: local folder id => drive folder id
-        $folderMap = [];
-
-        // Create folder structure in Drive
-        foreach ($this->buildFolderTree($folders) as $folder) {
-            try {
-                $parentId = $folder->parent_id && isset($folderMap[$folder->parent_id])
-                    ? $folderMap[$folder->parent_id]
-                    : $rootFolderId;
-
-                $driveFolder = new DriveFile([
-                    'name' => $folder->name,
-                    'mimeType' => 'application/vnd.google-apps.folder',
-                    'parents' => [$parentId],
-                ]);
-
-                // Check if folder already exists
-                $existing = $drive->files->listFiles([
-                    'q' => "name='" . addcslashes($folder->name, "'") . "' and '{$parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false",
-                    'fields' => 'files(id)',
-                    'pageSize' => 1,
-                ]);
-
-                if (count($existing->files) > 0) {
-                    $folderMap[$folder->id] = $existing->files[0]->id;
-                } else {
-                    $created = $drive->files->create($driveFolder, ['fields' => 'id']);
-                    $folderMap[$folder->id] = $created->id;
-                }
-            } catch (\Exception $e) {
-                $errors++;
-            }
-        }
-
-        // Upload files
-        foreach ($files as $file) {
-            try {
-                $parentId = $file->folder_id && isset($folderMap[$file->folder_id])
-                    ? $folderMap[$file->folder_id]
-                    : $rootFolderId;
-
-                // Check if file already exists
-                $existing = $drive->files->listFiles([
-                    'q' => "name='" . addcslashes($file->name, "'") . "' and '{$parentId}' in parents and trashed=false",
-                    'fields' => 'files(id)',
-                    'pageSize' => 1,
-                ]);
-
-                $filePath = Storage::disk('public')->path($file->file_path);
-
-                if (!file_exists($filePath)) {
-                    $errors++;
-                    continue;
-                }
-
-                $driveFile = new DriveFile([
-                    'name' => $file->name,
-                    'parents' => [$parentId],
-                ]);
-
-                $content = file_get_contents($filePath);
-
-                if (count($existing->files) > 0) {
-                    // Update existing file
-                    $drive->files->update($existing->files[0]->id, new DriveFile(['name' => $file->name]), [
-                        'data' => $content,
-                        'mimeType' => $file->mime_type,
-                        'uploadType' => 'multipart',
-                    ]);
-                } else {
-                    // Upload new file
-                    $drive->files->create($driveFile, [
-                        'data' => $content,
-                        'mimeType' => $file->mime_type,
-                        'uploadType' => 'multipart',
-                        'fields' => 'id',
-                    ]);
-                }
-                $syncedFiles++;
-            } catch (\Exception $e) {
-                $errors++;
-            }
-        }
-
-        $driveToken->update(['last_synced_at' => now()]);
-
-        return $this->successResponse([
-            'synced_files' => $syncedFiles,
-            'errors' => $errors,
-            'total_files' => $files->count(),
-            'total_folders' => $folders->count(),
-        ], "تم مزامنة {$syncedFiles} ملف");
-    }
-
-    /**
-     * Build ordered folder tree (parents before children)
-     */
-    private function buildFolderTree($folders): array
-    {
-        $result = [];
-        $remaining = $folders->toArray();
-        $processed = [];
-
-        // First pass: root folders (no parent)
-        foreach ($remaining as $key => $folder) {
-            if (empty($folder['parent_id'])) {
-                $result[] = (object) $folder;
-                $processed[] = $folder['id'];
-                unset($remaining[$key]);
-            }
-        }
-
-        // Subsequent passes: children of already processed
-        $maxPasses = 20;
-        while (count($remaining) > 0 && $maxPasses-- > 0) {
-            foreach ($remaining as $key => $folder) {
-                if (in_array($folder['parent_id'], $processed)) {
-                    $result[] = (object) $folder;
-                    $processed[] = $folder['id'];
-                    unset($remaining[$key]);
-                }
-            }
-        }
-
-        return $result;
+        return $this->successResponse($result, "تم مزامنة {$result['synced_files']} ملف");
     }
 }

@@ -15,6 +15,7 @@ class ManagedFile extends Model
         'company_id', 'folder_id', 'name', 'file_path',
         'mime_type', 'file_size', 'status',
         'uploaded_by', 'approved_by', 'approved_at', 'notes',
+        'drive_file_id',
     ];
 
     protected $casts = [
