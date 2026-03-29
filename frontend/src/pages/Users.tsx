@@ -14,6 +14,7 @@ import { SkeletonTable } from '../components/Skeletons';
 
 const roleLabels: Record<string, string> = {
   super_admin: 'مدير النظام',
+  company_admin: 'أدمن الشركة',
   manager: 'مدير',
   accountant: 'محاسب',
   sales: 'مبيعات',
@@ -23,6 +24,7 @@ const roleLabels: Record<string, string> = {
 
 const roleColors: Record<string, string> = {
   super_admin: 'bg-purple-100 text-purple-700 border-purple-200',
+  company_admin: 'bg-indigo-100 text-indigo-700 border-indigo-200',
   manager: 'bg-blue-100 text-blue-700 border-blue-200',
   accountant: 'bg-emerald-100 text-emerald-700 border-emerald-200',
   sales: 'bg-amber-100 text-amber-700 border-amber-200',
@@ -315,6 +317,7 @@ export default function Users() {
                   <select value={form.role} onChange={e => { setForm({ ...form, role: e.target.value }); }}
                     className="select">
                     <option value="super_admin">مدير النظام</option>
+                    <option value="company_admin">أدمن الشركة</option>
                     <option value="manager">مدير</option>
                     <option value="marketing_manager">مدير تسويق</option>
                     <option value="accountant">محاسب</option>

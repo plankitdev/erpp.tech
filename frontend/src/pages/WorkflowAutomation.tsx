@@ -546,14 +546,14 @@ export default function WorkflowAutomation() {
                     <div>
                       <label className="block text-xs text-gray-500 mb-1">إرسال لـ</label>
                       <div className="flex flex-wrap gap-2">
-                        {['super_admin', 'manager', 'marketing_manager', 'accountant', 'sales', 'employee'].map(role => (
+                        {['super_admin', 'company_admin', 'manager', 'marketing_manager', 'accountant', 'sales', 'employee'].map(role => (
                           <button
                             key={role}
                             type="button"
                             onClick={() => toggleRole(role)}
                             className={`px-2 py-1 rounded text-xs transition ${notifRoles.includes(role) ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-500'}`}
                           >
-                            {role === 'super_admin' ? 'مدير عام' : role === 'manager' ? 'مدير' : role === 'marketing_manager' ? 'مدير تسويق' : role === 'accountant' ? 'محاسب' : role === 'sales' ? 'مبيعات' : 'موظف'}
+                            {role === 'super_admin' ? 'مدير عام' : role === 'company_admin' ? 'أدمن الشركة' : role === 'manager' ? 'مدير' : role === 'marketing_manager' ? 'مدير تسويق' : role === 'accountant' ? 'محاسب' : role === 'sales' ? 'مبيعات' : 'موظف'}
                           </button>
                         ))}
                       </div>
