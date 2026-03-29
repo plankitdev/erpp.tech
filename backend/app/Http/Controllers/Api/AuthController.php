@@ -81,6 +81,21 @@ class AuthController extends Controller
         );
     }
 
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+        ]);
+
+        $user = $request->user();
+        $user->update(['name' => $request->name]);
+
+        return $this->successResponse(
+            new UserResource($user->load('company')),
+            'تم تحديث البيانات الشخصية'
+        );
+    }
+
     public function changePassword(Request $request): JsonResponse
     {
         $request->validate([

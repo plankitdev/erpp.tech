@@ -44,6 +44,7 @@ export default function Settings() {
   const [profileForm, setProfileForm] = useState({ name: '', password: '', password_confirmation: '' });
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [currentPassword, setCurrentPassword] = useState('');
   const [initialized, setInitialized] = useState(false);
 
   if (company && !initialized) {
@@ -71,15 +72,29 @@ export default function Settings() {
     onError: () => toast.error('حدث خطأ'),
   });
 
-  // Update profile
+  // Update profile (name only)
   const updateProfile = useMutation({
-    mutationFn: (data: Record<string, unknown>) => api.put(`/users/${user?.id}`, data),
+    mutationFn: (data: Record<string, unknown>) => api.put('/auth/profile', data),
     onSuccess: () => {
       toast.success('تم تحديث البيانات');
       fetchUser();
       setProfileForm({ name: '', password: '', password_confirmation: '' });
     },
     onError: () => toast.error('حدث خطأ'),
+  });
+
+  // Change password
+  const changePassword = useMutation({
+    mutationFn: (data: Record<string, unknown>) => api.post('/auth/change-password', data),
+    onSuccess: () => {
+      toast.success('تم تغيير كلمة المرور بنجاح');
+      setProfileForm(prev => ({ ...prev, password: '', password_confirmation: '' }));
+      setCurrentPassword('');
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.message || 'حدث خطأ';
+      toast.error(msg);
+    },
   });
 
   // Upload avatar
@@ -151,14 +166,30 @@ export default function Settings() {
 
   const handleProfileSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const data: Record<string, unknown> = {};
-    if (profileForm.name) data.name = profileForm.name;
-    if (profileForm.password) {
-      data.password = profileForm.password;
-      data.password_confirmation = profileForm.password_confirmation;
+    if (profileForm.name) {
+      updateProfile.mutate({ name: profileForm.name });
     }
-    if (Object.keys(data).length === 0) return;
-    updateProfile.mutate(data);
+  };
+
+  const handlePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentPassword) {
+      toast.error('يرجى إدخال كلمة المرور الحالية');
+      return;
+    }
+    if (!profileForm.password) {
+      toast.error('يرجى إدخال كلمة المرور الجديدة');
+      return;
+    }
+    if (profileForm.password !== profileForm.password_confirmation) {
+      toast.error('كلمة المرور الجديدة وتأكيدها غير متطابقين');
+      return;
+    }
+    changePassword.mutate({
+      current_password: currentPassword,
+      password: profileForm.password,
+      password_confirmation: profileForm.password_confirmation,
+    });
   };
 
   return (
@@ -300,21 +331,7 @@ export default function Settings() {
                 onChange={e => setProfileForm({ ...profileForm, name: e.target.value })}
                 className="input" />
             </div>
-            <div>
-              <label className="input-label">كلمة مرور جديدة</label>
-              <input type="password" value={profileForm.password}
-                onChange={e => setProfileForm({ ...profileForm, password: e.target.value })}
-                className="input" placeholder="اتركها فارغة إذا لم ترد التغيير" />
-            </div>
-            {profileForm.password && (
-              <div>
-                <label className="input-label">تأكيد كلمة المرور</label>
-                <input type="password" value={profileForm.password_confirmation}
-                  onChange={e => setProfileForm({ ...profileForm, password_confirmation: e.target.value })}
-                  className="input" />
-              </div>
-            )}
-            <button type="submit" disabled={updateProfile.isPending} className="btn-primary disabled:opacity-50">
+            <button type="submit" disabled={updateProfile.isPending || !profileForm.name} className="btn-primary disabled:opacity-50">
               {updateProfile.isPending ? 'جاري الحفظ...' : 'تحديث البيانات'}
             </button>
           </form>
@@ -331,7 +348,13 @@ export default function Settings() {
               </div>
               <h2 className="text-lg font-semibold text-gray-900">الأمان وكلمة المرور</h2>
             </div>
-            <form onSubmit={handleProfileSubmit} className="space-y-4">
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              <div>
+                <label className="input-label">كلمة المرور الحالية</label>
+                <input type="password" value={currentPassword}
+                  onChange={e => setCurrentPassword(e.target.value)}
+                  className="input" placeholder="أدخل كلمة المرور الحالية" />
+              </div>
               <div>
                 <label className="input-label">كلمة مرور جديدة</label>
                 <input type="password" value={profileForm.password}
@@ -346,8 +369,8 @@ export default function Settings() {
                     className="input" />
                 </div>
               )}
-              <button type="submit" disabled={updateProfile.isPending || !profileForm.password} className="btn-primary disabled:opacity-50">
-                {updateProfile.isPending ? 'جاري التحديث...' : 'تغيير كلمة المرور'}
+              <button type="submit" disabled={changePassword.isPending || !profileForm.password || !currentPassword} className="btn-primary disabled:opacity-50">
+                {changePassword.isPending ? 'جاري التحديث...' : 'تغيير كلمة المرور'}
               </button>
             </form>
           </div>
