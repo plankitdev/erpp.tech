@@ -95,7 +95,7 @@ export default function FileManager() {
 
   const folders = data?.folders ?? [];
   const allFiles = data?.files ?? [];
-  const files = isEmployee ? allFiles.filter(f => f.uploaded_by?.id === user?.id) : allFiles;
+  const files = allFiles;
   const breadcrumbs: FMBreadcrumb[] = data?.breadcrumbs ?? [];
 
   // Download file via API (works for both local and Drive-stored files)
