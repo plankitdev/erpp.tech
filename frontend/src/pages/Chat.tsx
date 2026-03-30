@@ -1,9 +1,29 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
-import { MessageSquare, Plus, Send, Paperclip, Trash2, Users, Hash, X, Search, ArrowRight, Building2, UserPlus, UserMinus, Lock, Globe } from 'lucide-react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { MessageSquare, Plus, Send, Paperclip, Trash2, Users, Hash, X, Search, ArrowRight, Building2, UserPlus, UserMinus, Lock, Globe, AtSign, Image } from 'lucide-react';
 import { useChatChannels, useChatMessages, useChatUsers, useCreateChannel, useSendMessage, useDeleteMessage, useDeleteChannel, useMarkRead, useAddMembers, useRemoveMember } from '../hooks/useChat';
 import { useAuthStore } from '../store/authStore';
 import type { ChatChannel, ChatMessage } from '../types';
 import { InlinePreview, resolveFileUrl, isPreviewable } from '../components/FilePreview';
+
+// Render message body with @mentions highlighted
+function RenderMessageBody({ body, isMe }: { body: string; isMe: boolean }) {
+  const parts = body.split(/(@\[[^\]]+\]\(\d+\))/g);
+  return (
+    <p className="text-sm whitespace-pre-wrap">
+      {parts.map((part, i) => {
+        const match = part.match(/^@\[([^\]]+)\]\((\d+)\)$/);
+        if (match) {
+          return (
+            <span key={i} className={`font-bold ${isMe ? 'text-blue-100 bg-blue-400/30' : 'text-blue-600 bg-blue-50'} rounded px-0.5`}>
+              @{match[1]}
+            </span>
+          );
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </p>
+  );
+}
 
 export default function Chat() {
   const { user } = useAuthStore();
@@ -14,8 +34,11 @@ export default function Chat() {
   const [messageText, setMessageText] = useState('');
   const [attachment, setAttachment] = useState<File | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [mentionIndex, setMentionIndex] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { data: channels = [], isLoading: channelsLoading } = useChatChannels();
   const { data: messagesData } = useChatMessages(activeChannelId);
@@ -47,13 +70,88 @@ export default function Chat() {
     if (messageText.trim()) formData.append('body', messageText.trim());
     if (attachment) formData.append('attachment', attachment);
     sendMessage.mutate({ channelId: activeChannelId, data: formData }, {
-      onSuccess: () => { setMessageText(''); setAttachment(null); },
+      onSuccess: () => { setMessageText(''); setAttachment(null); setMentionQuery(null); },
     });
   };
 
+  // Mention filtering
+  const mentionUsers = useMemo(() => {
+    if (mentionQuery === null) return [];
+    return chatUsers.filter((u: any) =>
+      u.id !== user?.id && u.name.toLowerCase().includes(mentionQuery.toLowerCase())
+    ).slice(0, 6);
+  }, [mentionQuery, chatUsers, user?.id]);
+
+  const insertMention = useCallback((u: { id: number; name: string }) => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const cursor = ta.selectionStart;
+    const text = messageText;
+    // Find the @ that started this mention
+    let atPos = cursor - 1;
+    while (atPos >= 0 && text[atPos] !== '@') atPos--;
+    const before = text.slice(0, atPos);
+    const after = text.slice(cursor);
+    const mention = `@[${u.name}](${u.id}) `;
+    const newText = before + mention + after;
+    setMessageText(newText);
+    setMentionQuery(null);
+    setMentionIndex(0);
+    setTimeout(() => {
+      const pos = before.length + mention.length;
+      ta.setSelectionRange(pos, pos);
+      ta.focus();
+    }, 0);
+  }, [messageText]);
+
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const val = e.target.value;
+    setMessageText(val);
+    // Detect @mention trigger
+    const cursor = e.target.selectionStart;
+    const textBeforeCursor = val.slice(0, cursor);
+    const atMatch = textBeforeCursor.match(/@([^\s@]*)$/);
+    if (atMatch) {
+      setMentionQuery(atMatch[1]);
+      setMentionIndex(0);
+    } else {
+      setMentionQuery(null);
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Mention navigation
+    if (mentionQuery !== null && mentionUsers.length > 0) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); setMentionIndex(i => (i + 1) % mentionUsers.length); return; }
+      if (e.key === 'ArrowUp') { e.preventDefault(); setMentionIndex(i => (i - 1 + mentionUsers.length) % mentionUsers.length); return; }
+      if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); insertMention(mentionUsers[mentionIndex]); return; }
+      if (e.key === 'Escape') { e.preventDefault(); setMentionQuery(null); return; }
+    }
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
+
+  // Clipboard paste handler for images/files
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.kind === 'file') {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file) {
+          // Give pasted images a readable name
+          let fileName = file.name;
+          if (fileName === 'image.png' || !fileName) {
+            fileName = `pasted-${Date.now()}.${file.type.split('/')[1] || 'png'}`;
+          }
+          const renamedFile = new File([file], fileName, { type: file.type });
+          setAttachment(renamedFile);
+        }
+        return;
+      }
+    }
+  }, []);
 
   const filteredChannels = channels.filter((c: ChatChannel) => {
     if (!searchQuery) return true;
@@ -204,7 +302,7 @@ export default function Chat() {
                     <div className={`max-w-[70%] ${isMe ? 'order-1' : ''}`}>
                       <div className={`rounded-2xl px-4 py-2 ${isMe ? 'bg-blue-500 text-white' : 'bg-white border border-gray-200 text-gray-800'}`}>
                         {!isMe && <p className="text-xs font-bold mb-1 text-blue-600">{msg.user?.name}</p>}
-                        {msg.body && <p className="text-sm whitespace-pre-wrap">{msg.body}</p>}
+                        {msg.body && <RenderMessageBody body={msg.body} isMe={isMe} />}
                         {msg.attachment && (
                           <div className="mt-1">
                             {isPreviewable(msg.attachment_name || msg.attachment) ? (
@@ -249,35 +347,60 @@ export default function Chat() {
               {attachment && (
                 <div className="flex items-center gap-2 mb-2 bg-blue-50 px-3 py-1.5 rounded-lg text-sm">
                   <Paperclip size={14} className="text-blue-500" />
+                  {attachment.type.startsWith('image/') && (
+                    <img src={URL.createObjectURL(attachment)} alt="" className="w-10 h-10 rounded object-cover" />
+                  )}
                   <span className="text-blue-700 truncate">{attachment.name}</span>
                   <button onClick={() => setAttachment(null)} className="mr-auto text-gray-400 hover:text-red-500"><X size={14} /></button>
                 </div>
               )}
-              <div className="flex items-center gap-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  onChange={e => setAttachment(e.target.files?.[0] || null)}
-                  className="hidden"
-                />
-                <button onClick={() => fileInputRef.current?.click()} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition">
-                  <Paperclip size={20} />
-                </button>
-                <input
-                  type="text"
-                  value={messageText}
-                  onChange={e => setMessageText(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder="اكتب رسالة..."
-                  className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <button
-                  onClick={handleSend}
-                  disabled={!messageText.trim() && !attachment}
-                  className="p-2.5 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white rounded-xl transition"
-                >
-                  <Send size={18} />
-                </button>
+              <div className="relative">
+                {/* Mention dropdown */}
+                {mentionQuery !== null && mentionUsers.length > 0 && (
+                  <div className="absolute bottom-full mb-1 right-0 left-0 bg-white border border-gray-200 rounded-xl shadow-lg z-10 max-h-48 overflow-y-auto">
+                    {mentionUsers.map((u: any, i: number) => (
+                      <button
+                        key={u.id}
+                        onClick={() => insertMention(u)}
+                        className={`w-full flex items-center gap-3 px-3 py-2 text-right transition ${i === mentionIndex ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
+                      >
+                        <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold">{u.name.charAt(0)}</div>
+                        <span className="text-sm font-medium">{u.name}</span>
+                        <span className="text-xs text-gray-400 mr-auto">{u.role}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div className="flex items-end gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    onChange={e => setAttachment(e.target.files?.[0] || null)}
+                    className="hidden"
+                  />
+                  <button onClick={() => fileInputRef.current?.click()} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition mb-0.5">
+                    <Paperclip size={20} />
+                  </button>
+                  <textarea
+                    ref={textareaRef}
+                    value={messageText}
+                    onChange={handleTextChange}
+                    onKeyDown={handleKeyDown}
+                    onPaste={handlePaste}
+                    placeholder="اكتب رسالة... اضغط @ للإشارة"
+                    rows={1}
+                    className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none max-h-32 overflow-y-auto"
+                    style={{ minHeight: '42px' }}
+                    onInput={(e) => { const t = e.currentTarget; t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 128) + 'px'; }}
+                  />
+                  <button
+                    onClick={handleSend}
+                    disabled={!messageText.trim() && !attachment}
+                    className="p-2.5 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 text-white rounded-xl transition mb-0.5"
+                  >
+                    <Send size={18} />
+                  </button>
+                </div>
               </div>
             </div>
           </>

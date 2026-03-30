@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Models\ChatChannel;
 use App\Models\ChatMessage;
 use App\Models\User;
+use App\Services\NotificationService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -219,6 +220,26 @@ class ChatController extends Controller
 
         $message = ChatMessage::create($data);
         $message->load('user:id,name,avatar');
+
+        // Send notifications for @mentions
+        if ($request->body && preg_match_all('/@\[([^\]]+)\]\((\d+)\)/', $request->body, $matches)) {
+            $channelName = $channel->type === 'direct'
+                ? 'رسالة مباشرة'
+                : $channel->name;
+
+            foreach ($matches[2] as $mentionedUserId) {
+                $mentionedUserId = (int) $mentionedUserId;
+                if ($mentionedUserId !== $user->id) {
+                    NotificationService::chatMention(
+                        $user->company_id,
+                        $mentionedUserId,
+                        $user->name,
+                        $channelName,
+                        '/chat'
+                    );
+                }
+            }
+        }
 
         // Update sender's read timestamp
         $channel->members()->updateExistingPivot($user->id, ['last_read_at' => now()]);

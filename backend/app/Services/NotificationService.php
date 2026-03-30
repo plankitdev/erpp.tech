@@ -32,6 +32,18 @@ class NotificationService
         return $users->count();
     }
 
+    public static function chatMention(int $companyId, int $userId, string $mentionedBy, string $channelName, ?string $link = null): Notification
+    {
+        return self::notify(
+            $companyId,
+            $userId,
+            Notification::TYPE_CHAT_MENTION,
+            'تمت الإشارة إليك في محادثة',
+            "{$mentionedBy} أشار إليك في {$channelName}",
+            $link
+        );
+    }
+
     public static function taskAssigned(int $companyId, int $userId, string $taskTitle, ?string $link = null): Notification
     {
         return self::notify($companyId, $userId, Notification::TYPE_TASK_ASSIGNED, 'تم تكليفك بمهمة جديدة', "المهمة: {$taskTitle}", $link ?? '/tasks/board');

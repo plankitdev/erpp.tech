@@ -24,6 +24,7 @@ class Notification extends Model
     const TYPE_MEETING_REMINDER = 'meeting_reminder';
     const TYPE_PAYMENT_RECEIVED = 'payment_received';
     const TYPE_TASK_COMPLETED = 'task_completed';
+    const TYPE_CHAT_MENTION = 'chat_mention';
 
     protected $fillable = [
         'company_id',
