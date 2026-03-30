@@ -77,23 +77,13 @@ class GoogleDriveController extends Controller
 
         $companyId = $this->getCompanyId();
 
-        // Create root sync folder in Drive
-        $client->setAccessToken($token);
-        $drive = new GoogleDrive($client);
-
-        $rootFolder = new DriveFile([
-            'name' => 'ERPFlex Sync',
-            'mimeType' => 'application/vnd.google-apps.folder',
-        ]);
-        $createdFolder = $drive->files->create($rootFolder, ['fields' => 'id']);
-
         GoogleDriveToken::updateOrCreate(
             ['company_id' => $companyId],
             [
                 'access_token' => $token['access_token'],
                 'refresh_token' => $token['refresh_token'] ?? null,
                 'expires_at' => now()->addSeconds($token['expires_in'] ?? 3600),
-                'drive_folder_id' => $createdFolder->id,
+                'drive_folder_id' => null, // Will be set when admin selects a folder
             ]
         );
 
@@ -111,14 +101,82 @@ class GoogleDriveController extends Controller
         if (!$driveToken) {
             return $this->successResponse([
                 'connected' => false,
+                'folder_selected' => false,
+                'folder_name' => null,
                 'last_synced_at' => null,
             ]);
         }
 
         return $this->successResponse([
             'connected' => true,
+            'folder_selected' => !empty($driveToken->drive_folder_id),
+            'folder_name' => $driveToken->drive_folder_name,
             'last_synced_at' => $driveToken->last_synced_at?->format('Y-m-d H:i'),
         ]);
+    }
+
+    /**
+     * List folders in Google Drive for folder picker
+     */
+    public function listFolders(Request $request): JsonResponse
+    {
+        $companyId = $this->getCompanyId();
+        $driveService = GoogleDriveService::forCompany($companyId);
+
+        if (!$driveService) {
+            return $this->errorResponse('جوجل درايف غير مربوط', 400);
+        }
+
+        $parentId = $request->query('parent_id'); // null = root
+        $folders = $driveService->listDriveFolders($parentId);
+
+        return $this->successResponse($folders);
+    }
+
+    /**
+     * Select a Drive folder as the root sync folder
+     */
+    public function selectFolder(Request $request): JsonResponse
+    {
+        $request->validate([
+            'folder_id' => 'required|string',
+            'folder_name' => 'required|string',
+        ]);
+
+        $companyId = $this->getCompanyId();
+        $driveToken = GoogleDriveToken::where('company_id', $companyId)->first();
+
+        if (!$driveToken) {
+            return $this->errorResponse('جوجل درايف غير مربوط', 400);
+        }
+
+        $driveToken->update([
+            'drive_folder_id' => $request->folder_id,
+            'drive_folder_name' => $request->folder_name,
+        ]);
+
+        return $this->successResponse(null, 'تم اختيار المجلد بنجاح');
+    }
+
+    /**
+     * Import files from the selected Drive folder
+     */
+    public function importFiles(): JsonResponse
+    {
+        $companyId = $this->getCompanyId();
+        $driveService = GoogleDriveService::forCompany($companyId);
+
+        if (!$driveService) {
+            return $this->errorResponse('جوجل درايف غير مربوط', 400);
+        }
+
+        if (!$driveService->getRootFolderId()) {
+            return $this->errorResponse('لم يتم اختيار مجلد بعد', 400);
+        }
+
+        $result = $driveService->importFromDrive();
+
+        return $this->successResponse($result, "تم استيراد {$result['imported_files']} ملف و {$result['imported_folders']} مجلد");
     }
 
     /**
@@ -132,7 +190,7 @@ class GoogleDriveController extends Controller
     }
 
     /**
-     * Sync all managed files to Google Drive
+     * Two-way sync: push local to Drive + pull from Drive to local
      */
     public function sync(): JsonResponse
     {
@@ -143,8 +201,15 @@ class GoogleDriveController extends Controller
             return $this->errorResponse('جوجل درايف غير مربوط أو انتهت الصلاحية', 400);
         }
 
-        $result = $driveService->syncAll();
+        if (!$driveService->getRootFolderId()) {
+            return $this->errorResponse('لم يتم اختيار مجلد بعد', 400);
+        }
 
-        return $this->successResponse($result, "تم مزامنة {$result['synced_files']} ملف");
+        $result = $driveService->twoWaySync();
+
+        $msg = "تم المزامنة: رفع {$result['pushed']} / استيراد {$result['pulled']}";
+        if ($result['deleted'] > 0) $msg .= " / حذف {$result['deleted']}";
+
+        return $this->successResponse($result, $msg);
     }
 }

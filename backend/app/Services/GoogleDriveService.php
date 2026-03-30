@@ -377,4 +377,228 @@ class GoogleDriveService
         $parentFolder = Folder::find($parentFolderId);
         return $parentFolder?->drive_folder_id ?: $this->getRootFolderId();
     }
+
+    // ─── Browse Drive Folders ──────────────────────────────
+
+    /**
+     * List folders in a Drive folder. Used for folder picker.
+     */
+    public function listDriveFolders(?string $parentId = null): array
+    {
+        try {
+            $parent = $parentId ?: 'root';
+            $results = $this->drive->files->listFiles([
+                'q' => "'{$parent}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false",
+                'fields' => 'files(id, name)',
+                'orderBy' => 'name',
+                'pageSize' => 100,
+            ]);
+
+            $folders = [];
+            foreach ($results->getFiles() as $file) {
+                $folders[] = ['id' => $file->getId(), 'name' => $file->getName()];
+            }
+            return $folders;
+        } catch (\Exception $e) {
+            Log::warning('GoogleDrive: listDriveFolders failed', ['error' => $e->getMessage()]);
+            return [];
+        }
+    }
+
+    // ─── Import from Drive ─────────────────────────────────
+
+    /**
+     * Import all files and subfolders from the linked Drive folder into the local file manager.
+     */
+    public function importFromDrive(): array
+    {
+        $rootDriveId = $this->getRootFolderId();
+        if (!$rootDriveId) {
+            return ['imported_folders' => 0, 'imported_files' => 0, 'errors' => 0];
+        }
+
+        $importedFolders = 0;
+        $importedFiles = 0;
+        $errors = 0;
+
+        $this->importDriveFolderRecursive($rootDriveId, null, $importedFolders, $importedFiles, $errors);
+
+        $this->driveToken->update(['last_synced_at' => now()]);
+
+        return [
+            'imported_folders' => $importedFolders,
+            'imported_files' => $importedFiles,
+            'errors' => $errors,
+        ];
+    }
+
+    private function importDriveFolderRecursive(string $driveFolderId, ?int $localParentId, int &$importedFolders, int &$importedFiles, int &$errors): void
+    {
+        try {
+            // Import subfolders
+            $foldersResult = $this->drive->files->listFiles([
+                'q' => "'{$driveFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false",
+                'fields' => 'files(id, name)',
+                'pageSize' => 1000,
+            ]);
+
+            foreach ($foldersResult->getFiles() as $driveFolder) {
+                // Check if already imported
+                $existing = Folder::where('company_id', $this->companyId)
+                    ->where('drive_folder_id', $driveFolder->getId())
+                    ->first();
+
+                if ($existing) {
+                    // Already imported, recurse into it
+                    $this->importDriveFolderRecursive($driveFolder->getId(), $existing->id, $importedFolders, $importedFiles, $errors);
+                    continue;
+                }
+
+                $localFolder = Folder::create([
+                    'name' => $driveFolder->getName(),
+                    'company_id' => $this->companyId,
+                    'parent_id' => $localParentId,
+                    'created_by' => auth()->id() ?? 1,
+                    'drive_folder_id' => $driveFolder->getId(),
+                ]);
+                $importedFolders++;
+
+                // Recurse
+                $this->importDriveFolderRecursive($driveFolder->getId(), $localFolder->id, $importedFolders, $importedFiles, $errors);
+            }
+
+            // Import files
+            $filesResult = $this->drive->files->listFiles([
+                'q' => "'{$driveFolderId}' in parents and mimeType!='application/vnd.google-apps.folder' and trashed=false",
+                'fields' => 'files(id, name, mimeType, size)',
+                'pageSize' => 1000,
+            ]);
+
+            foreach ($filesResult->getFiles() as $driveFile) {
+                // Check if already imported
+                $existing = ManagedFile::where('company_id', $this->companyId)
+                    ->where('drive_file_id', $driveFile->getId())
+                    ->first();
+
+                if ($existing) {
+                    continue;
+                }
+
+                try {
+                    // Download file content from Drive
+                    $content = $this->downloadFile($driveFile->getId());
+                    if (!$content) {
+                        $errors++;
+                        continue;
+                    }
+
+                    $fileName = $driveFile->getName();
+                    $storagePath = 'file-manager/' . $this->companyId . '/' . uniqid() . '_' . $fileName;
+                    Storage::disk('public')->put($storagePath, $content);
+
+                    ManagedFile::create([
+                        'name' => $fileName,
+                        'file_path' => $storagePath,
+                        'mime_type' => $driveFile->getMimeType() ?? 'application/octet-stream',
+                        'file_size' => $driveFile->getSize() ?? strlen($content),
+                        'company_id' => $this->companyId,
+                        'folder_id' => $localParentId,
+                        'uploaded_by' => auth()->id() ?? 1,
+                        'status' => 'approved',
+                        'drive_file_id' => $driveFile->getId(),
+                    ]);
+                    $importedFiles++;
+                } catch (\Exception $e) {
+                    Log::warning('GoogleDrive: import file failed', ['name' => $driveFile->getName(), 'error' => $e->getMessage()]);
+                    $errors++;
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning('GoogleDrive: importDriveFolderRecursive failed', ['folderId' => $driveFolderId, 'error' => $e->getMessage()]);
+            $errors++;
+        }
+    }
+
+    // ─── Two-Way Sync ──────────────────────────────────────
+
+    /**
+     * Perform a two-way sync between local file manager and Google Drive.
+     * - Push local files/folders that don't have drive IDs to Drive
+     * - Pull new files/folders from Drive that don't exist locally
+     * - Remove local records whose Drive file was deleted
+     */
+    public function twoWaySync(): array
+    {
+        $rootFolderId = $this->getRootFolderId();
+        if (!$rootFolderId) {
+            return ['pushed' => 0, 'pulled' => 0, 'deleted' => 0, 'errors' => 0];
+        }
+
+        $pushed = 0;
+        $pulled = 0;
+        $deleted = 0;
+        $errors = 0;
+
+        // ── Phase 1: Push local → Drive (items without drive IDs) ──
+        $pushResult = $this->syncAll();
+        $pushed = $pushResult['synced_files'];
+        $errors += $pushResult['errors'];
+
+        // ── Phase 2: Pull Drive → Local (new items in Drive) ──
+        $pullResult = $this->importFromDrive();
+        $pulled = $pullResult['imported_files'] + $pullResult['imported_folders'];
+        $errors += $pullResult['errors'];
+
+        // ── Phase 3: Clean up deleted Drive files ──
+        // Check local files with drive_file_id — verify they still exist in Drive
+        $localFiles = ManagedFile::where('company_id', $this->companyId)
+            ->whereNotNull('drive_file_id')
+            ->get();
+
+        foreach ($localFiles as $file) {
+            try {
+                $this->drive->files->get($file->drive_file_id, ['fields' => 'id, trashed']);
+            } catch (\Exception $e) {
+                // File no longer exists in Drive — remove local record
+                if (str_contains($e->getMessage(), '404') || str_contains($e->getMessage(), 'notFound')) {
+                    if ($file->file_path) {
+                        Storage::disk('public')->delete($file->file_path);
+                    }
+                    $file->delete();
+                    $deleted++;
+                }
+            }
+        }
+
+        // Check local folders with drive_folder_id
+        $localFolders = Folder::where('company_id', $this->companyId)
+            ->whereNotNull('drive_folder_id')
+            ->get();
+
+        foreach ($localFolders as $folder) {
+            try {
+                $this->drive->files->get($folder->drive_folder_id, ['fields' => 'id, trashed']);
+            } catch (\Exception $e) {
+                if (str_contains($e->getMessage(), '404') || str_contains($e->getMessage(), 'notFound')) {
+                    // Delete files in this folder locally
+                    $folderFiles = ManagedFile::where('folder_id', $folder->id)->get();
+                    foreach ($folderFiles as $ff) {
+                        if ($ff->file_path) Storage::disk('public')->delete($ff->file_path);
+                        $ff->delete();
+                    }
+                    $folder->delete();
+                    $deleted++;
+                }
+            }
+        }
+
+        $this->driveToken->update(['last_synced_at' => now()]);
+
+        return [
+            'pushed' => $pushed,
+            'pulled' => $pulled,
+            'deleted' => $deleted,
+            'errors' => $errors,
+        ];
+    }
 }

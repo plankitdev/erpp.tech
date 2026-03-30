@@ -12,6 +12,7 @@ class GoogleDriveToken extends Model
         'refresh_token',
         'expires_at',
         'drive_folder_id',
+        'drive_folder_name',
         'last_synced_at',
     ];
 

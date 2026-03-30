@@ -4,7 +4,7 @@ import { companiesApi } from '../api/companies';
 import { googleDriveApi } from '../api/googleDrive';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Building2, Key, Upload, Shield, Bell, Palette, User, Cloud, RefreshCw, Unplug, CheckCircle2, HardDrive, ExternalLink, CloudOff } from 'lucide-react';
+import { Building2, Key, Upload, Shield, Bell, Palette, User, Cloud, RefreshCw, Unplug, CheckCircle2, HardDrive, ExternalLink, CloudOff, FolderOpen, ChevronLeft, ArrowDownToLine } from 'lucide-react';
 import api from '../api/axios';
 
 type SettingsTab = 'company' | 'profile' | 'security' | 'integrations';
@@ -403,6 +403,8 @@ export default function Settings() {
 
 function GoogleDriveSettings() {
   const qc = useQueryClient();
+  const [showFolderPicker, setShowFolderPicker] = useState(false);
+  const [folderPath, setFolderPath] = useState<{ id: string | undefined; name: string }[]>([{ id: undefined, name: 'Drive الرئيسي' }]);
 
   const { data: driveStatus, isLoading } = useQuery({
     queryKey: ['google-drive-status'],
@@ -414,18 +416,48 @@ function GoogleDriveSettings() {
     queryFn: () => api.get('/file-manager/stats').then(r => r.data.data),
   });
 
+  const currentParentId = folderPath[folderPath.length - 1].id;
+
+  const { data: driveFolders, isLoading: foldersLoading } = useQuery({
+    queryKey: ['drive-folders', currentParentId],
+    queryFn: () => googleDriveApi.listFolders(currentParentId).then(r => r.data.data),
+    enabled: showFolderPicker && !!driveStatus?.connected,
+  });
+
   const authMut = useMutation({
     mutationFn: () => googleDriveApi.getAuthUrl().then(r => {
       window.open(r.data.data.url, '_blank', 'width=600,height=700');
     }),
   });
 
+  const selectFolderMut = useMutation({
+    mutationFn: ({ id, name }: { id: string; name: string }) => googleDriveApi.selectFolder(id, name),
+    onSuccess: () => {
+      toast.success('تم اختيار المجلد بنجاح');
+      setShowFolderPicker(false);
+      qc.invalidateQueries({ queryKey: ['google-drive-status'] });
+    },
+    onError: () => toast.error('فشل اختيار المجلد'),
+  });
+
+  const importMut = useMutation({
+    mutationFn: () => googleDriveApi.importFiles(),
+    onSuccess: (res) => {
+      const d = res.data.data;
+      toast.success(`تم استيراد ${d.imported_files} ملف و ${d.imported_folders} مجلد`);
+      qc.invalidateQueries({ queryKey: ['google-drive-status'] });
+      qc.invalidateQueries({ queryKey: ['file-manager'] });
+    },
+    onError: () => toast.error('فشل الاستيراد'),
+  });
+
   const syncMut = useMutation({
     mutationFn: () => googleDriveApi.sync(),
     onSuccess: (res) => {
       const d = res.data.data;
-      toast.success(`تم مزامنة ${d.synced_files} ملف${d.errors > 0 ? ` (${d.errors} خطأ)` : ''}`);
+      toast.success(`تم المزامنة: رفع ${d.pushed} / استيراد ${d.pulled}${d.deleted > 0 ? ` / حذف ${d.deleted}` : ''}`);
       qc.invalidateQueries({ queryKey: ['google-drive-status'] });
+      qc.invalidateQueries({ queryKey: ['file-manager'] });
     },
     onError: () => toast.error('فشلت المزامنة'),
   });
@@ -444,6 +476,7 @@ function GoogleDriveSettings() {
       if (e.data?.type === 'google-drive-connected') {
         toast.success('تم ربط جوجل درايف بنجاح!');
         qc.invalidateQueries({ queryKey: ['google-drive-status'] });
+        setShowFolderPicker(true);
       }
     };
     window.addEventListener('message', handler);
@@ -451,6 +484,7 @@ function GoogleDriveSettings() {
   }, [qc]);
 
   const connected = driveStatus?.connected;
+  const folderSelected = driveStatus?.folder_selected;
   const formatSize = (bytes: number) => {
     if (!bytes) return '0 B';
     const k = 1024;
@@ -486,13 +520,98 @@ function GoogleDriveSettings() {
                 <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                 <span className="font-medium text-emerald-800">متصل بجوجل درايف</span>
               </div>
+              {folderSelected && driveStatus?.folder_name && (
+                <p className="text-sm text-emerald-600">المجلد المحدد: <strong>{driveStatus.folder_name}</strong></p>
+              )}
               {driveStatus?.last_synced_at && (
                 <p className="text-sm text-emerald-600">آخر مزامنة: {driveStatus.last_synced_at}</p>
               )}
             </div>
 
+            {/* Folder Selection */}
+            {!folderSelected && !showFolderPicker && (
+              <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <FolderOpen className="w-5 h-5 text-amber-600" />
+                  <span className="font-medium text-amber-800">اختر المجلد الرئيسي</span>
+                </div>
+                <p className="text-sm text-amber-600 mb-3">اختر المجلد الموجود في Google Drive اللي عايز النظام يشتغل منه</p>
+                <button onClick={() => { setFolderPath([{ id: undefined, name: 'Drive الرئيسي' }]); setShowFolderPicker(true); }} className="btn-primary flex items-center gap-2 text-sm">
+                  <FolderOpen className="w-4 h-4" /> اختيار مجلد
+                </button>
+              </div>
+            )}
+
+            {/* Folder Picker */}
+            {showFolderPicker && (
+              <div className="p-4 bg-white rounded-xl border border-blue-200 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-gray-800">اختر المجلد</h3>
+                  <button onClick={() => setShowFolderPicker(false)} className="text-gray-400 hover:text-gray-600 text-sm">✕</button>
+                </div>
+
+                {/* Breadcrumb */}
+                <div className="flex items-center gap-1 text-sm text-gray-500 mb-3 flex-wrap">
+                  {folderPath.map((crumb, i) => (
+                    <span key={i} className="flex items-center gap-1">
+                      {i > 0 && <ChevronLeft className="w-3 h-3" />}
+                      <button
+                        onClick={() => setFolderPath(folderPath.slice(0, i + 1))}
+                        className={`hover:text-blue-600 ${i === folderPath.length - 1 ? 'font-medium text-gray-700' : ''}`}
+                      >
+                        {crumb.name}
+                      </button>
+                    </span>
+                  ))}
+                </div>
+
+                {/* Folder list */}
+                <div className="max-h-60 overflow-y-auto border rounded-lg divide-y">
+                  {foldersLoading ? (
+                    <div className="p-6 text-center text-gray-400">
+                      <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2" />
+                      جاري التحميل...
+                    </div>
+                  ) : !driveFolders || driveFolders.length === 0 ? (
+                    <div className="p-6 text-center text-gray-400 text-sm">لا توجد مجلدات فرعية</div>
+                  ) : (
+                    driveFolders.map(folder => (
+                      <div key={folder.id} className="flex items-center justify-between p-2.5 hover:bg-gray-50 cursor-pointer group">
+                        <button
+                          onClick={() => setFolderPath([...folderPath, { id: folder.id, name: folder.name }])}
+                          className="flex items-center gap-2 flex-1 text-right"
+                        >
+                          <FolderOpen className="w-5 h-5 text-amber-500" />
+                          <span className="text-sm text-gray-700">{folder.name}</span>
+                        </button>
+                        <button
+                          onClick={() => selectFolderMut.mutate({ id: folder.id, name: folder.name })}
+                          disabled={selectFolderMut.isPending}
+                          className="text-xs bg-blue-50 text-blue-600 px-2.5 py-1 rounded-lg hover:bg-blue-100 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          اختيار
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Select current folder */}
+                {currentParentId && (
+                  <button
+                    onClick={() => selectFolderMut.mutate({ id: currentParentId, name: folderPath[folderPath.length - 1].name })}
+                    disabled={selectFolderMut.isPending}
+                    className="btn-primary w-full mt-3 flex items-center justify-center gap-2 text-sm"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    اختيار المجلد الحالي: {folderPath[folderPath.length - 1].name}
+                  </button>
+                )}
+              </div>
+            )}
+
             {/* Stats */}
-            {fmStats && (
+            {folderSelected && fmStats && (
               <div className="grid grid-cols-3 gap-3">
                 <div className="p-3 bg-surface-50 rounded-xl text-center border border-gray-100">
                   <HardDrive className="w-5 h-5 text-blue-500 mx-auto mb-1" />
@@ -513,18 +632,48 @@ function GoogleDriveSettings() {
             )}
 
             {/* Actions */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => syncMut.mutate()}
-                disabled={syncMut.isPending}
-                className="btn-primary flex items-center gap-2"
-              >
-                <RefreshCw className={`w-4 h-4 ${syncMut.isPending ? 'animate-spin' : ''}`} />
-                {syncMut.isPending ? 'جاري المزامنة...' : 'مزامنة الآن'}
-              </button>
+            {folderSelected && (
+              <div className="flex items-center gap-3 flex-wrap">
+                <button
+                  onClick={() => syncMut.mutate()}
+                  disabled={syncMut.isPending}
+                  className="btn-primary flex items-center gap-2"
+                >
+                  <RefreshCw className={`w-4 h-4 ${syncMut.isPending ? 'animate-spin' : ''}`} />
+                  {syncMut.isPending ? 'جاري المزامنة...' : 'مزامنة الآن'}
+                </button>
+                <button
+                  onClick={() => importMut.mutate()}
+                  disabled={importMut.isPending}
+                  className="btn-secondary flex items-center gap-2"
+                >
+                  <ArrowDownToLine className={`w-4 h-4 ${importMut.isPending ? 'animate-bounce' : ''}`} />
+                  {importMut.isPending ? 'جاري الاستيراد...' : 'استيراد من Drive'}
+                </button>
+                <button
+                  onClick={() => { setFolderPath([{ id: undefined, name: 'Drive الرئيسي' }]); setShowFolderPicker(true); }}
+                  className="btn-secondary flex items-center gap-2"
+                >
+                  <FolderOpen className="w-4 h-4" /> تغيير المجلد
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirm('هل تريد فصل جوجل درايف؟ لن يتم حذف الملفات من Drive.')) disconnectMut.mutate();
+                  }}
+                  disabled={disconnectMut.isPending}
+                  className="btn-secondary text-red-600 border-red-200 hover:bg-red-50 flex items-center gap-2"
+                >
+                  <Unplug className="w-4 h-4" />
+                  فصل الاتصال
+                </button>
+              </div>
+            )}
+
+            {/* Disconnect only (no folder selected yet) */}
+            {!folderSelected && (
               <button
                 onClick={() => {
-                  if (confirm('هل تريد فصل جوجل درايف؟ لن يتم حذف الملفات من Drive.')) disconnectMut.mutate();
+                  if (confirm('هل تريد فصل جوجل درايف؟')) disconnectMut.mutate();
                 }}
                 disabled={disconnectMut.isPending}
                 className="btn-secondary text-red-600 border-red-200 hover:bg-red-50 flex items-center gap-2"
@@ -532,7 +681,7 @@ function GoogleDriveSettings() {
                 <Unplug className="w-4 h-4" />
                 فصل الاتصال
               </button>
-            </div>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
@@ -542,7 +691,7 @@ function GoogleDriveSettings() {
                 <span className="font-medium text-gray-600">غير متصل</span>
               </div>
               <p className="text-sm text-gray-500">
-                اربط حساب Google Drive لمزامنة ملفات مدير الملفات تلقائياً كنسخة احتياطية.
+                اربط حساب Google Drive لمزامنة ملفات مدير الملفات تلقائياً مع مجلد موجود في Drive.
               </p>
             </div>
             <button
@@ -587,7 +736,7 @@ function GoogleDriveSettings() {
             </li>
             <li className="flex gap-2">
               <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold shrink-0">5</span>
-              <span>اضغط <strong>"ربط جوجل درايف"</strong> أعلاه وسجّل بحساب العمل</span>
+              <span>اضغط <strong>"ربط جوجل درايف"</strong> أعلاه وسجّل بحساب العمل ثم اختر المجلد</span>
             </li>
           </ol>
         </div>

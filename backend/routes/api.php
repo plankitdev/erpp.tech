@@ -349,6 +349,9 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::get('/google-drive/status', [GoogleDriveController::class, 'status']);
     Route::get('/google-drive/auth-url', [GoogleDriveController::class, 'authUrl']);
     Route::post('/google-drive/callback', [GoogleDriveController::class, 'callback']);
+    Route::get('/google-drive/folders', [GoogleDriveController::class, 'listFolders']);
+    Route::post('/google-drive/select-folder', [GoogleDriveController::class, 'selectFolder']);
+    Route::post('/google-drive/import', [GoogleDriveController::class, 'importFiles']);
     Route::post('/google-drive/sync', [GoogleDriveController::class, 'sync']);
     Route::post('/google-drive/disconnect', [GoogleDriveController::class, 'disconnect']);
 
