@@ -595,38 +595,43 @@ class GoogleDriveService
         $errors += $pullResult['errors'];
 
         // ── Phase 3: Clean up deleted Drive files ──
-        // Bulk-list all Drive file IDs in one paginated call instead of checking each file individually
-        $allDriveIds = $this->listAllDriveIds();
-        $driveIdSet = array_flip($allDriveIds);
+        // Bulk-list all non-trashed Drive IDs under root folder tree
+        $allDriveIds = $this->listDriveIdsUnderFolder($rootFolderId);
 
+        // Safety: if API returned nothing but we have local synced items, skip cleanup
         $localFiles = ManagedFile::where('company_id', $this->companyId)
             ->whereNotNull('drive_file_id')
             ->get();
-
-        foreach ($localFiles as $file) {
-            if (!isset($driveIdSet[$file->drive_file_id])) {
-                if ($file->file_path) {
-                    Storage::disk('public')->delete($file->file_path);
-                }
-                $file->delete();
-                $deleted++;
-            }
-        }
-
-        // Check local folders with drive_folder_id
         $localFolders = Folder::where('company_id', $this->companyId)
             ->whereNotNull('drive_folder_id')
             ->get();
 
-        foreach ($localFolders as $folder) {
-            if (!isset($driveIdSet[$folder->drive_folder_id])) {
-                $folderFiles = ManagedFile::where('folder_id', $folder->id)->get();
-                foreach ($folderFiles as $ff) {
-                    if ($ff->file_path) Storage::disk('public')->delete($ff->file_path);
-                    $ff->delete();
+        $totalLocal = $localFiles->count() + $localFolders->count();
+        if ($totalLocal > 0 && count($allDriveIds) === 0) {
+            Log::warning('GoogleDrive: listDriveIds returned empty but local has ' . $totalLocal . ' synced items — skipping cleanup');
+        } else {
+            $driveIdSet = array_flip($allDriveIds);
+
+            foreach ($localFiles as $file) {
+                if (!isset($driveIdSet[$file->drive_file_id])) {
+                    if ($file->file_path) {
+                        Storage::disk('public')->delete($file->file_path);
+                    }
+                    $file->delete();
+                    $deleted++;
                 }
-                $folder->delete();
-                $deleted++;
+            }
+
+            foreach ($localFolders as $folder) {
+                if (!isset($driveIdSet[$folder->drive_folder_id])) {
+                    $folderFiles = ManagedFile::where('folder_id', $folder->id)->get();
+                    foreach ($folderFiles as $ff) {
+                        if ($ff->file_path) Storage::disk('public')->delete($ff->file_path);
+                        $ff->delete();
+                    }
+                    $folder->delete();
+                    $deleted++;
+                }
             }
         }
 
@@ -641,31 +646,39 @@ class GoogleDriveService
     }
 
     /**
-     * List all non-trashed file/folder IDs from Drive in bulk.
+     * List all non-trashed file/folder IDs under a specific Drive folder (recursive).
      */
-    private function listAllDriveIds(): array
+    private function listDriveIdsUnderFolder(string $folderId): array
     {
-        $ids = [];
-        $pageToken = null;
+        $ids = [$folderId]; // include the root folder itself
         try {
-            do {
-                $params = [
-                    'q' => 'trashed=false',
-                    'fields' => 'nextPageToken, files(id)',
-                    'pageSize' => 1000,
-                ];
-                if ($pageToken) {
-                    $params['pageToken'] = $pageToken;
-                }
-                $result = $this->drive->files->listFiles($params);
-                foreach ($result->getFiles() as $file) {
-                    $ids[] = $file->getId();
-                }
-                $pageToken = $result->getNextPageToken();
-            } while ($pageToken);
+            $this->collectDriveIdsRecursive($folderId, $ids);
         } catch (\Exception $e) {
-            Log::warning('GoogleDrive: listAllDriveIds failed', ['error' => $e->getMessage()]);
+            Log::warning('GoogleDrive: listDriveIdsUnderFolder failed', ['error' => $e->getMessage()]);
         }
         return $ids;
+    }
+
+    private function collectDriveIdsRecursive(string $parentId, array &$ids): void
+    {
+        $pageToken = null;
+        do {
+            $params = [
+                'q' => "'{$parentId}' in parents and trashed=false",
+                'fields' => 'nextPageToken, files(id, mimeType)',
+                'pageSize' => 1000,
+            ];
+            if ($pageToken) {
+                $params['pageToken'] = $pageToken;
+            }
+            $result = $this->drive->files->listFiles($params);
+            foreach ($result->getFiles() as $file) {
+                $ids[] = $file->getId();
+                if ($file->getMimeType() === 'application/vnd.google-apps.folder') {
+                    $this->collectDriveIdsRecursive($file->getId(), $ids);
+                }
+            }
+            $pageToken = $result->getNextPageToken();
+        } while ($pageToken);
     }
 }
