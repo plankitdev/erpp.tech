@@ -31,6 +31,9 @@ export const chatApi = {
   deleteMessage: (channelId: number, messageId: number) =>
     api.delete<ApiResponse<null>>(`/chat/channels/${channelId}/messages/${messageId}`).then(r => r.data),
 
+  toggleReaction: (channelId: number, messageId: number, emoji: string) =>
+    api.post<ApiResponse<any>>(`/chat/channels/${channelId}/messages/${messageId}/reactions`, { emoji }).then(r => r.data.data),
+
   markRead: (channelId: number) =>
     api.post<ApiResponse<null>>(`/chat/channels/${channelId}/read`).then(r => r.data),
 

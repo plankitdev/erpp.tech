@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { MessageSquare, Plus, Send, Paperclip, Trash2, Users, Hash, X, Search, ArrowRight, Building2, UserPlus, UserMinus, Lock, Globe, AtSign, Image } from 'lucide-react';
-import { useChatChannels, useChatMessages, useChatUsers, useCreateChannel, useSendMessage, useDeleteMessage, useDeleteChannel, useMarkRead, useAddMembers, useRemoveMember } from '../hooks/useChat';
+import { MessageSquare, Plus, Send, Paperclip, Trash2, Users, Hash, X, Search, ArrowRight, Building2, UserPlus, UserMinus, Lock, Globe, AtSign, Image, Reply, Smile } from 'lucide-react';
+import { useChatChannels, useChatMessages, useChatUsers, useCreateChannel, useSendMessage, useDeleteMessage, useDeleteChannel, useMarkRead, useAddMembers, useRemoveMember, useToggleReaction } from '../hooks/useChat';
 import { useAuthStore } from '../store/authStore';
 import type { ChatChannel, ChatMessage } from '../types';
 import { InlinePreview, resolveFileUrl, isPreviewable } from '../components/FilePreview';
+
+const EMOJI_LIST = ['👍', '❤️', '😂', '😮', '😢', '🔥', '👏', '🎉', '✅', '❌'];
 
 // Render message body with @mentions highlighted
 function RenderMessageBody({ body, isMe }: { body: string; isMe: boolean }) {
@@ -36,10 +38,13 @@ export default function Chat() {
   const [searchQuery, setSearchQuery] = useState('');
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionIndex, setMentionIndex] = useState(0);
+  const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
+  const [emojiPickerMsgId, setEmojiPickerMsgId] = useState<number | null>(null);
   const mentionsRef = useRef<{ id: number; name: string }[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const emojiRef = useRef<HTMLDivElement>(null);
 
   const { data: channels = [], isLoading: channelsLoading } = useChatChannels();
   const { data: messagesData } = useChatMessages(activeChannelId);
@@ -51,6 +56,7 @@ export default function Chat() {
   const markRead = useMarkRead();
   const addMembers = useAddMembers();
   const removeMember = useRemoveMember();
+  const toggleReaction = useToggleReaction();
 
   const messages = messagesData?.data ?? [];
   const activeChannel = channels.find((c: ChatChannel) => c.id === activeChannelId);
@@ -76,6 +82,24 @@ export default function Chat() {
     return () => window.removeEventListener('beforeunload', handler);
   }, [messageText, attachment]);
 
+  // Close emoji picker on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (emojiRef.current && !emojiRef.current.contains(e.target as Node)) {
+        setEmojiPickerMsgId(null);
+      }
+    };
+    if (emojiPickerMsgId !== null) {
+      document.addEventListener('mousedown', handler);
+      return () => document.removeEventListener('mousedown', handler);
+    }
+  }, [emojiPickerMsgId]);
+
+  // Reset reply when switching channels
+  useEffect(() => {
+    setReplyTo(null);
+  }, [activeChannelId]);
+
   // Build body with mention IDs for the backend
   const buildBodyWithMentions = (text: string): string => {
     let body = text;
@@ -92,8 +116,9 @@ export default function Chat() {
       formData.append('body', buildBodyWithMentions(messageText.trim()));
     }
     if (attachment) formData.append('attachment', attachment);
+    if (replyTo) formData.append('reply_to_id', String(replyTo.id));
     sendMessage.mutate({ channelId: activeChannelId, data: formData }, {
-      onSuccess: () => { setMessageText(''); setAttachment(null); setMentionQuery(null); mentionsRef.current = []; },
+      onSuccess: () => { setMessageText(''); setAttachment(null); setMentionQuery(null); setReplyTo(null); mentionsRef.current = []; },
     });
   };
 
@@ -325,9 +350,24 @@ export default function Chat() {
             <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
               {[...messages].reverse().map((msg: ChatMessage) => {
                 const isMe = msg.user_id === user?.id;
+                // Group reactions by emoji
+                const reactionGroups = (msg.reactions || []).reduce<Record<string, { count: number; users: string[]; myReaction: boolean }>>((acc, r) => {
+                  if (!acc[r.emoji]) acc[r.emoji] = { count: 0, users: [], myReaction: false };
+                  acc[r.emoji].count++;
+                  acc[r.emoji].users.push(r.user?.name || '');
+                  if (r.user_id === user?.id) acc[r.emoji].myReaction = true;
+                  return acc;
+                }, {});
                 return (
-                  <div key={msg.id} className={`flex ${isMe ? 'justify-start' : 'justify-end'}`}>
+                  <div key={msg.id} className={`flex ${isMe ? 'justify-start' : 'justify-end'} group`}>
                     <div className={`max-w-[70%] ${isMe ? 'order-1' : ''}`}>
+                      {/* Reply preview */}
+                      {msg.reply_to && (
+                        <div className={`mb-1 px-3 py-1.5 rounded-lg text-xs border-r-2 ${isMe ? 'bg-blue-400/20 border-blue-300 text-blue-100' : 'bg-gray-100 border-gray-300 text-gray-600'}`}>
+                          <span className="font-bold">{msg.reply_to.user?.name}</span>
+                          <p className="truncate mt-0.5">{msg.reply_to.body || (msg.reply_to.attachment_name ? `📎 ${msg.reply_to.attachment_name}` : '📎 مرفق')}</p>
+                        </div>
+                      )}
                       <div className={`rounded-2xl px-4 py-2 ${isMe ? 'bg-blue-500 text-white' : 'bg-white border border-gray-200 text-gray-800'}`}>
                         {!isMe && <p className="text-xs font-bold mb-1 text-blue-600">{msg.user?.name}</p>}
                         {msg.body && <RenderMessageBody body={msg.body} isMe={isMe} />}
@@ -352,16 +392,67 @@ export default function Chat() {
                           </div>
                         )}
                       </div>
+                      {/* Reactions display */}
+                      {Object.keys(reactionGroups).length > 0 && (
+                        <div className={`flex flex-wrap gap-1 mt-1 ${isMe ? '' : 'justify-end'}`}>
+                          {Object.entries(reactionGroups).map(([emoji, data]) => (
+                            <button
+                              key={emoji}
+                              onClick={() => activeChannelId && toggleReaction.mutate({ channelId: activeChannelId, messageId: msg.id, emoji })}
+                              title={data.users.join(', ')}
+                              className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs border transition ${data.myReaction ? 'bg-blue-50 border-blue-300 text-blue-600' : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'}`}
+                            >
+                              <span>{emoji}</span>
+                              <span className="font-medium">{data.count}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      {/* Action row: time + reply + emoji + delete */}
                       <div className={`flex items-center gap-2 mt-1 ${isMe ? '' : 'justify-end'}`}>
                         <span className="text-xs text-gray-400">{formatTime(msg.created_at)}</span>
-                        {isMe && (
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
                           <button
-                            onClick={() => deleteMessage.mutate({ channelId: activeChannel.id, messageId: msg.id })}
-                            className="text-gray-300 hover:text-red-400 transition"
+                            onClick={() => { setReplyTo(msg); textareaRef.current?.focus(); }}
+                            className="text-gray-300 hover:text-blue-500 transition p-0.5"
+                            title="رد"
                           >
-                            <Trash2 size={12} />
+                            <Reply size={13} />
                           </button>
-                        )}
+                          <div className="relative" ref={emojiPickerMsgId === msg.id ? emojiRef : undefined}>
+                            <button
+                              onClick={() => setEmojiPickerMsgId(prev => prev === msg.id ? null : msg.id)}
+                              className="text-gray-300 hover:text-yellow-500 transition p-0.5"
+                              title="تفاعل"
+                            >
+                              <Smile size={13} />
+                            </button>
+                            {emojiPickerMsgId === msg.id && (
+                              <div className={`absolute bottom-6 ${isMe ? 'right-0' : 'left-0'} bg-white border border-gray-200 rounded-xl shadow-lg z-20 p-2 flex flex-wrap gap-1 w-52`}>
+                                {EMOJI_LIST.map(emoji => (
+                                  <button
+                                    key={emoji}
+                                    onClick={() => {
+                                      if (activeChannelId) toggleReaction.mutate({ channelId: activeChannelId, messageId: msg.id, emoji });
+                                      setEmojiPickerMsgId(null);
+                                    }}
+                                    className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 rounded-lg text-lg transition"
+                                  >
+                                    {emoji}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          {isMe && (
+                            <button
+                              onClick={() => deleteMessage.mutate({ channelId: activeChannel.id, messageId: msg.id })}
+                              className="text-gray-300 hover:text-red-400 transition p-0.5"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -372,6 +463,17 @@ export default function Chat() {
 
             {/* Compose */}
             <div className="p-3 border-t border-gray-200 bg-white">
+              {/* Reply preview bar */}
+              {replyTo && (
+                <div className="flex items-center gap-2 mb-2 bg-blue-50 px-3 py-2 rounded-lg text-sm border-r-2 border-blue-400">
+                  <Reply size={14} className="text-blue-500 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs font-bold text-blue-600">{replyTo.user?.name}</span>
+                    <p className="text-xs text-gray-600 truncate">{replyTo.body || (replyTo.attachment_name ? `📎 ${replyTo.attachment_name}` : '📎 مرفق')}</p>
+                  </div>
+                  <button onClick={() => setReplyTo(null)} className="text-gray-400 hover:text-red-500 shrink-0"><X size={14} /></button>
+                </div>
+              )}
               {attachment && (
                 <div className="flex items-center gap-2 mb-2 bg-blue-50 px-3 py-1.5 rounded-lg text-sm">
                   <Paperclip size={14} className="text-blue-500" />

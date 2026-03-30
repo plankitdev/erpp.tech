@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Traits\HasCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ChatMessage extends Model
 {
@@ -17,6 +18,7 @@ class ChatMessage extends Model
         'body',
         'attachment',
         'attachment_name',
+        'reply_to_id',
     ];
 
     public function channel(): BelongsTo
@@ -27,5 +29,15 @@ class ChatMessage extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function replyTo(): BelongsTo
+    {
+        return $this->belongsTo(ChatMessage::class, 'reply_to_id');
+    }
+
+    public function reactions(): HasMany
+    {
+        return $this->hasMany(ChatMessageReaction::class, 'message_id');
     }
 }

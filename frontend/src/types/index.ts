@@ -791,8 +791,19 @@ export interface ChatMessage {
   body: string;
   attachment: string | null;
   attachment_name: string | null;
+  reply_to_id: number | null;
+  reply_to: { id: number; body: string; user_id: number; attachment_name: string | null; user?: { id: number; name: string } } | null;
+  reactions: ChatReaction[];
   user?: { id: number; name: string; avatar: string | null };
   created_at: string;
+}
+
+export interface ChatReaction {
+  id: number;
+  message_id: number;
+  user_id: number;
+  emoji: string;
+  user?: { id: number; name: string };
 }
 
 export interface ChatUser {

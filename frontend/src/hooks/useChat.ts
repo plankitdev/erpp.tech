@@ -57,6 +57,15 @@ export function useDeleteChannel() {
   });
 }
 
+export function useToggleReaction() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ channelId, messageId, emoji }: { channelId: number; messageId: number; emoji: string }) =>
+      chatApi.toggleReaction(channelId, messageId, emoji),
+    onSuccess: (_, vars) => { qc.invalidateQueries({ queryKey: ['chat-messages', vars.channelId] }); },
+  });
+}
+
 export function useMarkRead() {
   const qc = useQueryClient();
   return useMutation({

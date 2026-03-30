@@ -311,6 +311,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::get('/chat/channels/{channel}/messages', [ChatController::class, 'messages']);
     Route::post('/chat/channels/{channel}/messages', [ChatController::class, 'sendMessage']);
     Route::delete('/chat/channels/{channel}/messages/{message}', [ChatController::class, 'deleteMessage']);
+    Route::post('/chat/channels/{channel}/messages/{message}/reactions', [ChatController::class, 'toggleReaction']);
     Route::post('/chat/channels/{channel}/read', [ChatController::class, 'markRead']);
     Route::get('/chat/users', [ChatController::class, 'users']);
     Route::get('/chat/unread-count', [ChatController::class, 'totalUnread']);

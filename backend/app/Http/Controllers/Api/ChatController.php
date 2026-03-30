@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Models\ChatChannel;
 use App\Models\ChatMessage;
+use App\Models\ChatMessageReaction;
 use App\Models\User;
 use App\Services\NotificationService;
 use App\Traits\ApiResponse;
@@ -179,7 +180,7 @@ class ChatController extends Controller
         }
 
         $messages = $channel->messages()
-            ->with('user:id,name,avatar')
+            ->with(['user:id,name,avatar', 'replyTo:id,body,user_id,attachment_name', 'replyTo.user:id,name', 'reactions.user:id,name'])
             ->orderByDesc('created_at')
             ->paginate(50);
 
@@ -202,6 +203,7 @@ class ChatController extends Controller
         $request->validate([
             'body' => 'required_without:attachment|string|max:5000',
             'attachment' => 'nullable|file|max:10240',
+            'reply_to_id' => 'nullable|integer|exists:chat_messages,id',
         ]);
 
         $data = [
@@ -209,6 +211,7 @@ class ChatController extends Controller
             'channel_id' => $channel->id,
             'user_id' => $user->id,
             'body' => $request->body ?? '',
+            'reply_to_id' => $request->reply_to_id,
         ];
 
         if ($request->hasFile('attachment')) {
@@ -219,7 +222,7 @@ class ChatController extends Controller
         }
 
         $message = ChatMessage::create($data);
-        $message->load('user:id,name,avatar');
+        $message->load(['user:id,name,avatar', 'replyTo:id,body,user_id,attachment_name', 'replyTo.user:id,name']);
 
         // Send notifications for @mentions
         if ($request->body && preg_match_all('/@\[([^\]]+)\]\((\d+)\)/', $request->body, $matches)) {
@@ -258,6 +261,38 @@ class ChatController extends Controller
         $message->delete();
 
         return $this->successResponse(null, 'تم حذف الرسالة');
+    }
+
+    public function toggleReaction(Request $request, ChatChannel $channel, ChatMessage $message): JsonResponse
+    {
+        $user = Auth::user();
+
+        if (!$user->isSuperAdmin() && !$channel->members()->where('user_id', $user->id)->exists()) {
+            return $this->errorResponse('غير مسموح', 403);
+        }
+
+        $request->validate(['emoji' => 'required|string|max:10']);
+
+        $existing = ChatMessageReaction::where('message_id', $message->id)
+            ->where('user_id', $user->id)
+            ->where('emoji', $request->emoji)
+            ->first();
+
+        if ($existing) {
+            $existing->delete();
+            $action = 'removed';
+        } else {
+            ChatMessageReaction::create([
+                'message_id' => $message->id,
+                'user_id' => $user->id,
+                'emoji' => $request->emoji,
+            ]);
+            $action = 'added';
+        }
+
+        $reactions = $message->reactions()->with('user:id,name')->get();
+
+        return $this->successResponse(['action' => $action, 'reactions' => $reactions]);
     }
 
     public function markRead(ChatChannel $channel): JsonResponse
