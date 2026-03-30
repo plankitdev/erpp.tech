@@ -25,7 +25,7 @@ class GoogleDriveController extends Controller
         $client->setClientId(config('services.google.client_id'));
         $client->setClientSecret(config('services.google.client_secret'));
         $client->setRedirectUri(config('services.google.redirect_uri'));
-        $client->addScope(GoogleDrive::DRIVE_FILE);
+        $client->addScope(GoogleDrive::DRIVE);
         $client->setAccessType('offline');
         $client->setPrompt('consent');
         return $client;
