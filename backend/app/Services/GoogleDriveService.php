@@ -186,10 +186,26 @@ class GoogleDriveService
 
     /**
      * Download a file from Drive. Returns the file content as string or null.
+     * Handles both regular files and Google Workspace files (Docs/Sheets/Slides).
      */
     public function downloadFile(string $driveFileId): ?string
     {
         try {
+            // First check if it's a Google Workspace file
+            $fileMeta = $this->drive->files->get($driveFileId, ['fields' => 'mimeType']);
+            $mimeType = $fileMeta->getMimeType();
+
+            $exportMap = [
+                'application/vnd.google-apps.document' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'application/vnd.google-apps.spreadsheet' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'application/vnd.google-apps.presentation' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            ];
+
+            if (isset($exportMap[$mimeType])) {
+                $response = $this->drive->files->export($driveFileId, $exportMap[$mimeType], ['alt' => 'media']);
+                return $response->getBody()->getContents();
+            }
+
             $response = $this->drive->files->get($driveFileId, ['alt' => 'media']);
             return $response->getBody()->getContents();
         } catch (\Exception $e) {
@@ -485,6 +501,30 @@ class GoogleDriveService
                 }
 
                 try {
+                    $mimeType = $driveFile->getMimeType() ?? 'application/octet-stream';
+                    $fileName = $driveFile->getName();
+
+                    // Handle Google Workspace files — convert to Office formats
+                    $exportMap = [
+                        'application/vnd.google-apps.document' => ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', '.docx'],
+                        'application/vnd.google-apps.spreadsheet' => ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', '.xlsx'],
+                        'application/vnd.google-apps.presentation' => ['application/vnd.openxmlformats-officedocument.presentationml.presentation', '.pptx'],
+                    ];
+
+                    if (isset($exportMap[$mimeType])) {
+                        $mimeType = $exportMap[$mimeType][0];
+                        $ext = $exportMap[$mimeType][1] ?? '';
+                        // Add extension if not already present
+                        if ($ext && !str_ends_with(strtolower($fileName), strtolower($ext))) {
+                            $fileName .= $ext;
+                        }
+                    }
+
+                    // Skip unsupported Google Workspace types (Forms, Sites, etc.)
+                    if (str_starts_with($driveFile->getMimeType() ?? '', 'application/vnd.google-apps.') && !isset($exportMap[$driveFile->getMimeType()])) {
+                        continue;
+                    }
+
                     // Download file content from Drive
                     $content = $this->downloadFile($driveFile->getId());
                     if (!$content) {
@@ -492,14 +532,13 @@ class GoogleDriveService
                         continue;
                     }
 
-                    $fileName = $driveFile->getName();
                     $storagePath = 'file-manager/' . $this->companyId . '/' . uniqid() . '_' . $fileName;
                     Storage::disk('public')->put($storagePath, $content);
 
                     ManagedFile::create([
                         'name' => $fileName,
                         'file_path' => $storagePath,
-                        'mime_type' => $driveFile->getMimeType() ?? 'application/octet-stream',
+                        'mime_type' => $mimeType,
                         'file_size' => $driveFile->getSize() ?? strlen($content),
                         'company_id' => $this->companyId,
                         'folder_id' => $localParentId,

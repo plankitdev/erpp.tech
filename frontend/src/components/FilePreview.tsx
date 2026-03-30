@@ -8,12 +8,13 @@ function getExtension(name: string): string {
   return (name.split('.').pop() || '').toLowerCase();
 }
 
-function getFileCategory(name: string): 'image' | 'pdf' | 'video' | 'audio' | 'other' {
+function getFileCategory(name: string): 'image' | 'pdf' | 'video' | 'audio' | 'office' | 'other' {
   const ext = getExtension(name);
   if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext)) return 'image';
   if (ext === 'pdf') return 'pdf';
   if (['mp4', 'webm', 'ogg', 'mov'].includes(ext)) return 'video';
   if (['mp3', 'wav', 'ogg', 'aac', 'm4a'].includes(ext)) return 'audio';
+  if (['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext)) return 'office';
   return 'other';
 }
 
@@ -32,6 +33,7 @@ export function getFileIconColor(name: string): string {
   if (cat === 'pdf') return 'bg-red-50 text-red-600';
   if (cat === 'video') return 'bg-purple-50 text-purple-600';
   if (cat === 'audio') return 'bg-amber-50 text-amber-600';
+  if (cat === 'office') return 'bg-green-50 text-green-600';
   return 'bg-gray-50 text-gray-600';
 }
 
@@ -45,7 +47,8 @@ export function resolveFileUrl(path: string): string {
 }
 
 export function isPreviewable(name: string): boolean {
-  return getFileCategory(name) !== 'other';
+  const cat = getFileCategory(name);
+  return cat !== 'other';
 }
 
 // ── File Thumbnail ──────────────────────────────────────
@@ -234,6 +237,13 @@ export function FilePreviewModal({ file, files = [], onClose }: FilePreviewModal
             <p className="text-gray-800 font-medium mb-4">{currentFile.name}</p>
             <audio src={url} controls autoPlay className="w-full" />
           </div>
+        )}
+        {cat === 'office' && (
+          <iframe
+            src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(window.location.origin + url)}`}
+            title={currentFile.name}
+            className="w-[85vw] h-[85vh] rounded-lg bg-white shadow-2xl"
+          />
         )}
         {cat === 'other' && (
           <div className="bg-white rounded-2xl p-8 shadow-2xl text-center min-w-[320px]">

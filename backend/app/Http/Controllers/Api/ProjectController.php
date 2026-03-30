@@ -99,6 +99,7 @@ class ProjectController extends Controller
             'tasks' => fn($q) => $q->whereNull('parent_id')->with(['assignedUser', 'assignees', 'subtasks.assignedUser']),
             'files.uploader',
         ]);
+        $project->loadCount(['tasks', 'files']);
         $project->append(['progress', 'completed_tasks_count']);
 
         return $this->successResponse(new ProjectResource($project));
