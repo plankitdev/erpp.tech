@@ -176,8 +176,8 @@ class User extends Authenticatable
             ],
             'employee' => [
                 'dashboard.view',
-                'tasks.view', 'tasks.create',
-                'projects.view',
+                'tasks.view', 'tasks.create', 'tasks.edit', 'tasks.delete',
+                'projects.view', 'projects.create', 'projects.edit',
                 'calendar.view',
                 'meetings.view',
                 'attendance.view', 'attendance.create',
