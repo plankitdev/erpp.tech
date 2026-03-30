@@ -17,8 +17,12 @@ class GoogleDriveService
      * Get an authenticated Google Drive service for a company.
      * Returns null if Drive is not connected or token refresh fails.
      */
-    public static function forCompany(int $companyId): ?self
+    public static function forCompany(?int $companyId): ?self
     {
+        if (!$companyId) {
+            return null;
+        }
+
         $driveToken = GoogleDriveToken::where('company_id', $companyId)->first();
         if (!$driveToken) {
             return null;
@@ -568,6 +572,8 @@ class GoogleDriveService
      */
     public function twoWaySync(): array
     {
+        set_time_limit(300);
+
         $rootFolderId = $this->getRootFolderId();
         if (!$rootFolderId) {
             return ['pushed' => 0, 'pulled' => 0, 'deleted' => 0, 'errors' => 0];
@@ -589,23 +595,21 @@ class GoogleDriveService
         $errors += $pullResult['errors'];
 
         // ── Phase 3: Clean up deleted Drive files ──
-        // Check local files with drive_file_id — verify they still exist in Drive
+        // Bulk-list all Drive file IDs in one paginated call instead of checking each file individually
+        $allDriveIds = $this->listAllDriveIds();
+        $driveIdSet = array_flip($allDriveIds);
+
         $localFiles = ManagedFile::where('company_id', $this->companyId)
             ->whereNotNull('drive_file_id')
             ->get();
 
         foreach ($localFiles as $file) {
-            try {
-                $this->drive->files->get($file->drive_file_id, ['fields' => 'id, trashed']);
-            } catch (\Exception $e) {
-                // File no longer exists in Drive — remove local record
-                if (str_contains($e->getMessage(), '404') || str_contains($e->getMessage(), 'notFound')) {
-                    if ($file->file_path) {
-                        Storage::disk('public')->delete($file->file_path);
-                    }
-                    $file->delete();
-                    $deleted++;
+            if (!isset($driveIdSet[$file->drive_file_id])) {
+                if ($file->file_path) {
+                    Storage::disk('public')->delete($file->file_path);
                 }
+                $file->delete();
+                $deleted++;
             }
         }
 
@@ -615,19 +619,14 @@ class GoogleDriveService
             ->get();
 
         foreach ($localFolders as $folder) {
-            try {
-                $this->drive->files->get($folder->drive_folder_id, ['fields' => 'id, trashed']);
-            } catch (\Exception $e) {
-                if (str_contains($e->getMessage(), '404') || str_contains($e->getMessage(), 'notFound')) {
-                    // Delete files in this folder locally
-                    $folderFiles = ManagedFile::where('folder_id', $folder->id)->get();
-                    foreach ($folderFiles as $ff) {
-                        if ($ff->file_path) Storage::disk('public')->delete($ff->file_path);
-                        $ff->delete();
-                    }
-                    $folder->delete();
-                    $deleted++;
+            if (!isset($driveIdSet[$folder->drive_folder_id])) {
+                $folderFiles = ManagedFile::where('folder_id', $folder->id)->get();
+                foreach ($folderFiles as $ff) {
+                    if ($ff->file_path) Storage::disk('public')->delete($ff->file_path);
+                    $ff->delete();
                 }
+                $folder->delete();
+                $deleted++;
             }
         }
 
@@ -639,5 +638,34 @@ class GoogleDriveService
             'deleted' => $deleted,
             'errors' => $errors,
         ];
+    }
+
+    /**
+     * List all non-trashed file/folder IDs from Drive in bulk.
+     */
+    private function listAllDriveIds(): array
+    {
+        $ids = [];
+        $pageToken = null;
+        try {
+            do {
+                $params = [
+                    'q' => 'trashed=false',
+                    'fields' => 'nextPageToken, files(id)',
+                    'pageSize' => 1000,
+                ];
+                if ($pageToken) {
+                    $params['pageToken'] = $pageToken;
+                }
+                $result = $this->drive->files->listFiles($params);
+                foreach ($result->getFiles() as $file) {
+                    $ids[] = $file->getId();
+                }
+                $pageToken = $result->getNextPageToken();
+            } while ($pageToken);
+        } catch (\Exception $e) {
+            Log::warning('GoogleDrive: listAllDriveIds failed', ['error' => $e->getMessage()]);
+        }
+        return $ids;
     }
 }
