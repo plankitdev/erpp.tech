@@ -36,6 +36,7 @@ export default function Chat() {
   const [searchQuery, setSearchQuery] = useState('');
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionIndex, setMentionIndex] = useState(0);
+  const mentionsRef = useRef<{ id: number; name: string }[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -64,13 +65,35 @@ export default function Chat() {
     if (activeChannelId) markRead.mutate(activeChannelId);
   }, [activeChannelId]);
 
+  // Warn before leaving if there's unsent text or attachment
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (messageText.trim() || attachment) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [messageText, attachment]);
+
+  // Build body with mention IDs for the backend
+  const buildBodyWithMentions = (text: string): string => {
+    let body = text;
+    for (const m of mentionsRef.current) {
+      body = body.replace(new RegExp(`@${m.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?!\\])`, 'g'), `@[${m.name}](${m.id})`);
+    }
+    return body;
+  };
+
   const handleSend = () => {
     if (!activeChannelId || (!messageText.trim() && !attachment)) return;
     const formData = new FormData();
-    if (messageText.trim()) formData.append('body', messageText.trim());
+    if (messageText.trim()) {
+      formData.append('body', buildBodyWithMentions(messageText.trim()));
+    }
     if (attachment) formData.append('attachment', attachment);
     sendMessage.mutate({ channelId: activeChannelId, data: formData }, {
-      onSuccess: () => { setMessageText(''); setAttachment(null); setMentionQuery(null); },
+      onSuccess: () => { setMessageText(''); setAttachment(null); setMentionQuery(null); mentionsRef.current = []; },
     });
   };
 
@@ -92,9 +115,13 @@ export default function Chat() {
     while (atPos >= 0 && text[atPos] !== '@') atPos--;
     const before = text.slice(0, atPos);
     const after = text.slice(cursor);
-    const mention = `@[${u.name}](${u.id}) `;
+    const mention = `@${u.name} `;
     const newText = before + mention + after;
     setMessageText(newText);
+    // Store mention for later body reconstruction
+    if (!mentionsRef.current.find(m => m.id === u.id)) {
+      mentionsRef.current.push({ id: u.id, name: u.name });
+    }
     setMentionQuery(null);
     setMentionIndex(0);
     setTimeout(() => {

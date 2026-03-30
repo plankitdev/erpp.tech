@@ -372,9 +372,26 @@ class FileManagerController extends Controller
             if ($driveService) {
                 $content = $driveService->downloadFile($managedFile->drive_file_id);
                 if ($content) {
+                    // Determine MIME type from stored value or file extension
+                    $mimeType = $managedFile->mime_type;
+                    if (!$mimeType) {
+                        $ext = strtolower(pathinfo($managedFile->name, PATHINFO_EXTENSION));
+                        $mimeMap = [
+                            'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                            'ppt'  => 'application/vnd.ms-powerpoint',
+                            'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                            'doc'  => 'application/msword',
+                            'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                            'xls'  => 'application/vnd.ms-excel',
+                            'pdf'  => 'application/pdf',
+                        ];
+                        $mimeType = $mimeMap[$ext] ?? 'application/octet-stream';
+                    }
+
                     return response($content, 200, [
-                        'Content-Type' => $managedFile->mime_type ?? 'application/octet-stream',
+                        'Content-Type' => $mimeType,
                         'Content-Disposition' => 'attachment; filename="' . $managedFile->name . '"',
+                        'Content-Length' => strlen($content),
                     ]);
                 }
             }

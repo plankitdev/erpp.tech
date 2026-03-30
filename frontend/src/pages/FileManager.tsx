@@ -102,7 +102,8 @@ export default function FileManager() {
   const handleDownload = async (fileId: number, fileName: string) => {
     try {
       const response = await fileManagerApi.downloadFile(fileId);
-      const blob = new Blob([response.data]);
+      const contentType = response.headers['content-type'] || 'application/octet-stream';
+      const blob = new Blob([response.data], { type: contentType });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
