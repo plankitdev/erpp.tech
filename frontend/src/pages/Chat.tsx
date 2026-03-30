@@ -127,6 +127,7 @@ export default function Chat() {
       if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); insertMention(mentionUsers[mentionIndex]); return; }
       if (e.key === 'Escape') { e.preventDefault(); setMentionQuery(null); return; }
     }
+    if (e.key === 'Enter' && e.ctrlKey) { e.preventDefault(); setMessageText(prev => prev + '\n'); return; }
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
   };
 
