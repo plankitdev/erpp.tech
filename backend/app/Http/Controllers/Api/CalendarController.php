@@ -21,9 +21,16 @@ class CalendarController extends Controller
         $userId = $request->user()->id;
         $isEmployee = $request->user()->role === 'employee';
 
-        // Tasks with due dates in range
+        // Tasks with due dates or date ranges overlapping the range
         $tasksQuery = Task::with(['assignedUser', 'project'])
-            ->whereBetween('due_date', [$from, $to]);
+            ->where(function ($q) use ($from, $to) {
+                $q->whereBetween('due_date', [$from, $to])
+                  ->orWhere(function ($q2) use ($from, $to) {
+                      $q2->whereNotNull('start_date')
+                          ->where('start_date', '<=', $to)
+                          ->where('due_date', '>=', $from);
+                  });
+            });
 
         if ($isEmployee) {
             $tasksQuery->where(function ($q) use ($userId) {

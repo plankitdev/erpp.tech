@@ -46,10 +46,21 @@ export default function CalendarPage() {
   const eventsByDate = useMemo(() => {
     const map: Record<string, CalendarEvent[]> = {};
     events.forEach(e => {
-      const date = e.start?.split('T')[0] || e.start?.split(' ')[0];
-      if (date) {
-        if (!map[date]) map[date] = [];
-        map[date].push(e);
+      const start = e.start?.split('T')[0] || e.start?.split(' ')[0];
+      const end = e.end?.split('T')[0] || e.end?.split(' ')[0];
+      if (start && end && start !== end) {
+        // Spread event across all days between start and end
+        const d = new Date(start);
+        const endD = new Date(end);
+        while (d <= endD) {
+          const key = d.toISOString().split('T')[0];
+          if (!map[key]) map[key] = [];
+          map[key].push(e);
+          d.setDate(d.getDate() + 1);
+        }
+      } else if (start) {
+        if (!map[start]) map[start] = [];
+        map[start].push(e);
       }
     });
     return map;
