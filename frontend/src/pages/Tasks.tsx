@@ -9,6 +9,7 @@ import { clientsApi } from '../api/clients';
 import type { Employee, Client, Task } from '../types';
 import { formatDate } from '../utils';
 import toast from 'react-hot-toast';
+import { useAuthStore } from '../store/authStore';
 import {
   Plus, X, Kanban, ListFilter, Calendar, User, Clock,
   AlertCircle, CheckCircle2, Circle, Loader2, Flag, Trash2, MoreVertical,
@@ -34,6 +35,8 @@ const statusConfig: Record<string, { label: string; color: string; bg: string; d
 
 export default function Tasks() {
   useMarkBadgeSeen('tasks');
+  const { user } = useAuthStore();
+  const canDelete = user?.role === 'super_admin' || user?.role === 'manager' || user?.role === 'marketing_manager';
   const { getParam, setParam } = useUrlFilters({ statusFilter: 'all', priorityFilter: 'all' });
   const statusFilter = getParam('statusFilter') || 'all';
   const priorityFilter = getParam('priorityFilter') || 'all';
@@ -136,7 +139,7 @@ export default function Tasks() {
       await deleteMutation.mutateAsync(deleteId);
       toast.success('تم حذف المهمة');
     } catch {
-      toast.error('حدث خطأ');
+      // Error toast is handled by the global axios interceptor
     }
     setDeleteId(null);
   };
@@ -336,12 +339,14 @@ export default function Tasks() {
                         >
                           عرض التفاصيل
                         </button>
-                        <button
-                          onClick={() => handleDelete(task.id)}
-                          className="w-full text-right px-4 py-2.5 text-sm text-red-600 hover:bg-red-50"
-                        >
-                          <span className="flex items-center gap-2"><Trash2 size={14} /> حذف</span>
-                        </button>
+                        {canDelete && (
+                          <button
+                            onClick={() => handleDelete(task.id)}
+                            className="w-full text-right px-4 py-2.5 text-sm text-red-600 hover:bg-red-50"
+                          >
+                            <span className="flex items-center gap-2"><Trash2 size={14} /> حذف</span>
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>

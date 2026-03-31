@@ -164,8 +164,9 @@ const PROJECT_TEMPLATES = [
 
 export default function Projects() {
   useMarkBadgeSeen('projects');
-  const { hasPermission } = useAuthStore();
+  const { hasPermission, user } = useAuthStore();
   const canViewBudget = hasPermission('treasury.view');
+  const canDelete = user?.role === 'super_admin' || user?.role === 'manager' || user?.role === 'marketing_manager';
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
@@ -240,7 +241,7 @@ export default function Projects() {
       await deleteMutation.mutateAsync(deleteSlug);
       toast.success('تم حذف المشروع');
     } catch {
-      toast.error('حدث خطأ');
+      // Error toast is handled by the global axios interceptor
     }
     setDeleteSlug(null);
   };
@@ -365,7 +366,9 @@ export default function Projects() {
                     <td>
                       <div className="flex gap-1">
                         <Link to={`/projects/${project.slug}`} className="action-icon text-gray-400 hover:text-primary-600 hover:bg-primary-50"><Eye size={15} /></Link>
-                        <button onClick={() => handleDelete(project.slug)} className="action-icon text-gray-400 hover:text-red-600 hover:bg-red-50"><Trash2 size={15} /></button>
+                        {canDelete && (
+                          <button onClick={() => handleDelete(project.slug)} className="action-icon text-gray-400 hover:text-red-600 hover:bg-red-50"><Trash2 size={15} /></button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -406,10 +409,12 @@ export default function Projects() {
                             className="flex items-center gap-2 w-full text-right px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
                             <Eye size={14} /> عرض
                           </Link>
-                          <button onClick={() => handleDelete(project.slug)}
-                            className="flex items-center gap-2 w-full text-right px-3 py-2 text-sm text-red-600 hover:bg-red-50">
-                            <Trash2 size={14} /> حذف
-                          </button>
+                          {canDelete && (
+                            <button onClick={() => handleDelete(project.slug)}
+                              className="flex items-center gap-2 w-full text-right px-3 py-2 text-sm text-red-600 hover:bg-red-50">
+                              <Trash2 size={14} /> حذف
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>

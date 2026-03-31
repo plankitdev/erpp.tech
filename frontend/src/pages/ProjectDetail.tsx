@@ -104,6 +104,7 @@ export default function ProjectDetail() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { user, hasPermission } = useAuthStore();
+  const canDeleteTask = user?.role === 'super_admin' || user?.role === 'manager' || user?.role === 'marketing_manager';
   const { data: project, isLoading, isError, refetch } = useProject(slug || '');
   const updateProject = useUpdateProject();
   const createTask = useCreateTask();
@@ -197,7 +198,7 @@ export default function ProjectDetail() {
           refetch();
           toast.success('تم الحذف');
         } catch {
-          toast.error('حدث خطأ');
+          // Error toast is handled by the global axios interceptor
         }
         setConfirmDialog(d => ({ ...d, open: false }));
       },
@@ -251,7 +252,7 @@ export default function ProjectDetail() {
           refetch();
           toast.success('تم الحذف');
         } catch {
-          toast.error('حدث خطأ');
+          // Error toast is handled by the global axios interceptor
         }
         setConfirmDialog(d => ({ ...d, open: false }));
       },
@@ -429,10 +430,12 @@ export default function ProjectDetail() {
                     <Plus size={14} />
                   </button>
                 )}
-                <button onClick={(e) => handleDeleteTask(task.id, e)}
-                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all">
-                  <Trash2 size={14} />
-                </button>
+                {canDeleteTask && (
+                  <button onClick={(e) => handleDeleteTask(task.id, e)}
+                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all">
+                    <Trash2 size={14} />
+                  </button>
+                )}
               </div>
             </div>
           </div>

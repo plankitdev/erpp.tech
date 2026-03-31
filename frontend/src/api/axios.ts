@@ -29,7 +29,8 @@ api.interceptors.response.use(
     }
 
     if (error.response?.status === 403) {
-      toast.error('غير مصرح لك بالوصول إلى هذا المورد');
+      const msg = error.response?.data?.message;
+      toast.error(msg && msg !== 'This action is unauthorized.' ? msg : 'غير مصرح لك بهذا الإجراء');
     }
 
     // Show server-side validation errors
