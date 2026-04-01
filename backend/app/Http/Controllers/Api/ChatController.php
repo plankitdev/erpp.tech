@@ -105,7 +105,7 @@ class ChatController extends Controller
             $memberIds = array_unique(array_merge($memberIds, $companyUserIds));
         }
 
-        $channel->members()->attach($memberIds);
+        $channel->members()->syncWithoutDetaching($memberIds);
 
         $channel->load(['members:id,name,avatar', 'latestMessage.user:id,name']);
 
@@ -208,7 +208,7 @@ class ChatController extends Controller
         ]);
 
         $data = [
-            'company_id' => $user->company_id,
+            'company_id' => $user->company_id ?? $channel->company_id,
             'channel_id' => $channel->id,
             'user_id' => $user->id,
             'body' => $request->body ?? '',
@@ -226,7 +226,7 @@ class ChatController extends Controller
         $message->load(['user:id,name,avatar', 'replyTo:id,body,user_id,attachment_name', 'replyTo.user:id,name']);
 
         // Send notifications for @mentions
-        if ($request->body && preg_match_all('/@\[([^\]]+)\]\((\d+)\)/', $request->body, $matches)) {
+        if ($request->body && $user->company_id && preg_match_all('/@\[([^\]]+)\]\((\d+)\)/', $request->body, $matches)) {
             $channelName = $channel->type === 'direct'
                 ? 'رسالة مباشرة'
                 : $channel->name;

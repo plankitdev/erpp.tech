@@ -96,7 +96,8 @@ class FileManagerController extends Controller
         ]);
 
         // Sync to Google Drive in background
-        $driveService = GoogleDriveService::forCompany(auth()->user()->company_id);
+        $companyId = auth()->user()->company_id;
+        $driveService = $companyId ? GoogleDriveService::forCompany($companyId) : null;
         if ($driveService) {
             $parentDriveId = $driveService->resolveParentDriveFolderId($request->parent_id);
             $driveFolderId = $driveService->createFolder($request->name, $parentDriveId);
@@ -118,7 +119,7 @@ class FileManagerController extends Controller
         $folder->update(['name' => $request->name]);
 
         // Sync rename to Drive
-        if ($folder->drive_folder_id) {
+        if ($folder->drive_folder_id && auth()->user()->company_id) {
             $driveService = GoogleDriveService::forCompany(auth()->user()->company_id);
             $driveService?->renameFolder($folder->drive_folder_id, $request->name);
         }
@@ -138,7 +139,7 @@ class FileManagerController extends Controller
         }
 
         // Delete from Drive first
-        if ($folder->drive_folder_id) {
+        if ($folder->drive_folder_id && auth()->user()->company_id) {
             $driveService = GoogleDriveService::forCompany(auth()->user()->company_id);
             $driveService?->deleteFolder($folder->drive_folder_id);
         }
@@ -171,7 +172,7 @@ class FileManagerController extends Controller
         $folder->update(['parent_id' => $request->parent_id]);
 
         // Sync move to Drive
-        if ($folder->drive_folder_id) {
+        if ($folder->drive_folder_id && auth()->user()->company_id) {
             $driveService = GoogleDriveService::forCompany(auth()->user()->company_id);
             if ($driveService) {
                 $newParentDriveId = $driveService->resolveParentDriveFolderId($request->parent_id);
@@ -209,7 +210,8 @@ class FileManagerController extends Controller
         ]);
 
         // Auto-upload to Google Drive
-        $driveService = GoogleDriveService::forCompany(auth()->user()->company_id);
+        $companyId = auth()->user()->company_id;
+        $driveService = $companyId ? GoogleDriveService::forCompany($companyId) : null;
         if ($driveService) {
             $parentDriveId = $driveService->resolveParentDriveFolderId($request->folder_id);
             $driveFileId = $driveService->uploadFile($path, $fileName, $uploaded->getClientMimeType(), $parentDriveId);
@@ -244,7 +246,7 @@ class FileManagerController extends Controller
         }
 
         // Delete from Drive
-        if ($managedFile->drive_file_id) {
+        if ($managedFile->drive_file_id && auth()->user()->company_id) {
             $driveService = GoogleDriveService::forCompany(auth()->user()->company_id);
             $driveService?->deleteFile($managedFile->drive_file_id);
         }
@@ -263,7 +265,7 @@ class FileManagerController extends Controller
         $managedFile->update(['folder_id' => $request->folder_id]);
 
         // Sync move to Drive
-        if ($managedFile->drive_file_id) {
+        if ($managedFile->drive_file_id && auth()->user()->company_id) {
             $driveService = GoogleDriveService::forCompany(auth()->user()->company_id);
             if ($driveService) {
                 $newParentDriveId = $driveService->resolveParentDriveFolderId($request->folder_id);
@@ -283,7 +285,7 @@ class FileManagerController extends Controller
         $managedFile->update(['name' => $request->name]);
 
         // Sync rename to Drive
-        if ($managedFile->drive_file_id) {
+        if ($managedFile->drive_file_id && auth()->user()->company_id) {
             $driveService = GoogleDriveService::forCompany(auth()->user()->company_id);
             $driveService?->renameFile($managedFile->drive_file_id, $request->name);
         }
@@ -379,7 +381,7 @@ class FileManagerController extends Controller
         }
 
         // File deleted locally — try fetching from Drive
-        if ($managedFile->drive_file_id) {
+        if ($managedFile->drive_file_id && auth()->user()->company_id) {
             $driveService = GoogleDriveService::forCompany(auth()->user()->company_id);
             if ($driveService) {
                 $content = $driveService->downloadFile($managedFile->drive_file_id);
