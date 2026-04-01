@@ -99,6 +99,8 @@ const menuSections: MenuSection[] = [
       { path: '/file-manager', label: 'مدير الملفات', icon: HardDrive, permission: null },
       { path: '/media', label: 'مكتبة الملفات', icon: ImageIcon, permission: 'users', roles: ['super_admin', 'company_admin', 'manager'] },
       { path: '/file-templates', label: 'قوالب الملفات', icon: FolderOpen, permission: 'users', roles: ['super_admin', 'company_admin', 'manager'] },
+      // { path: '/template-library', label: 'مكتبة التيمبليتس', icon: BookOpen, permission: null },
+      // { path: '/my-documents', label: 'مستنداتي', icon: FileText, permission: null },
     ],
   },
   {

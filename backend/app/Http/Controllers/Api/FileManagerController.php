@@ -131,6 +131,12 @@ class FileManagerController extends Controller
      */
     public function deleteFolder(Folder $folder): JsonResponse
     {
+        $user = auth()->user();
+        // الموظف يقدر يحذف المجلدات اللي هو أنشأها بس — الأدمن والمدير يحذفوا أي مجلد
+        if ($user->role === 'employee' && $folder->created_by !== $user->id) {
+            return $this->errorResponse('غير مسموح — يمكنك حذف المجلدات التي أنشأتها فقط', 403);
+        }
+
         // Delete from Drive first
         if ($folder->drive_folder_id) {
             $driveService = GoogleDriveService::forCompany(auth()->user()->company_id);
@@ -231,6 +237,12 @@ class FileManagerController extends Controller
      */
     public function deleteFile(ManagedFile $managedFile): JsonResponse
     {
+        $user = auth()->user();
+        // الموظف يقدر يحذف الملفات اللي هو رفعها بس — الأدمن والمدير يحذفوا أي ملف
+        if ($user->role === 'employee' && $managedFile->uploaded_by !== $user->id) {
+            return $this->errorResponse('غير مسموح — يمكنك حذف الملفات التي رفعتها فقط', 403);
+        }
+
         // Delete from Drive
         if ($managedFile->drive_file_id) {
             $driveService = GoogleDriveService::forCompany(auth()->user()->company_id);

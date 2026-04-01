@@ -68,6 +68,9 @@ const SystemMonitor = lazy(() => import('./pages/SystemMonitor'));
 const FileManagerPage = lazy(() => import('./pages/FileManager'));
 const GoogleDriveCallback = lazy(() => import('./pages/GoogleDriveCallback'));
 const Announcements = lazy(() => import('./pages/Announcements'));
+// const TemplateLibrary = lazy(() => import('./pages/TemplateLibrary'));
+// const DocumentEditor = lazy(() => import('./pages/DocumentEditor'));
+// const MyDocuments = lazy(() => import('./pages/MyDocuments'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
@@ -156,7 +159,11 @@ export default function App() {
         <Route path="activity-logs" element={<RoleGuard permission="activity_logs"><ActivityLogs /></RoleGuard>} />
         <Route path="media" element={<RoleGuard permission="users"><MediaLibrary /></RoleGuard>} />
         <Route path="file-manager" element={<FileManagerPage />} />
+        <Route path="file-manager/folder/:folderId" element={<FileManagerPage />} />
         <Route path="file-templates" element={<RoleGuard permission="users"><FileTemplates /></RoleGuard>} />
+        {/* <Route path="template-library" element={<TemplateLibrary />} /> */}
+        {/* <Route path="my-documents" element={<MyDocuments />} /> */}
+        {/* <Route path="documents/:id/edit" element={<DocumentEditor />} /> */}
         <Route path="settings" element={<Settings />} />
         <Route path="workflows" element={<RoleGuard permission="users"><WorkflowAutomation /></RoleGuard>} />
         <Route path="tags" element={<RoleGuard permission="users"><TagsManager /></RoleGuard>} />

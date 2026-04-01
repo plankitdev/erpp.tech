@@ -812,3 +812,74 @@ export interface ChatUser {
   avatar: string | null;
   role: string;
 }
+
+// ========== Template Library ==========
+export interface TemplateCategory {
+  id: number;
+  name: string;
+  slug: string;
+  color: string | null;
+  icon: string | null;
+  sort_order: number;
+  templates_count?: number;
+}
+
+export interface SchemaField {
+  key: string;
+  label: string;
+  type: 'text' | 'textarea' | 'number' | 'currency' | 'date' | 'select' | 'multi_select' | 'checkbox' | 'url';
+  required?: boolean;
+  default?: unknown;
+  options?: string[];
+  unit?: string;
+  currency?: string;
+}
+
+export interface SchemaSection {
+  title: string;
+  fields: string[];
+}
+
+export interface TemplateSchema {
+  fields: SchemaField[];
+  sections: SchemaSection[];
+}
+
+export interface Template {
+  id: number;
+  name: string;
+  description: string | null;
+  category_id: number;
+  category?: TemplateCategory;
+  schema: TemplateSchema;
+  preview_data: Record<string, unknown> | null;
+  thumbnail_color: string | null;
+  is_default: boolean;
+  is_locked: boolean;
+  usage_count: number;
+  creator?: User;
+  created_at: string;
+}
+
+export type UserDocumentStatus = 'draft' | 'completed' | 'archived';
+
+export interface UserDocument {
+  id: number;
+  user_id: number;
+  template_id: number | null;
+  title: string;
+  schema_snapshot: TemplateSchema;
+  data: Record<string, unknown>;
+  status: UserDocumentStatus;
+  folder_id: number | null;
+  managed_file_id: number | null;
+  project_id: number | null;
+  client_id: number | null;
+  user?: User;
+  template?: Template;
+  project?: { id: number; name: string };
+  client?: { id: number; name: string };
+  managed_file?: { id: number; name: string; file_path: string };
+  created_at: string;
+  updated_at: string;
+}

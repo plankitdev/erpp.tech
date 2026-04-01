@@ -43,6 +43,9 @@ use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\PushController;
 use App\Http\Controllers\Api\FileManagerController;
 use App\Http\Controllers\Api\GoogleDriveController;
+// use App\Http\Controllers\Api\TemplateCategoryController;
+// use App\Http\Controllers\Api\TemplateLibraryController;
+// use App\Http\Controllers\Api\UserDocumentController;
 use Illuminate\Support\Facades\Route;
 
 // ========== Health Check (public) ==========
@@ -284,6 +287,33 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::middleware('role:super_admin,company_admin,manager')->group(function () {
         Route::apiResource('file-templates', FileTemplateController::class)->except(['show']);
     });
+
+    // ========== Template Library (DISABLED — مؤجل) ==========
+    // Route::prefix('template-library')->group(function () {
+    //     Route::get('/categories', [TemplateCategoryController::class, 'index']);
+    //     Route::get('/', [TemplateLibraryController::class, 'index']);
+    //     Route::get('/{template}', [TemplateLibraryController::class, 'show']);
+    //     Route::post('/{template}/use', [TemplateLibraryController::class, 'useTemplate']);
+    //     Route::middleware('role:super_admin,company_admin,manager')->group(function () {
+    //         Route::post('/', [TemplateLibraryController::class, 'store']);
+    //         Route::put('/{template}', [TemplateLibraryController::class, 'update']);
+    //         Route::delete('/{template}', [TemplateLibraryController::class, 'destroy']);
+    //         Route::post('/{template}/duplicate', [TemplateLibraryController::class, 'duplicate']);
+    //         Route::post('/categories', [TemplateCategoryController::class, 'store']);
+    //         Route::put('/categories/{category}', [TemplateCategoryController::class, 'update']);
+    //         Route::delete('/categories/{category}', [TemplateCategoryController::class, 'destroy']);
+    //     });
+    // });
+
+    // ========== User Documents (DISABLED — مؤجل) ==========
+    // Route::prefix('user-documents')->group(function () {
+    //     Route::get('/', [UserDocumentController::class, 'index']);
+    //     Route::get('/{document}', [UserDocumentController::class, 'show']);
+    //     Route::put('/{document}', [UserDocumentController::class, 'update']);
+    //     Route::put('/{document}/status', [UserDocumentController::class, 'updateStatus']);
+    //     Route::post('/{document}/save-to-drive', [UserDocumentController::class, 'saveToFileManager']);
+    //     Route::delete('/{document}', [UserDocumentController::class, 'destroy']);
+    // });
 
     // ========== Sales Pipeline ==========
     Route::middleware('role:super_admin,company_admin,manager,sales,sales')->group(function () {

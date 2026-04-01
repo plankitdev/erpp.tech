@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useParams, useNavigate } from 'react-router-dom';
 import { fileManagerApi, type FMFolder, type FMFile, type FMBreadcrumb } from '../api/fileManager';
 import { googleDriveApi } from '../api/googleDrive';
 import { useAuthStore } from '../store/authStore';
@@ -35,11 +36,13 @@ const statusConfig: Record<string, { label: string; color: string; icon: typeof 
 export default function FileManager() {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const { folderId: folderIdParam } = useParams<{ folderId: string }>();
   const isManager = user?.role === 'super_admin' || user?.role === 'manager';
   const isEmployee = user?.role === 'employee';
 
-  // State
-  const [currentFolderId, setCurrentFolderId] = useState<number | null>(null);
+  // Derive currentFolderId from URL param
+  const currentFolderId = folderIdParam ? Number(folderIdParam) : null;
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
   const [showNewFolder, setShowNewFolder] = useState(false);
@@ -221,7 +224,11 @@ export default function FileManager() {
   }, [handleUpload]);
 
   const navigateFolder = (folderId: number | null) => {
-    setCurrentFolderId(folderId);
+    if (folderId) {
+      navigate(`/file-manager/folder/${folderId}`);
+    } else {
+      navigate('/file-manager');
+    }
     setSearchQuery('');
   };
 

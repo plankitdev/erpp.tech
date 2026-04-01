@@ -132,7 +132,8 @@ class ChatController extends Controller
     public function deleteChannel(ChatChannel $channel): JsonResponse
     {
         $user = Auth::user();
-        if ($channel->created_by !== $user->id && !$user->isSuperAdmin()) {
+        // المنشئ أو الأدمن أو المدير يقدروا يحذفوا القناة
+        if ($channel->created_by !== $user->id && !$user->isSuperAdmin() && !$user->isManager()) {
             return $this->errorResponse('غير مسموح', 403);
         }
 

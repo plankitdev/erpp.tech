@@ -7,12 +7,13 @@ import { InlinePreview, resolveFileUrl, isPreviewable } from '../components/File
 
 const EMOJI_LIST = ['👍', '❤️', '😂', '😮', '😢', '🔥', '👏', '🎉', '✅', '❌'];
 
-// Render message body with @mentions highlighted
+// Render message body with @mentions highlighted and URLs as rich links
 function RenderMessageBody({ body, isMe }: { body: string; isMe: boolean }) {
-  const parts = body.split(/(@\[[^\]]+\]\(\d+\))/g);
+  // Split on @mentions first
+  const mentionParts = body.split(/(@\[[^\]]+\]\(\d+\))/g);
   return (
     <p className="text-sm whitespace-pre-wrap">
-      {parts.map((part, i) => {
+      {mentionParts.map((part, i) => {
         const match = part.match(/^@\[([^\]]+)\]\((\d+)\)$/);
         if (match) {
           return (
@@ -21,7 +22,28 @@ function RenderMessageBody({ body, isMe }: { body: string; isMe: boolean }) {
             </span>
           );
         }
-        return <span key={i}>{part}</span>;
+        // Now split this text part on URLs
+        const urlParts = part.split(/(https?:\/\/[^\s<]+)/g);
+        return urlParts.map((seg, j) => {
+          if (/^https?:\/\//.test(seg)) {
+            // Extract domain for display
+            let domain = '';
+            try { domain = new URL(seg).hostname.replace('www.', ''); } catch { domain = seg; }
+            return (
+              <a
+                key={`${i}-${j}`}
+                href={seg}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-xs font-medium transition ${isMe ? 'bg-blue-400/30 text-blue-50 hover:bg-blue-400/50' : 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200'}`}
+              >
+                <svg className="w-3 h-3 shrink-0" viewBox="0 0 16 16" fill="none"><path d="M6.5 10.5L10.5 6.5M7 4.5H4.5a2 2 0 00-2 2V11a2 2 0 002 2h4.5a2 2 0 002-2V8.5M9.5 2.5h4m0 0v4m0-4l-5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                {domain}
+              </a>
+            );
+          }
+          return <span key={`${i}-${j}`}>{seg}</span>;
+        });
       })}
     </p>
   );

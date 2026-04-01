@@ -34,3 +34,6 @@ Schedule::command('backup:run')->dailyAt('02:00');
 
 // فحص صحة النظام كل 6 ساعات
 Schedule::command('system:health-check')->everySixHours();
+
+// مزامنة جوجل درايف تلقائياً كل ساعة
+Schedule::command('drive:sync')->hourly();
