@@ -48,6 +48,17 @@ export default function Tasks() {
   const [actionMenu, setActionMenu] = useState<number | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
+  // Close action menu on outside click
+  useEffect(() => {
+    if (actionMenu === null) return;
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-action-menu]')) setActionMenu(null);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [actionMenu]);
+
   const params = statusFilter !== 'all' ? { status: statusFilter } : {};
   const { data, isLoading, isError, refetch } = useTasks(params);
   const createMutation = useCreateTask();
@@ -268,7 +279,7 @@ export default function Tasks() {
             return (
               <div
                 key={task.id}
-                className={`bg-white rounded-xl border ${overdue ? 'border-red-200 bg-red-50/30' : 'border-gray-100'} p-4 hover:shadow-md transition-all duration-200 group animate-fade-in-up stagger-${Math.min(idx + 1, 8)}`}
+                className={`bg-white rounded-xl border ${overdue ? 'border-red-200 bg-red-50/30' : 'border-gray-100'} p-4 hover:shadow-md transition-all duration-200 group relative animate-fade-in-up stagger-${Math.min(idx + 1, 8)}`}
               >
                 <div className="flex items-center gap-2 sm:gap-4">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${status.bg} flex-shrink-0`}>
@@ -324,7 +335,7 @@ export default function Tasks() {
                   </select>
 
                   {/* Actions */}
-                  <div className="relative">
+                  <div className="relative" data-action-menu>
                     <button
                       onClick={() => setActionMenu(actionMenu === task.id ? null : task.id)}
                       className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all"
@@ -332,7 +343,7 @@ export default function Tasks() {
                       <MoreVertical size={16} />
                     </button>
                     {actionMenu === task.id && (
-                      <div className="absolute left-0 top-full mt-1 w-36 bg-white rounded-xl shadow-xl border border-gray-200 z-10 animate-scale-in origin-top-left overflow-hidden">
+                      <div className="absolute left-0 bottom-full mb-1 w-36 bg-white rounded-xl shadow-xl border border-gray-200 z-50 animate-scale-in origin-bottom-left overflow-hidden">
                         <button
                           onClick={() => { setSelectedTaskId(task.id); setActionMenu(null); }}
                           className="w-full text-right px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
