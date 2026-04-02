@@ -68,6 +68,7 @@ const SystemMonitor = lazy(() => import('./pages/SystemMonitor'));
 const FileManagerPage = lazy(() => import('./pages/FileManager'));
 const GoogleDriveCallback = lazy(() => import('./pages/GoogleDriveCallback'));
 const Announcements = lazy(() => import('./pages/Announcements'));
+const PersonalTodos = lazy(() => import('./pages/PersonalTodos'));
 // const TemplateLibrary = lazy(() => import('./pages/TemplateLibrary'));
 // const DocumentEditor = lazy(() => import('./pages/DocumentEditor'));
 // const MyDocuments = lazy(() => import('./pages/MyDocuments'));
@@ -96,6 +97,7 @@ export default function App() {
         <Route index element={<Dashboard />} />
         <Route path="announcements" element={<Announcements />} />
         <Route path="chat" element={<Chat />} />
+        <Route path="personal-todos" element={<PersonalTodos />} />
         <Route path="kpi" element={<KpiDashboard />} />
         <Route path="notifications" element={<Notifications />} />
 

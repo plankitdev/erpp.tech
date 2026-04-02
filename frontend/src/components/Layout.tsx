@@ -37,6 +37,7 @@ interface MenuSection {
 const standaloneItems: MenuItem[] = [
   { path: '/announcements', label: 'الإعلانات', icon: Megaphone, permission: null },
   { path: '/chat', label: 'المحادثات', icon: MessageSquare, permission: null },
+  { path: '/personal-todos', label: 'مهامي الشخصية', icon: CheckSquare, permission: null },
   { path: '/settings', label: 'الإعدادات', icon: Settings, permission: null },
 ];
 
