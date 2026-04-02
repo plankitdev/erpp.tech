@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Models\ChatChannel;
 use App\Models\ChatMessage;
 use App\Models\ChatMessageReaction;
+use App\Models\ChatMessageRead;
 use App\Models\User;
 use App\Services\NotificationService;
 use App\Traits\ApiResponse;
@@ -12,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class ChatController extends Controller
 {
@@ -181,13 +183,29 @@ class ChatController extends Controller
         }
 
         $messages = $channel->messages()
-            ->with(['user:id,name,avatar', 'replyTo:id,body,user_id,attachment_name', 'replyTo.user:id,name', 'reactions.user:id,name'])
+            ->with(['user:id,name,avatar', 'replyTo:id,body,user_id,attachment_name', 'replyTo.user:id,name', 'reactions.user:id,name', 'reads.user:id,name'])
             ->orderByDesc('created_at')
             ->paginate(50);
 
-        // Mark as read if member
+        // Mark as read if member — both channel pivot AND individual message reads
         if ($channel->members()->where('user_id', $user->id)->exists()) {
             $channel->members()->updateExistingPivot($user->id, ['last_read_at' => now()]);
+
+            // Bulk insert read receipts for messages not yet read
+            $messageIds = $messages->pluck('id')->toArray();
+            $alreadyRead = ChatMessageRead::where('user_id', $user->id)
+                ->whereIn('message_id', $messageIds)
+                ->pluck('message_id')
+                ->toArray();
+            $toInsert = array_diff($messageIds, $alreadyRead);
+            if (!empty($toInsert)) {
+                $rows = array_map(fn($id) => [
+                    'message_id' => $id,
+                    'user_id' => $user->id,
+                    'read_at' => now(),
+                ], $toInsert);
+                ChatMessageRead::insert($rows);
+            }
         }
 
         return $this->paginatedResponse($messages);
@@ -351,6 +369,150 @@ class ChatController extends Controller
             ->sum('unread_count');
 
         return $this->successResponse(['count' => (int)$count]);
+    }
+
+    // ========== Edit Message ==========
+
+    public function editMessage(Request $request, ChatChannel $channel, ChatMessage $message): JsonResponse
+    {
+        $user = Auth::user();
+
+        if ($message->user_id !== $user->id) {
+            return $this->errorResponse('غير مسموح — يمكنك تعديل رسائلك فقط', 403);
+        }
+
+        $request->validate([
+            'body' => 'required|string|max:5000',
+        ]);
+
+        $message->update([
+            'body' => $request->body,
+            'is_edited' => true,
+            'edited_at' => now(),
+        ]);
+
+        $message->load(['user:id,name,avatar', 'reactions.user:id,name', 'reads.user:id,name']);
+
+        return $this->successResponse($message, 'تم تعديل الرسالة');
+    }
+
+    // ========== Search Messages ==========
+
+    public function searchMessages(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+
+        $request->validate([
+            'q' => 'required|string|min:2|max:200',
+            'channel_id' => 'nullable|integer|exists:chat_channels,id',
+        ]);
+
+        $query = ChatMessage::query()
+            ->whereIn('channel_id', function ($sub) use ($user) {
+                $sub->select('channel_id')
+                    ->from('chat_channel_members')
+                    ->where('user_id', $user->id);
+            })
+            ->where('body', 'like', '%' . $request->q . '%')
+            ->with(['user:id,name,avatar', 'channel:id,name,type']);
+
+        if ($request->channel_id) {
+            $query->where('channel_id', $request->channel_id);
+        }
+
+        $results = $query->orderByDesc('created_at')->limit(50)->get();
+
+        return $this->successResponse($results);
+    }
+
+    // ========== Pin / Unpin Message ==========
+
+    public function togglePin(ChatChannel $channel, ChatMessage $message): JsonResponse
+    {
+        $user = Auth::user();
+
+        // Only creator, super_admin, manager, company_admin can pin
+        if ($channel->created_by !== $user->id && !$user->isSuperAdmin() && !$user->isManager() && !$user->hasRole('company_admin')) {
+            return $this->errorResponse('غير مسموح — الأدمن والمدير فقط', 403);
+        }
+
+        if ($message->is_pinned) {
+            $message->update(['is_pinned' => false, 'pinned_by' => null, 'pinned_at' => null]);
+            return $this->successResponse($message, 'تم إلغاء التثبيت');
+        }
+
+        $message->update([
+            'is_pinned' => true,
+            'pinned_by' => $user->id,
+            'pinned_at' => now(),
+        ]);
+
+        $message->load('pinnedByUser:id,name');
+
+        return $this->successResponse($message, 'تم تثبيت الرسالة');
+    }
+
+    public function pinnedMessages(ChatChannel $channel): JsonResponse
+    {
+        $user = Auth::user();
+
+        if (!$user->isSuperAdmin() && !$channel->members()->where('user_id', $user->id)->exists()) {
+            return $this->errorResponse('غير مسموح', 403);
+        }
+
+        $pinned = $channel->messages()
+            ->where('is_pinned', true)
+            ->with(['user:id,name,avatar', 'pinnedByUser:id,name'])
+            ->orderByDesc('pinned_at')
+            ->get();
+
+        return $this->successResponse($pinned);
+    }
+
+    // ========== Read Receipts ==========
+
+    public function messageReads(ChatChannel $channel, ChatMessage $message): JsonResponse
+    {
+        $user = Auth::user();
+
+        if (!$user->isSuperAdmin() && !$channel->members()->where('user_id', $user->id)->exists()) {
+            return $this->errorResponse('غير مسموح', 403);
+        }
+
+        $reads = $message->reads()->with('user:id,name,avatar')->orderByDesc('read_at')->get();
+
+        return $this->successResponse($reads);
+    }
+
+    // ========== Typing Indicator ==========
+
+    public function typing(Request $request, ChatChannel $channel): JsonResponse
+    {
+        $user = Auth::user();
+
+        // Upsert typing record
+        DB::table('chat_typing')->updateOrInsert(
+            ['channel_id' => $channel->id, 'user_id' => $user->id],
+            ['started_at' => now()]
+        );
+
+        return $this->successResponse(null);
+    }
+
+    public function typingUsers(ChatChannel $channel): JsonResponse
+    {
+        $user = Auth::user();
+
+        // Only show users who typed in the last 5 seconds
+        $typing = DB::table('chat_typing')
+            ->join('users', 'users.id', '=', 'chat_typing.user_id')
+            ->where('chat_typing.channel_id', $channel->id)
+            ->where('chat_typing.user_id', '!=', $user->id)
+            ->where('chat_typing.started_at', '>=', now()->subSeconds(5))
+            ->select('users.id', 'users.name')
+            ->get();
+
+        return $this->successResponse($typing);
     }
 
     private function autoJoinPublicChannels($user): void

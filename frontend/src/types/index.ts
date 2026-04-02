@@ -807,8 +807,23 @@ export interface ChatMessage {
   reply_to_id: number | null;
   reply_to: { id: number; body: string; user_id: number; attachment_name: string | null; user?: { id: number; name: string } } | null;
   reactions: ChatReaction[];
+  reads?: ChatMessageReadReceipt[];
   user?: { id: number; name: string; avatar: string | null };
+  is_edited: boolean;
+  edited_at: string | null;
+  is_pinned: boolean;
+  pinned_by: number | null;
+  pinned_at: string | null;
+  pinned_by_user?: { id: number; name: string } | null;
   created_at: string;
+}
+
+export interface ChatMessageReadReceipt {
+  id: number;
+  message_id: number;
+  user_id: number;
+  read_at: string;
+  user?: { id: number; name: string; avatar?: string | null };
 }
 
 export interface ChatReaction {

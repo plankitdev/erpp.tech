@@ -41,6 +41,16 @@ export function useSendMessage() {
   });
 }
 
+export function useEditMessage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ channelId, messageId, body }: { channelId: number; messageId: number; body: string }) =>
+      chatApi.editMessage(channelId, messageId, body),
+    onSuccess: (_, vars) => { qc.invalidateQueries({ queryKey: ['chat-messages', vars.channelId] }); },
+    onError: () => toast.error('فشل تعديل الرسالة'),
+  });
+}
+
 export function useDeleteMessage() {
   const qc = useQueryClient();
   return useMutation({
@@ -68,11 +78,50 @@ export function useToggleReaction() {
   });
 }
 
+export function useTogglePin() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ channelId, messageId }: { channelId: number; messageId: number }) =>
+      chatApi.togglePin(channelId, messageId),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['chat-messages', vars.channelId] });
+      qc.invalidateQueries({ queryKey: ['chat-pinned', vars.channelId] });
+    },
+  });
+}
+
+export function usePinnedMessages(channelId: number | null) {
+  return useQuery({
+    queryKey: ['chat-pinned', channelId],
+    queryFn: () => chatApi.getPinnedMessages(channelId!),
+    enabled: !!channelId,
+  });
+}
+
+export function useSearchMessages(q: string, channelId?: number) {
+  return useQuery({
+    queryKey: ['chat-search', q, channelId],
+    queryFn: () => chatApi.searchMessages(q, channelId),
+    enabled: q.length >= 2,
+    staleTime: 30000,
+  });
+}
+
 export function useMarkRead() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: chatApi.markRead,
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['chat-channels'] }); qc.invalidateQueries({ queryKey: ['chat-unread'] }); },
+  });
+}
+
+export function useTypingUsers(channelId: number | null) {
+  return useQuery({
+    queryKey: ['chat-typing', channelId],
+    queryFn: () => chatApi.getTypingUsers(channelId!),
+    enabled: !!channelId,
+    refetchInterval: 3000,
+    staleTime: 1000,
   });
 }
 

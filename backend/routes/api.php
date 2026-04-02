@@ -342,9 +342,16 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::delete('/chat/channels/{channel}/members/{user}', [ChatController::class, 'removeMember']);
     Route::get('/chat/channels/{channel}/messages', [ChatController::class, 'messages']);
     Route::post('/chat/channels/{channel}/messages', [ChatController::class, 'sendMessage']);
+    Route::put('/chat/channels/{channel}/messages/{message}', [ChatController::class, 'editMessage']);
     Route::delete('/chat/channels/{channel}/messages/{message}', [ChatController::class, 'deleteMessage']);
     Route::post('/chat/channels/{channel}/messages/{message}/reactions', [ChatController::class, 'toggleReaction']);
+    Route::post('/chat/channels/{channel}/messages/{message}/pin', [ChatController::class, 'togglePin']);
+    Route::get('/chat/channels/{channel}/messages/{message}/reads', [ChatController::class, 'messageReads']);
+    Route::get('/chat/channels/{channel}/pinned', [ChatController::class, 'pinnedMessages']);
     Route::post('/chat/channels/{channel}/read', [ChatController::class, 'markRead']);
+    Route::post('/chat/channels/{channel}/typing', [ChatController::class, 'typing']);
+    Route::get('/chat/channels/{channel}/typing', [ChatController::class, 'typingUsers']);
+    Route::get('/chat/search', [ChatController::class, 'searchMessages']);
     Route::get('/chat/users', [ChatController::class, 'users']);
     Route::get('/chat/unread-count', [ChatController::class, 'totalUnread']);
 

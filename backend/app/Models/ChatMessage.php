@@ -19,6 +19,18 @@ class ChatMessage extends Model
         'attachment',
         'attachment_name',
         'reply_to_id',
+        'is_edited',
+        'edited_at',
+        'is_pinned',
+        'pinned_by',
+        'pinned_at',
+    ];
+
+    protected $casts = [
+        'is_edited' => 'boolean',
+        'is_pinned' => 'boolean',
+        'edited_at' => 'datetime',
+        'pinned_at' => 'datetime',
     ];
 
     public function channel(): BelongsTo
@@ -39,5 +51,15 @@ class ChatMessage extends Model
     public function reactions(): HasMany
     {
         return $this->hasMany(ChatMessageReaction::class, 'message_id');
+    }
+
+    public function reads(): HasMany
+    {
+        return $this->hasMany(ChatMessageRead::class, 'message_id');
+    }
+
+    public function pinnedByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'pinned_by');
     }
 }

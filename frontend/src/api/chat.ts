@@ -1,5 +1,5 @@
 import api from './axios';
-import type { ApiResponse, PaginatedResponse, ChatChannel, ChatMessage, ChatUser } from '../types';
+import type { ApiResponse, PaginatedResponse, ChatChannel, ChatMessage, ChatUser, ChatMessageReadReceipt } from '../types';
 
 export const chatApi = {
   getChannels: () =>
@@ -28,14 +28,35 @@ export const chatApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     }).then(r => r.data.data),
 
+  editMessage: (channelId: number, messageId: number, body: string) =>
+    api.put<ApiResponse<ChatMessage>>(`/chat/channels/${channelId}/messages/${messageId}`, { body }).then(r => r.data.data),
+
   deleteMessage: (channelId: number, messageId: number) =>
     api.delete<ApiResponse<null>>(`/chat/channels/${channelId}/messages/${messageId}`).then(r => r.data),
 
   toggleReaction: (channelId: number, messageId: number, emoji: string) =>
     api.post<ApiResponse<any>>(`/chat/channels/${channelId}/messages/${messageId}/reactions`, { emoji }).then(r => r.data.data),
 
+  togglePin: (channelId: number, messageId: number) =>
+    api.post<ApiResponse<ChatMessage>>(`/chat/channels/${channelId}/messages/${messageId}/pin`).then(r => r.data.data),
+
+  getPinnedMessages: (channelId: number) =>
+    api.get<ApiResponse<ChatMessage[]>>(`/chat/channels/${channelId}/pinned`).then(r => r.data.data),
+
+  getMessageReads: (channelId: number, messageId: number) =>
+    api.get<ApiResponse<ChatMessageReadReceipt[]>>(`/chat/channels/${channelId}/messages/${messageId}/reads`).then(r => r.data.data),
+
   markRead: (channelId: number) =>
     api.post<ApiResponse<null>>(`/chat/channels/${channelId}/read`).then(r => r.data),
+
+  sendTyping: (channelId: number) =>
+    api.post<ApiResponse<null>>(`/chat/channels/${channelId}/typing`).then(r => r.data),
+
+  getTypingUsers: (channelId: number) =>
+    api.get<ApiResponse<{ id: number; name: string }[]>>(`/chat/channels/${channelId}/typing`).then(r => r.data.data),
+
+  searchMessages: (q: string, channelId?: number) =>
+    api.get<ApiResponse<(ChatMessage & { channel?: { id: number; name: string; type: string } })[]>>('/chat/search', { params: { q, channel_id: channelId } }).then(r => r.data.data),
 
   getUsers: () =>
     api.get<ApiResponse<ChatUser[]>>('/chat/users').then(r => r.data.data),

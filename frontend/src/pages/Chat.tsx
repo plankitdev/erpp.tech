@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { MessageSquare, Plus, Send, Paperclip, Trash2, Users, Hash, X, Search, ArrowRight, Building2, UserPlus, UserMinus, Lock, Globe, AtSign, Image, Reply, Smile } from 'lucide-react';
-import { useChatChannels, useChatMessages, useChatUsers, useCreateChannel, useSendMessage, useDeleteMessage, useDeleteChannel, useMarkRead, useAddMembers, useRemoveMember, useToggleReaction } from '../hooks/useChat';
+import { MessageSquare, Plus, Send, Paperclip, Trash2, Users, Hash, X, Search, ArrowRight, Building2, UserPlus, UserMinus, Lock, Globe, AtSign, Image, Reply, Smile, Pin, PinOff, Pencil, Check, CheckCheck } from 'lucide-react';
+import { useChatChannels, useChatMessages, useChatUsers, useCreateChannel, useSendMessage, useEditMessage, useDeleteMessage, useDeleteChannel, useMarkRead, useAddMembers, useRemoveMember, useToggleReaction, useTogglePin, usePinnedMessages, useSearchMessages, useTypingUsers } from '../hooks/useChat';
 import { useAuthStore } from '../store/authStore';
 import type { ChatChannel, ChatMessage } from '../types';
 import { InlinePreview, resolveFileUrl, isPreviewable } from '../components/FilePreview';
+import { chatApi } from '../api/chat';
 
 const EMOJI_LIST = ['👍', '❤️', '😂', '😮', '😢', '🔥', '👏', '🎉', '✅', '❌'];
 
@@ -62,23 +63,34 @@ export default function Chat() {
   const [mentionIndex, setMentionIndex] = useState(0);
   const [replyTo, setReplyTo] = useState<ChatMessage | null>(null);
   const [emojiPickerMsgId, setEmojiPickerMsgId] = useState<number | null>(null);
+  const [editingMsg, setEditingMsg] = useState<{ id: number; body: string } | null>(null);
+  const [globalSearch, setGlobalSearch] = useState('');
+  const [showGlobalSearch, setShowGlobalSearch] = useState(false);
+  const [showPinned, setShowPinned] = useState(false);
+  const [readsMsgId, setReadsMsgId] = useState<number | null>(null);
   const mentionsRef = useRef<{ id: number; name: string }[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const emojiRef = useRef<HTMLDivElement>(null);
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { data: channels = [], isLoading: channelsLoading } = useChatChannels();
   const { data: messagesData } = useChatMessages(activeChannelId);
   const { data: chatUsers = [] } = useChatUsers();
+  const { data: pinnedMessages = [] } = usePinnedMessages(activeChannelId);
+  const { data: typingUsers = [] } = useTypingUsers(activeChannelId);
+  const { data: searchResults = [] } = useSearchMessages(globalSearch, undefined);
   const createChannel = useCreateChannel();
   const sendMessage = useSendMessage();
+  const editMessage = useEditMessage();
   const deleteMessage = useDeleteMessage();
   const deleteChannel = useDeleteChannel();
   const markRead = useMarkRead();
   const addMembers = useAddMembers();
   const removeMember = useRemoveMember();
   const toggleReaction = useToggleReaction();
+  const togglePin = useTogglePin();
 
   const messages = messagesData?.data ?? [];
   const activeChannel = channels.find((c: ChatChannel) => c.id === activeChannelId);
@@ -190,6 +202,11 @@ export default function Chat() {
       setMentionIndex(0);
     } else {
       setMentionQuery(null);
+    }
+    // Send typing indicator (throttled to once per 3s)
+    if (activeChannelId && !typingTimerRef.current) {
+      chatApi.sendTyping(activeChannelId).catch(() => {});
+      typingTimerRef.current = setTimeout(() => { typingTimerRef.current = null; }, 3000);
     }
   };
 
@@ -348,6 +365,22 @@ export default function Chat() {
                 </div>
               </div>
               <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setShowGlobalSearch(true)}
+                  className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition"
+                  title="بحث في الرسائل"
+                >
+                  <Search size={18} />
+                </button>
+                {pinnedMessages.length > 0 && (
+                  <button
+                    onClick={() => setShowPinned(!showPinned)}
+                    className={`p-2 hover:bg-gray-100 rounded-lg transition ${showPinned ? 'text-amber-500 bg-amber-50' : 'text-gray-500'}`}
+                    title={`${pinnedMessages.length} رسائل مثبتة`}
+                  >
+                    <Pin size={18} />
+                  </button>
+                )}
                 {activeChannel.type !== 'direct' && (
                   <button
                     onClick={() => setShowMembers(true)}
@@ -367,6 +400,28 @@ export default function Chat() {
                 )}
               </div>
             </div>
+
+            {/* Pinned messages panel */}
+            {showPinned && pinnedMessages.length > 0 && (
+              <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 max-h-40 overflow-y-auto">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <Pin size={14} className="text-amber-500" />
+                  <span className="text-xs font-bold text-amber-700">الرسائل المثبتة ({pinnedMessages.length})</span>
+                  <button onClick={() => setShowPinned(false)} className="mr-auto text-amber-400 hover:text-amber-600"><X size={14} /></button>
+                </div>
+                {pinnedMessages.map((pm: ChatMessage) => (
+                  <div key={pm.id} className="bg-white rounded-lg px-3 py-1.5 mb-1 text-sm border border-amber-100 flex items-center gap-2">
+                    <span className="font-medium text-amber-800">{pm.user?.name}:</span>
+                    <span className="text-gray-700 truncate flex-1">{pm.body || '📎 مرفق'}</span>
+                    {(activeChannel?.created_by === user?.id || user?.role === 'super_admin' || user?.role === 'manager' || user?.role === 'company_admin') && (
+                      <button onClick={() => togglePin.mutate({ channelId: activeChannel!.id, messageId: pm.id })} className="text-amber-400 hover:text-red-500 shrink-0" title="إلغاء التثبيت">
+                        <PinOff size={13} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
@@ -392,7 +447,28 @@ export default function Chat() {
                       )}
                       <div className={`rounded-2xl px-4 py-2 ${isMe ? 'bg-blue-500 text-white' : 'bg-white border border-gray-200 text-gray-800'}`}>
                         {!isMe && <p className="text-xs font-bold mb-1 text-blue-600">{msg.user?.name}</p>}
-                        {msg.body && <RenderMessageBody body={msg.body} isMe={isMe} />}
+                        {editingMsg?.id === msg.id ? (
+                          <div className="flex items-center gap-1">
+                            <input
+                              autoFocus
+                              type="text"
+                              value={editingMsg.body}
+                              onChange={e => setEditingMsg({ ...editingMsg, body: e.target.value })}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') { editMessage.mutate({ channelId: activeChannel!.id, messageId: msg.id, body: editingMsg.body }); setEditingMsg(null); }
+                                if (e.key === 'Escape') setEditingMsg(null);
+                              }}
+                              className="flex-1 text-sm bg-transparent border-0 border-b border-white/40 focus:outline-none text-inherit placeholder:text-gray-300"
+                            />
+                            <button onClick={() => { editMessage.mutate({ channelId: activeChannel!.id, messageId: msg.id, body: editingMsg.body }); setEditingMsg(null); }} className="p-0.5 text-green-300 hover:text-green-100"><Check size={14} /></button>
+                            <button onClick={() => setEditingMsg(null)} className="p-0.5 text-red-300 hover:text-red-100"><X size={14} /></button>
+                          </div>
+                        ) : (
+                          <>
+                            {msg.body && <RenderMessageBody body={msg.body} isMe={isMe} />}
+                            {msg.is_edited && <span className="text-[10px] opacity-50 mt-0.5 block">معدّلة</span>}
+                          </>
+                        )}
                         {msg.attachment && (
                           <div className="mt-1">
                             {isPreviewable(msg.attachment_name || msg.attachment) ? (
@@ -430,9 +506,23 @@ export default function Chat() {
                           ))}
                         </div>
                       )}
-                      {/* Action row: time + reply + emoji + delete */}
+                      {/* Action row: time + read receipts + reply + pin + edit + emoji + delete */}
                       <div className={`flex items-center gap-2 mt-1 ${isMe ? '' : 'justify-end'}`}>
                         <span className="text-xs text-gray-400">{formatTime(msg.created_at)}</span>
+                        {/* Read receipt indicators */}
+                        {isMe && (
+                          <span
+                            className="cursor-pointer"
+                            title={msg.reads && msg.reads.length > 0 ? `قرأها: ${msg.reads.filter(r => r.user_id !== user?.id).map(r => r.user?.name).join(', ')}` : 'لم تُقرأ بعد'}
+                            onClick={() => setReadsMsgId(readsMsgId === msg.id ? null : msg.id)}
+                          >
+                            {msg.reads && msg.reads.filter(r => r.user_id !== user?.id).length > 0
+                              ? <CheckCheck size={14} className="text-blue-500" />
+                              : <Check size={14} className="text-gray-400" />
+                            }
+                          </span>
+                        )}
+                        {msg.is_pinned && <Pin size={11} className="text-amber-400" />}
                         <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
                           <button
                             onClick={() => { setReplyTo(msg); textareaRef.current?.focus(); }}
@@ -441,6 +531,26 @@ export default function Chat() {
                           >
                             <Reply size={13} />
                           </button>
+                          {/* Pin button — admin/manager/creator */}
+                          {(activeChannel?.created_by === user?.id || user?.role === 'super_admin' || user?.role === 'manager' || user?.role === 'company_admin') && (
+                            <button
+                              onClick={() => activeChannelId && togglePin.mutate({ channelId: activeChannelId, messageId: msg.id })}
+                              className={`transition p-0.5 ${msg.is_pinned ? 'text-amber-500 hover:text-amber-600' : 'text-gray-300 hover:text-amber-500'}`}
+                              title={msg.is_pinned ? 'إلغاء التثبيت' : 'تثبيت'}
+                            >
+                              {msg.is_pinned ? <PinOff size={13} /> : <Pin size={13} />}
+                            </button>
+                          )}
+                          {/* Edit button — own messages only */}
+                          {isMe && msg.body && (
+                            <button
+                              onClick={() => setEditingMsg({ id: msg.id, body: msg.body })}
+                              className="text-gray-300 hover:text-green-500 transition p-0.5"
+                              title="تعديل"
+                            >
+                              <Pencil size={13} />
+                            </button>
+                          )}
                           <div className="relative" ref={emojiPickerMsgId === msg.id ? emojiRef : undefined}>
                             <button
                               onClick={() => setEmojiPickerMsgId(prev => prev === msg.id ? null : msg.id)}
@@ -476,12 +586,36 @@ export default function Chat() {
                           )}
                         </div>
                       </div>
+                      {/* Read receipts popup */}
+                      {readsMsgId === msg.id && msg.reads && msg.reads.filter(r => r.user_id !== user?.id).length > 0 && (
+                        <div className={`mt-1 bg-white rounded-lg shadow-lg border border-gray-200 p-2 text-xs ${isMe ? '' : 'text-left'}`}>
+                          <p className="font-bold text-gray-600 mb-1 flex items-center gap-1"><CheckCheck size={12} className="text-blue-500" /> قرأها</p>
+                          {msg.reads.filter(r => r.user_id !== user?.id).map(r => (
+                            <div key={r.id} className="flex items-center gap-1.5 py-0.5">
+                              <div className="w-4 h-4 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-[8px] font-bold">{r.user?.name?.charAt(0)}</div>
+                              <span className="text-gray-700">{r.user?.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
               })}
               <div ref={messagesEndRef} />
             </div>
+
+            {/* Typing indicator */}
+            {typingUsers.length > 0 && (
+              <div className="px-4 py-1.5 text-xs text-gray-500 bg-gray-50 border-t border-gray-100 animate-pulse">
+                {typingUsers.length === 1
+                  ? `${typingUsers[0].name} بيكتب...`
+                  : typingUsers.length === 2
+                  ? `${typingUsers[0].name} و ${typingUsers[1].name} بيكتبوا...`
+                  : `${typingUsers[0].name} و ${typingUsers.length - 1} آخرين بيكتبوا...`
+                }
+              </div>
+            )}
 
             {/* Compose */}
             <div className="p-3 border-t border-gray-200 bg-white">
@@ -583,6 +717,50 @@ export default function Chat() {
           onRemoveMember={(userId) => removeMember.mutate({ channelId: activeChannel.id, userId })}
           onClose={() => setShowMembers(false)}
         />
+      )}
+
+      {/* Global Search Modal */}
+      {showGlobalSearch && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center pt-20 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl">
+            <div className="p-4 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <Search size={18} className="text-gray-400" />
+                <input
+                  autoFocus
+                  type="text"
+                  value={globalSearch}
+                  onChange={e => setGlobalSearch(e.target.value)}
+                  placeholder="ابحث في كل الرسائل..."
+                  className="flex-1 text-sm border-0 focus:outline-none focus:ring-0 placeholder:text-gray-300"
+                />
+                <button onClick={() => { setShowGlobalSearch(false); setGlobalSearch(''); }} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+              </div>
+            </div>
+            <div className="max-h-96 overflow-y-auto p-2">
+              {globalSearch.length < 2 ? (
+                <p className="text-center text-gray-400 text-sm py-8">اكتب حرفين على الأقل للبحث</p>
+              ) : searchResults.length === 0 ? (
+                <p className="text-center text-gray-400 text-sm py-8">لا توجد نتائج</p>
+              ) : (
+                searchResults.map((msg: any) => (
+                  <button
+                    key={msg.id}
+                    onClick={() => { setActiveChannelId(msg.channel_id); setShowGlobalSearch(false); setGlobalSearch(''); }}
+                    className="w-full text-right p-3 hover:bg-gray-50 rounded-xl transition"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-bold text-blue-600">{msg.user?.name}</span>
+                      {msg.channel && <span className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">#{msg.channel.name}</span>}
+                      <span className="text-[10px] text-gray-400 mr-auto">{formatTime(msg.created_at)}</span>
+                    </div>
+                    <p className="text-sm text-gray-700 truncate">{msg.body}</p>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
