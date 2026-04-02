@@ -239,20 +239,6 @@ export default function Layout() {
       {/* Gradient divider */}
       <div className="mx-4 h-px bg-gradient-to-l from-transparent via-white/[0.07] to-transparent" />
 
-      {/* Quick search (when sidebar open) */}
-      {sidebarOpen && (
-        <div className="px-4 py-3" data-tour="search">
-          <button
-            onClick={() => setSearchOpen(true)}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-slate-500 text-xs cursor-pointer hover:bg-white/[0.07] transition-colors"
-          >
-            <Search size={13} className="text-slate-500" />
-            <span>بحث سريع...</span>
-            <kbd className="mr-auto text-[9px] bg-white/[0.06] px-1.5 py-0.5 rounded font-inter text-slate-500">⌘K</kbd>
-          </button>
-        </div>
-      )}
-
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-2 px-3 space-y-0.5 sidebar-scroll" data-tour="sidebar">
         {/* Dashboard - standalone link */}
