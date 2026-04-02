@@ -46,9 +46,16 @@ class TaskPolicy
 
     public function delete(User $user, Task $task): Response
     {
-        return $user->hasRole(['super_admin', 'company_admin', 'manager', 'marketing_manager'])
-            ? Response::allow()
-            : Response::deny('حذف المهام متاح فقط للمديرين. تواصل مع المدير إذا كنت تحتاج لحذف هذه المهمة.');
+        if ($user->hasRole(['super_admin', 'company_admin', 'manager', 'marketing_manager'])) {
+            return Response::allow();
+        }
+
+        // Task creator can delete their own task
+        if ($task->created_by === $user->id) {
+            return Response::allow();
+        }
+
+        return Response::deny('حذف المهام متاح فقط للمديرين أو منشئ المهمة.');
     }
 
     public function deleteAny(User $user): Response

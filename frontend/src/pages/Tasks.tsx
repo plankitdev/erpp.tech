@@ -36,7 +36,7 @@ const statusConfig: Record<string, { label: string; color: string; bg: string; d
 export default function Tasks() {
   useMarkBadgeSeen('tasks');
   const { user } = useAuthStore();
-  const canDelete = user?.role === 'super_admin' || user?.role === 'company_admin' || user?.role === 'manager' || user?.role === 'marketing_manager';
+  const canDeleteRole = user?.role === 'super_admin' || user?.role === 'company_admin' || user?.role === 'manager' || user?.role === 'marketing_manager';
   const { getParam, setParam } = useUrlFilters({ statusFilter: 'all', priorityFilter: 'all' });
   const statusFilter = getParam('statusFilter') || 'all';
   const priorityFilter = getParam('priorityFilter') || 'all';
@@ -339,7 +339,7 @@ export default function Tasks() {
                         >
                           عرض التفاصيل
                         </button>
-                        {canDelete && (
+                        {(canDeleteRole || task.created_by?.id === user?.id) && (
                           <button
                             onClick={() => handleDelete(task.id)}
                             className="w-full text-right px-4 py-2.5 text-sm text-red-600 hover:bg-red-50"

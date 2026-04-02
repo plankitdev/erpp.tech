@@ -221,7 +221,7 @@ class ChatController extends Controller
 
         $request->validate([
             'body' => 'required_without:attachment|string|max:5000',
-            'attachment' => 'nullable|file|max:10240',
+            'attachment' => 'nullable|file|max:10240|mimes:jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,csv,zip,rar,mp4,mp3',
             'reply_to_id' => 'nullable|integer|exists:chat_messages,id',
         ]);
 
@@ -490,6 +490,10 @@ class ChatController extends Controller
     {
         $user = Auth::user();
 
+        if (!$user->isSuperAdmin() && !$channel->members()->where('user_id', $user->id)->exists()) {
+            return $this->errorResponse('غير مسموح', 403);
+        }
+
         // Upsert typing record
         DB::table('chat_typing')->updateOrInsert(
             ['channel_id' => $channel->id, 'user_id' => $user->id],
@@ -502,6 +506,10 @@ class ChatController extends Controller
     public function typingUsers(ChatChannel $channel): JsonResponse
     {
         $user = Auth::user();
+
+        if (!$user->isSuperAdmin() && !$channel->members()->where('user_id', $user->id)->exists()) {
+            return $this->errorResponse('غير مسموح', 403);
+        }
 
         // Only show users who typed in the last 5 seconds
         $typing = DB::table('chat_typing')
@@ -526,7 +534,7 @@ class ChatController extends Controller
             ->pluck('id');
 
         foreach ($publicChannelIds as $channelId) {
-            \DB::table('chat_channel_members')->insert([
+            \DB::table('chat_channel_members')->insertOrIgnore([
                 'channel_id' => $channelId,
                 'user_id' => $user->id,
                 'last_read_at' => null,
