@@ -286,6 +286,18 @@ export interface TaskFile {
   created_at: string;
 }
 
+// ========== Personal Todo ==========
+export interface PersonalTodo {
+  id: number;
+  user_id: number;
+  title: string;
+  is_completed: boolean;
+  sort_order: number;
+  due_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // ========== Task ==========
 export interface Task {
   id: number;

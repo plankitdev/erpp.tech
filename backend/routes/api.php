@@ -41,6 +41,7 @@ use App\Http\Controllers\Api\MediaLibraryController;
 use App\Http\Controllers\Api\AnnouncementController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\PushController;
+use App\Http\Controllers\Api\PersonalTodoController;
 use App\Http\Controllers\Api\FileManagerController;
 use App\Http\Controllers\Api\GoogleDriveController;
 // use App\Http\Controllers\Api\TemplateCategoryController;
@@ -392,4 +393,11 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     // ========== Push Notifications ==========
     Route::post('/push/subscribe', [PushController::class, 'subscribe']);
     Route::post('/push/unsubscribe', [PushController::class, 'unsubscribe']);
+
+    // ========== Personal Todos ==========
+    Route::get('/personal-todos', [PersonalTodoController::class, 'index']);
+    Route::post('/personal-todos', [PersonalTodoController::class, 'store']);
+    Route::put('/personal-todos/{personalTodo}', [PersonalTodoController::class, 'update']);
+    Route::delete('/personal-todos/{personalTodo}', [PersonalTodoController::class, 'destroy']);
+    Route::post('/personal-todos/reorder', [PersonalTodoController::class, 'reorder']);
 });

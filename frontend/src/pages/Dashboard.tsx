@@ -8,6 +8,7 @@ import { useAuthStore } from '../store/authStore';
 import { Link } from 'react-router-dom';
 import StatusBadge from '../components/StatusBadge';
 import { SkeletonDashboard } from '../components/Skeletons';
+import PersonalTodoWidget from '../components/PersonalTodoWidget';
 
 const COLORS = ['#2c9f8f', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
@@ -759,6 +760,9 @@ export default function Dashboard() {
       />
       <KPIStrip stats={(stats || {}) as Record<string, any>} role={role} />
       {renderDashboard()}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <PersonalTodoWidget />
+      </div>
     </div>
   );
 }
