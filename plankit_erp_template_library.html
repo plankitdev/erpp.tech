@@ -1,0 +1,440 @@
+
+<style>
+:root {
+  --pk-teal: #3DAA9B;
+  --pk-teal-dark: #2C8A7D;
+  --pk-teal-light: #E0F5F2;
+  --pk-black: #0D0D0D;
+  --pk-dark: #141414;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+.pk-wrap {
+  font-family: var(--font-sans);
+  background: var(--color-background-tertiary);
+  border-radius: var(--border-radius-lg);
+  min-height: 560px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.pk-topbar {
+  background: var(--pk-teal);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.pk-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.pk-logo-icon {
+  width: 32px; height: 32px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+}
+.pk-logo-text { color: #fff; font-size: 15px; font-weight: 500; letter-spacing: 0.3px; }
+.pk-topbar-right { display: flex; align-items: center; gap: 8px; }
+.pk-badge {
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+.pk-body { display: flex; flex: 1; min-height: 0; }
+.pk-sidebar {
+  width: 200px;
+  background: var(--color-background-primary);
+  border-right: 0.5px solid var(--color-border-tertiary);
+  padding: 16px 0;
+  flex-shrink: 0;
+}
+.pk-sidebar-title {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  padding: 0 16px 10px;
+}
+.pk-cat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  border-left: 3px solid transparent;
+  transition: all 0.15s;
+}
+.pk-cat:hover { background: var(--color-background-secondary); color: var(--color-text-primary); }
+.pk-cat.active {
+  border-left-color: var(--pk-teal);
+  background: var(--pk-teal-light);
+  color: var(--pk-teal-dark);
+  font-weight: 500;
+}
+.pk-cat-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  flex-shrink: 0;
+}
+.pk-cat-count {
+  margin-left: auto;
+  font-size: 11px;
+  background: var(--color-background-secondary);
+  color: var(--color-text-tertiary);
+  padding: 1px 7px;
+  border-radius: 10px;
+}
+.pk-cat.active .pk-cat-count {
+  background: rgba(61,170,155,0.15);
+  color: var(--pk-teal-dark);
+}
+.pk-main { flex: 1; padding: 20px; overflow-y: auto; }
+.pk-main-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;
+}
+.pk-main-title { font-size: 15px; font-weight: 500; color: var(--color-text-primary); }
+.pk-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-background-primary);
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-md);
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  width: 180px;
+}
+.pk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+}
+.pk-card {
+  background: var(--color-background-primary);
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.pk-card:hover { border-color: var(--pk-teal); }
+.pk-card-preview {
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  position: relative;
+  overflow: hidden;
+}
+.pk-card-preview .lines {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  justify-content: center; gap: 6px; padding: 12px 14px;
+}
+.pk-line {
+  height: 5px; border-radius: 3px;
+  background: rgba(255,255,255,0.3);
+}
+.pk-line.short { width: 50%; }
+.pk-line.shorter { width: 30%; }
+.pk-card-body { padding: 12px 14px 14px; }
+.pk-card-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.pk-card-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+.pk-card-desc {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+  margin-bottom: 10px;
+}
+.pk-card-footer {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.pk-use-btn {
+  font-size: 11px;
+  font-weight: 500;
+  color: #fff;
+  background: var(--pk-teal);
+  border: none;
+  border-radius: 6px;
+  padding: 5px 12px;
+  cursor: pointer;
+}
+.pk-use-btn:hover { background: var(--pk-teal-dark); }
+.pk-preview-btn {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  background: none;
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+.pk-preview-btn:hover { color: var(--pk-teal); border-color: var(--pk-teal); }
+.pk-new-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--pk-teal);
+  background: none;
+  border: 1px dashed var(--pk-teal);
+  border-radius: var(--border-radius-md);
+  padding: 6px 14px;
+  cursor: pointer;
+}
+.modal-overlay {
+  display: none;
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.45);
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: var(--border-radius-lg);
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--color-background-primary);
+  border-radius: var(--border-radius-lg);
+  width: 340px;
+  overflow: hidden;
+  border: 0.5px solid var(--color-border-tertiary);
+}
+.modal-head {
+  padding: 14px 16px;
+  border-bottom: 0.5px solid var(--color-border-tertiary);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.modal-head-title { font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
+.modal-close {
+  width: 24px; height: 24px;
+  background: var(--color-background-secondary);
+  border: none; border-radius: 50%;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-body { padding: 16px; }
+.modal-preview-bar {
+  height: 6px;
+  background: var(--color-background-secondary);
+  border-radius: 3px;
+  margin-bottom: 8px;
+}
+.modal-preview-bar.full { width: 100%; }
+.modal-preview-bar.mid { width: 65%; }
+.modal-preview-bar.sm { width: 40%; }
+.modal-preview-bar.accent { background: var(--pk-teal); width: 80%; }
+.modal-row {
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px; margin-bottom: 10px;
+}
+.modal-cell {
+  background: var(--color-background-secondary);
+  border-radius: 6px; padding: 8px;
+  font-size: 10px; color: var(--color-text-secondary);
+}
+.modal-cell-val { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 2px; }
+.modal-foot {
+  padding: 12px 16px;
+  border-top: 0.5px solid var(--color-border-tertiary);
+  display: flex; gap: 8px;
+}
+.modal-foot-use {
+  flex: 1; font-size: 13px; font-weight: 500;
+  color: #fff; background: var(--pk-teal); border: none;
+  border-radius: var(--border-radius-md); padding: 8px;
+  cursor: pointer;
+}
+.modal-foot-cancel {
+  font-size: 13px; color: var(--color-text-secondary);
+  background: none; border: 0.5px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-md); padding: 8px 14px;
+  cursor: pointer;
+}
+</style>
+
+<div class="pk-wrap" style="position:relative;">
+
+  <div class="pk-topbar">
+    <div class="pk-logo">
+      <div class="pk-logo-icon">
+        <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+          <circle cx="5" cy="5" r="2.5" fill="white"/>
+          <circle cx="15" cy="8" r="2.5" fill="white"/>
+          <circle cx="8" cy="15" r="2.5" fill="white"/>
+          <line x1="5" y1="5" x2="15" y2="8" stroke="white" stroke-width="1.5"/>
+          <line x1="5" y1="5" x2="8" y2="15" stroke="white" stroke-width="1.5"/>
+          <line x1="15" y1="8" x2="8" y2="15" stroke="white" stroke-width="1.5"/>
+        </svg>
+      </div>
+      <span class="pk-logo-text">PlanKit ERP — Template Library</span>
+    </div>
+    <div class="pk-topbar-right">
+      <span class="pk-badge">مكتبة التيمبليتس</span>
+    </div>
+  </div>
+
+  <div class="pk-body">
+    <div class="pk-sidebar">
+      <div class="pk-sidebar-title">الأقسام</div>
+      <div class="pk-cat active" onclick="filterCat('all', this)">
+        <div class="pk-cat-dot" style="background:#3DAA9B;"></div>
+        الكل
+        <span class="pk-cat-count" id="cnt-all">12</span>
+      </div>
+      <div class="pk-cat" onclick="filterCat('marketing', this)">
+        <div class="pk-cat-dot" style="background:#D85A30;"></div>
+        Marketing
+        <span class="pk-cat-count" id="cnt-marketing">4</span>
+      </div>
+      <div class="pk-cat" onclick="filterCat('sales', this)">
+        <div class="pk-cat-dot" style="background:#378ADD;"></div>
+        Sales
+        <span class="pk-cat-count" id="cnt-sales">3</span>
+      </div>
+      <div class="pk-cat" onclick="filterCat('content', this)">
+        <div class="pk-cat-dot" style="background:#639922;"></div>
+        Content
+        <span class="pk-cat-count" id="cnt-content">3</span>
+      </div>
+      <div class="pk-cat" onclick="filterCat('dev', this)">
+        <div class="pk-cat-dot" style="background:#7F77DD;"></div>
+        Development
+        <span class="pk-cat-count" id="cnt-dev">2</span>
+      </div>
+    </div>
+
+    <div class="pk-main">
+      <div class="pk-main-header">
+        <span class="pk-main-title" id="main-title">كل التيمبليتس</span>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div class="pk-search">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/><path d="M11 11l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            ابحث عن تيمبليت...
+          </div>
+          <button class="pk-new-btn" onclick="sendPrompt('عايز أعمل تيمبليت جديد في PlanKit ERP، إيه الخطوات؟')">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            تيمبليت جديد ↗
+          </button>
+        </div>
+      </div>
+
+      <div class="pk-grid" id="cards-grid"></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal">
+    <div class="modal">
+      <div class="modal-head">
+        <span class="modal-head-title" id="modal-title">Content Plan — شهري</span>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:10px;" id="modal-desc">خطة محتوى شهرية شاملة</div>
+        <div class="modal-preview-bar accent"></div>
+        <div class="modal-preview-bar full" style="margin-top:6px;"></div>
+        <div class="modal-preview-bar mid" style="margin-top:6px;"></div>
+        <div class="modal-row" style="margin-top:14px;">
+          <div class="modal-cell"><div class="modal-cell-val" id="m1">30</div>يوم</div>
+          <div class="modal-cell"><div class="modal-cell-val" id="m2">12</div>بوست</div>
+          <div class="modal-cell"><div class="modal-cell-val" id="m3">4</div>قنوات</div>
+        </div>
+        <div class="modal-preview-bar full"></div>
+        <div class="modal-preview-bar mid" style="margin-top:6px;"></div>
+        <div class="modal-preview-bar shorter" style="margin-top:6px;"></div>
+      </div>
+      <div class="modal-foot">
+        <button class="modal-foot-use" onclick="closeModal()">استخدم التيمبليت</button>
+        <button class="modal-foot-cancel" onclick="closeModal()">إغلاق</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const templates = [
+  { cat:'content', color:'#639922', bg:'#EAF3DE', name:'Content Plan — شهري', desc:'خطة محتوى 30 يوم لكل القنوات', m1:'30', m2:'12', m3:'4 قنوات' },
+  { cat:'content', color:'#639922', bg:'#EAF3DE', name:'Content Calendar', desc:'جدول نشر أسبوعي مرتب', m1:'7', m2:'5', m3:'3 قنوات' },
+  { cat:'content', color:'#639922', bg:'#EAF3DE', name:'Content Brief', desc:'بريف محتوى لكل بوست', m1:'1', m2:'8', m3:'حقل' },
+  { cat:'marketing', color:'#D85A30', bg:'#FAECE7', name:'Media Plan', desc:'خطة إعلانية شاملة بالميزانيات', m1:'Meta', m2:'Google', m3:'TikTok' },
+  { cat:'marketing', color:'#D85A30', bg:'#FAECE7', name:'Campaign Brief', desc:'بريف الحملة من A→Z', m1:'KPIs', m2:'Target', m3:'Budget' },
+  { cat:'marketing', color:'#D85A30', bg:'#FAECE7', name:'Brand Guidelines', desc:'قواعد الهوية البصرية', m1:'Colors', m2:'Fonts', m3:'Tone' },
+  { cat:'marketing', color:'#D85A30', bg:'#FAECE7', name:'Analytics Report', desc:'ريبورت أداء الحملات', m1:'CTR', m2:'ROAS', m3:'CPL' },
+  { cat:'sales', color:'#378ADD', bg:'#E6F1FB', name:'Sales Funnel', desc:'خريطة رحلة العميل كاملة', m1:'TOFU', m2:'MOFU', m3:'BOFU' },
+  { cat:'sales', color:'#378ADD', bg:'#E6F1FB', name:'Proposal Template', desc:'عرض أسعار احترافي للعملاء', m1:'خدمات', m2:'أسعار', m3:'شروط' },
+  { cat:'sales', color:'#378ADD', bg:'#E6F1FB', name:'Client Onboarding', desc:'خطة استقبال عميل جديد', m1:'Week 1', m2:'Week 2', m3:'Review' },
+  { cat:'dev', color:'#7F77DD', bg:'#EEEDFE', name:'Project Kickoff', desc:'وثيقة بدء المشروع التقني', m1:'Scope', m2:'Timeline', m3:'Team' },
+  { cat:'dev', color:'#7F77DD', bg:'#EEEDFE', name:'Sprint Plan', desc:'تخطيط السبرينت الأسبوعي', m1:'Tasks', m2:'Points', m3:'Owner' },
+];
+
+function renderCards(list) {
+  const grid = document.getElementById('cards-grid');
+  grid.innerHTML = '';
+  list.forEach((t, i) => {
+    grid.innerHTML += `
+    <div class="pk-card">
+      <div class="pk-card-preview" style="background:${t.bg};">
+        <div class="lines">
+          <div class="pk-line" style="background:${t.color};opacity:0.7;"></div>
+          <div class="pk-line short" style="background:${t.color};opacity:0.4;"></div>
+          <div class="pk-line shorter" style="background:${t.color};opacity:0.3;"></div>
+        </div>
+      </div>
+      <div class="pk-card-body">
+        <div class="pk-card-label" style="color:${t.color};">${t.cat.toUpperCase()}</div>
+        <div class="pk-card-name">${t.name}</div>
+        <div class="pk-card-desc">${t.desc}</div>
+        <div class="pk-card-footer">
+          <button class="pk-use-btn">استخدم</button>
+          <button class="pk-preview-btn" onclick="openModal(${i})">معاينة</button>
+        </div>
+      </div>
+    </div>`;
+  });
+}
+
+function filterCat(cat, el) {
+  document.querySelectorAll('.pk-cat').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  const titles = {all:'كل التيمبليتس',marketing:'Marketing Templates',sales:'Sales Templates',content:'Content Templates',dev:'Development Templates'};
+  document.getElementById('main-title').textContent = titles[cat];
+  const filtered = cat === 'all' ? templates : templates.filter(t => t.cat === cat);
+  renderCards(filtered);
+}
+
+let currentList = templates;
+function openModal(idx) {
+  const t = templates[idx];
+  document.getElementById('modal-title').textContent = t.name;
+  document.getElementById('modal-desc').textContent = t.desc;
+  document.getElementById('m1').textContent = t.m1;
+  document.getElementById('m2').textContent = t.m2;
+  document.getElementById('m3').textContent = t.m3;
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+renderCards(templates);
+</script>

@@ -84,6 +84,12 @@ export function useChatUnreadCount() {
       const count = await chatApi.getTotalUnread();
       if (prevCount.current !== null && count > prevCount.current) {
         playNotificationSound('message');
+        const diff = count - prevCount.current;
+        toast(diff > 1 ? `${diff} رسائل جديدة` : 'لديك رسالة جديدة', {
+          icon: '💬',
+          duration: 4000,
+          style: { background: '#1e293b', color: '#fff', borderRadius: '12px', padding: '12px 16px', fontWeight: 500, direction: 'rtl' as const },
+        });
       }
       prevCount.current = count;
       return count;

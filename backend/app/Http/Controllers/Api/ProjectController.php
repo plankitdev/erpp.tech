@@ -142,6 +142,7 @@ class ProjectController extends Controller
         $request->validate([
             'file' => 'required|file|max:20480',
             'name' => 'nullable|string|max:255',
+            'parent_id' => 'nullable|integer|exists:project_files,id',
         ]);
 
         $uploaded = $request->file('file');
@@ -153,11 +154,36 @@ class ProjectController extends Controller
             'file_path'   => $path,
             'file_type'   => $uploaded->getClientMimeType(),
             'file_size'   => $uploaded->getSize(),
+            'parent_id'   => $request->input('parent_id'),
         ]);
 
         return $this->successResponse(
             new ProjectFileResource($file->load('uploader')),
             'تم رفع الملف بنجاح',
+            201
+        );
+    }
+
+    public function createFolder(Request $request, Project $project): JsonResponse
+    {
+        $this->authorize('update', $project);
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'parent_id' => 'nullable|integer|exists:project_files,id',
+        ]);
+
+        $folder = $project->files()->create([
+            'uploaded_by' => $request->user()->id,
+            'name'        => $request->input('name'),
+            'file_path'   => '',
+            'file_type'   => 'folder',
+            'file_size'   => 0,
+            'parent_id'   => $request->input('parent_id'),
+        ]);
+
+        return $this->successResponse(
+            new ProjectFileResource($folder->load('uploader')),
+            'تم إنشاء المجلد بنجاح',
             201
         );
     }

@@ -38,7 +38,7 @@ class ProjectPolicy
 
     public function delete(User $user, Project $project): Response
     {
-        return $user->hasRole(['super_admin', 'manager', 'marketing_manager'])
+        return $user->hasRole(['super_admin', 'company_admin', 'manager', 'marketing_manager'])
             ? Response::allow()
             : Response::deny('حذف المشاريع متاح فقط للمديرين. تواصل مع المدير إذا كنت تحتاج لحذف هذا المشروع.');
     }

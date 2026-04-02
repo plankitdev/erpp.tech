@@ -1,0 +1,374 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--pk:#3DAA9B;--pk-dk:#2C8A7D;--pk-lt:#E0F5F2;--pk-lt2:#F0FAF8;}
+.wrap{font-family:var(--font-sans);border-radius:var(--border-radius-lg);border:0.5px solid var(--color-border-tertiary);overflow:hidden;}
+.topbar{background:var(--pk);padding:10px 18px;display:flex;align-items:center;justify-content:space-between;}
+.topbar-left{display:flex;align-items:center;gap:10px;}
+.topbar-title{color:#fff;font-size:14px;font-weight:500;}
+.topbar-badge{background:rgba(255,255,255,0.2);color:#fff;font-size:11px;padding:3px 10px;border-radius:20px;}
+.view-tabs{display:flex;background:var(--color-background-primary);border-bottom:0.5px solid var(--color-border-tertiary);}
+.vtab{flex:1;padding:9px;font-size:12px;font-weight:500;color:var(--color-text-secondary);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all 0.15s;}
+.vtab.active{color:var(--pk);border-bottom-color:var(--pk);background:var(--pk-lt2);}
+.vtab:hover:not(.active){background:var(--color-background-secondary);}
+.body{display:grid;grid-template-columns:1fr 1fr;}
+.form-side{padding:18px;border-right:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary);}
+.preview-side{padding:18px;background:var(--color-background-secondary);}
+.sec{margin-bottom:20px;}
+.sec-head{display:flex;align-items:center;gap:8px;margin-bottom:12px;padding-bottom:8px;border-bottom:0.5px solid var(--color-border-tertiary);}
+.sec-num{width:20px;height:20px;border-radius:50%;background:var(--pk);color:#fff;font-size:10px;font-weight:500;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.sec-title{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.7px;color:var(--color-text-secondary);}
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:12px;color:var(--color-text-secondary);margin-bottom:4px;}
+.field input,.field select,.field textarea{width:100%;font-size:13px;border-radius:var(--border-radius-md);}
+.field textarea{resize:vertical;min-height:60px;}
+.field .hint{font-size:11px;color:var(--color-text-tertiary);margin-top:3px;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;}
+.pill{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--color-text-secondary);background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:20px;padding:4px 10px;cursor:pointer;transition:all 0.15s;}
+.pill.on{background:var(--pk-lt);color:var(--pk-dk);border-color:var(--pk);}
+.pill input{display:none;}
+.kpi-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.kpi-row input[type=checkbox]{width:14px;height:14px;accent-color:var(--pk);flex-shrink:0;}
+.kpi-row label{font-size:13px;color:var(--color-text-primary);flex:1;}
+.kpi-row input[type=number]{width:90px;font-size:12px;}
+.kpi-unit{font-size:11px;color:var(--color-text-secondary);white-space:nowrap;}
+.preview-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px;margin-bottom:12px;}
+.p-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;}
+.p-title{font-size:14px;font-weight:500;color:var(--color-text-primary);line-height:1.3;}
+.p-tag{font-size:10px;font-weight:500;background:var(--pk-lt);color:var(--pk-dk);padding:3px 9px;border-radius:20px;white-space:nowrap;margin-left:8px;}
+.p-sec{margin-bottom:12px;}
+.p-sec-title{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.6px;color:var(--color-text-secondary);margin-bottom:8px;}
+.p-row{display:flex;justify-content:space-between;align-items:flex-start;padding:5px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:12px;gap:12px;}
+.p-row:last-child{border-bottom:none;}
+.p-label{color:var(--color-text-secondary);flex-shrink:0;}
+.p-val{font-weight:500;color:var(--color-text-primary);text-align:left;}
+.p-val.long{font-size:11px;font-weight:400;color:var(--color-text-primary);text-align:left;line-height:1.5;}
+.platform-chip{display:inline-block;font-size:10px;padding:2px 8px;border-radius:12px;margin:2px;font-weight:500;}
+.phase-bar{display:flex;gap:4px;margin-top:8px;}
+.phase-block{flex:1;border-radius:4px;padding:6px 4px;text-align:center;font-size:10px;font-weight:500;}
+.budget-breakdown{display:flex;gap:4px;margin:8px 0;}
+.b-seg{border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500;color:#fff;height:24px;transition:width 0.3s;}
+.json-view{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px;font-family:var(--font-mono);font-size:11px;color:var(--color-text-primary);line-height:1.7;overflow-x:auto;white-space:pre;display:none;}
+.json-view.active{display:block;}
+.preview-wrap{display:block;}
+.preview-wrap.hidden{display:none;}
+.save-bar{padding:12px 18px;border-top:0.5px solid var(--color-border-tertiary);background:var(--color-background-primary);display:flex;align-items:center;justify-content:space-between;}
+.save-btn{font-size:13px;font-weight:500;color:#fff;background:var(--pk);border:none;border-radius:var(--border-radius-md);padding:8px 18px;cursor:pointer;}
+.save-btn:hover{background:var(--pk-dk);}
+.copy-btn{font-size:12px;color:var(--pk-dk);background:var(--pk-lt);border:none;border-radius:var(--border-radius-md);padding:7px 14px;cursor:pointer;}
+.hint-bar{font-size:11px;color:var(--color-text-secondary);}
+</style>
+
+<div class="wrap">
+<div class="topbar">
+  <div class="topbar-left">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="5" cy="5" r="2.5" fill="white"/><circle cx="15" cy="8" r="2.5" fill="white"/><circle cx="8" cy="15" r="2.5" fill="white"/><line x1="5" y1="5" x2="15" y2="8" stroke="white" stroke-width="1.5"/><line x1="5" y1="5" x2="8" y2="15" stroke="white" stroke-width="1.5"/><line x1="15" y1="8" x2="8" y2="15" stroke="white" stroke-width="1.5"/></svg>
+    <span class="topbar-title">Campaign Brief — Marketing</span>
+  </div>
+  <span class="topbar-badge">PlanKit Template Builder</span>
+</div>
+
+<div class="view-tabs">
+  <button class="vtab active" onclick="switchView('form')">فورم تجريبي</button>
+  <button class="vtab" onclick="switchView('preview')">البريفيو</button>
+  <button class="vtab" onclick="switchView('json')">JSON Schema</button>
+</div>
+
+<div class="body">
+<div class="form-side">
+
+  <div class="sec">
+    <div class="sec-head"><div class="sec-num">1</div><span class="sec-title">معلومات أساسية</span></div>
+    <div class="field"><label>اسم الحملة <span style="color:#E24B4A;">*</span></label><input type="text" id="f-name" value="حملة كورسيه سبرينج 2025" oninput="rp()"><div class="hint">مثال: حملة رمضان — كورسيه موبراند</div></div>
+    <div class="row2">
+      <div class="field"><label>اسم العميل <span style="color:#E24B4A;">*</span></label><input type="text" id="f-client" value="Mo Brand" oninput="rp()"></div>
+      <div class="field"><label>المسؤول عن الحملة</label><input type="text" id="f-owner" value="أحمد" oninput="rp()"></div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>تاريخ البداية</label><input type="date" id="f-start" oninput="rp()"></div>
+      <div class="field"><label>تاريخ النهاية</label><input type="date" id="f-end" oninput="rp()"></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-head"><div class="sec-num">2</div><span class="sec-title">الهدف والجمهور</span></div>
+    <div class="field">
+      <label>هدف الحملة الرئيسي <span style="color:#E24B4A;">*</span></label>
+      <select id="f-obj" onchange="rp()">
+        <option>Brand Awareness — زيادة الوعي</option>
+        <option selected>Lead Generation — توليد ليدز</option>
+        <option>Conversions — مبيعات مباشرة</option>
+        <option>Traffic — زيادة الزيارات</option>
+        <option>Engagement — تفاعل</option>
+        <option>App Installs — تحميلات</option>
+      </select>
+    </div>
+    <div class="field"><label>الجمهور المستهدف <span style="color:#E24B4A;">*</span></label><textarea id="f-audience" oninput="rp()">سيدات 25–45 سنة، مصر والسعودية، مهتمة بالموضة والعناية بالجسم، دخل متوسط إلى مرتفع</textarea></div>
+    <div class="field"><label>الـ Unique Selling Point (USP)</label><textarea id="f-usp" oninput="rp()" style="min-height:48px;">كورسيه طبي مريح يناسب الارتداء اليومي بتصاميم عصرية</textarea></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-head"><div class="sec-num">3</div><span class="sec-title">المنصات والميزانية</span></div>
+    <div class="field">
+      <label>المنصات الإعلانية</label>
+      <div class="pills" id="platforms">
+        <label class="pill on"><input type="checkbox" checked onchange="tp(this);rp()">Meta Ads</label>
+        <label class="pill on"><input type="checkbox" checked onchange="tp(this);rp()">Instagram</label>
+        <label class="pill"><input type="checkbox" onchange="tp(this);rp()">TikTok Ads</label>
+        <label class="pill"><input type="checkbox" onchange="tp(this);rp()">Google Ads</label>
+        <label class="pill"><input type="checkbox" onchange="tp(this);rp()">YouTube</label>
+        <label class="pill"><input type="checkbox" onchange="tp(this);rp()">Snapchat</label>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field"><label>إجمالي الميزانية (EGP)</label><input type="number" id="f-budget" value="25000" oninput="rp()"></div>
+      <div class="field"><label>توزيع الميزانية</label>
+        <select id="f-bsplit" onchange="rp()">
+          <option>Meta 70% / Google 30%</option>
+          <option selected>Meta 60% / TikTok 40%</option>
+          <option>Meta 50% / Google 30% / TikTok 20%</option>
+          <option>موزع بالتساوي</option>
+          <option>Custom</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-head"><div class="sec-num">4</div><span class="sec-title">الـ KPIs ومعايير النجاح</span></div>
+    <div class="kpi-row"><input type="checkbox" id="k1" checked onchange="rp()"><label for="k1">عدد الليدز المستهدف</label><input type="number" id="k1v" value="500" oninput="rp()"><span class="kpi-unit">ليد</span></div>
+    <div class="kpi-row"><input type="checkbox" id="k2" checked onchange="rp()"><label for="k2">أقصى CPL مقبول</label><input type="number" id="k2v" value="50" oninput="rp()"><span class="kpi-unit">EGP</span></div>
+    <div class="kpi-row"><input type="checkbox" id="k3" onchange="rp()"><label for="k3">ROAS المستهدف</label><input type="number" id="k3v" value="3" oninput="rp()"><span class="kpi-unit">x</span></div>
+    <div class="kpi-row"><input type="checkbox" id="k4" onchange="rp()"><label for="k4">نسبة CTR المستهدفة</label><input type="number" id="k4v" value="2" oninput="rp()"><span class="kpi-unit">%</span></div>
+    <div class="kpi-row"><input type="checkbox" id="k5" onchange="rp()"><label for="k5">Impressions المستهدفة</label><input type="number" id="k5v" value="500000" oninput="rp()"><span class="kpi-unit">ظهور</span></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-head"><div class="sec-num">5</div><span class="sec-title">الكريتيف والمحتوى</span></div>
+    <div class="field">
+      <label>أنواع الكريتيف المطلوبة</label>
+      <div class="pills" id="creatives">
+        <label class="pill on"><input type="checkbox" checked onchange="tp(this);rp()">فيديو 15 ث</label>
+        <label class="pill on"><input type="checkbox" checked onchange="tp(this);rp()">كاروسيل</label>
+        <label class="pill"><input type="checkbox" onchange="tp(this);rp()">Static Image</label>
+        <label class="pill"><input type="checkbox" onchange="tp(this);rp()">Stories</label>
+        <label class="pill"><input type="checkbox" onchange="tp(this);rp()">Reels</label>
+        <label class="pill"><input type="checkbox" onchange="tp(this);rp()">UGC</label>
+      </div>
+    </div>
+    <div class="field"><label>الرسالة الرئيسية للحملة</label><textarea id="f-msg" oninput="rp()" style="min-height:48px;">اكتشفي الراحة والأناقة في كورسيه واحد</textarea></div>
+    <div class="row2">
+      <div class="field">
+        <label>لهجة المحتوى (Tone)</label>
+        <select id="f-tone" onchange="rp()">
+          <option>Inspiring — ملهم</option>
+          <option selected>Friendly — ودود</option>
+          <option>Professional — احترافي</option>
+          <option>Urgent — استعجالي</option>
+          <option>Playful — مرح</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>الـ CTA الرئيسي</label>
+        <select id="f-cta" onchange="rp()">
+          <option>اشتري دلوقتي</option>
+          <option selected>تواصلي معنا</option>
+          <option>سجلي بياناتك</option>
+          <option>اعرفي أكتر</option>
+          <option>احجزي مجانًا</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-head"><div class="sec-num">6</div><span class="sec-title">مراحل الحملة</span></div>
+    <div class="row3">
+      <div class="field"><label>مرحلة 1 — Awareness</label><input type="text" id="ph1" value="أسبوع 1–2" oninput="rp()"></div>
+      <div class="field"><label>مرحلة 2 — Conversion</label><input type="text" id="ph2" value="أسبوع 3–4" oninput="rp()"></div>
+      <div class="field"><label>مرحلة 3 — Retargeting</label><input type="text" id="ph3" value="أسبوع 5" oninput="rp()"></div>
+    </div>
+    <div class="field"><label>ملاحظات إضافية</label><textarea id="f-notes" placeholder="أي تعليمات خاصة، مراجعات مطلوبة، قيود..." oninput="rp()"></textarea></div>
+  </div>
+
+</div>
+
+<div class="preview-side">
+  <div id="preview-wrap" class="preview-wrap">
+    <div style="font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:0.7px;color:var(--color-text-secondary);margin-bottom:12px;padding-bottom:6px;border-bottom:0.5px solid var(--color-border-tertiary);">بريفيو — يتحدث تلقائياً</div>
+    <div id="pv"></div>
+  </div>
+  <div id="json-wrap" class="json-view" id="json-out"></div>
+</div>
+</div>
+
+<div class="save-bar">
+  <span class="hint-bar">21 فيلد — 6 أقسام — Marketing / Campaign Brief</span>
+  <div style="display:flex;gap:8px;">
+    <button class="copy-btn" onclick="copyJson()">نسخ JSON Schema</button>
+    <button class="save-btn" onclick="sendPrompt('عايز أضيف تيمبليت Campaign Brief ده في الـ ERP — ممكن تعملي الـ Laravel Migration والـ Seeder بتاعه؟')">إضافة للـ ERP ↗</button>
+  </div>
+</div>
+</div>
+
+<script>
+function tp(cb){cb.parentElement.classList.toggle('on',cb.checked);}
+function gv(id){const el=document.getElementById(id);return el?el.value:'';}
+function gb(id){const el=document.getElementById(id);return el&&el.checked;}
+function gn(id){return parseFloat(gv(id))||0;}
+
+function getPills(containerId){
+  const pills=document.querySelectorAll('#'+containerId+' .pill input');
+  return [...pills].filter(p=>p.checked).map(p=>p.parentElement.textContent.trim());
+}
+
+const platColors={
+  'Meta Ads':'#185FA5','Meta Ads bg':'#E6F1FB',
+  'Instagram':'#993556','Instagram bg':'#FBEAF0',
+  'TikTok Ads':'#2C2C2A','TikTok Ads bg':'#F1EFE8',
+  'Google Ads':'#712B13','Google Ads bg':'#FAECE7',
+  'YouTube':'#A32D2D','YouTube bg':'#FCEBEB',
+  'Snapchat':'#633806','Snapchat bg':'#FAEEDA',
+};
+
+const phColors=['#3DAA9B','#378ADD','#D85A30'];
+const phBg=['#E0F5F2','#E6F1FB','#FAECE7'];
+
+function rp(){
+  const name=gv('f-name')||'اسم الحملة';
+  const client=gv('f-client')||'العميل';
+  const owner=gv('f-owner');
+  const start=gv('f-start');
+  const end=gv('f-end');
+  const obj=gv('f-obj');
+  const audience=gv('f-audience');
+  const usp=gv('f-usp');
+  const platforms=getPills('platforms');
+  const budget=gn('f-budget');
+  const bsplit=gv('f-bsplit');
+  const creatives=getPills('creatives');
+  const msg=gv('f-msg');
+  const tone=gv('f-tone');
+  const cta=gv('f-cta');
+  const ph1=gv('ph1');const ph2=gv('ph2');const ph3=gv('ph3');
+  const notes=gv('f-notes');
+
+  const kpis=[
+    {id:'k1',label:'الليدز المستهدفة',v:'k1v',unit:'ليد'},
+    {id:'k2',label:'أقصى CPL',v:'k2v',unit:'EGP'},
+    {id:'k3',label:'ROAS',v:'k3v',unit:'x'},
+    {id:'k4',label:'CTR المستهدف',v:'k4v',unit:'%'},
+    {id:'k5',label:'Impressions',v:'k5v',unit:''},
+  ].filter(k=>gb(k.id));
+
+  const platTags=platforms.map(p=>`<span class="platform-chip" style="background:${platColors[p+' bg']||'#E0F5F2'};color:${platColors[p]||'#085041'};">${p}</span>`).join('');
+  const creativeTags=creatives.map(c=>`<span class="platform-chip" style="background:var(--color-background-secondary);color:var(--color-text-primary);">${c}</span>`).join('');
+  const kpiRows=kpis.map(k=>`<div class="p-row"><span class="p-label">${k.label}</span><span class="p-val">${Number(gv(k.v)).toLocaleString()} ${k.unit}</span></div>`).join('');
+  const phases=[ph1,ph2,ph3].filter(Boolean);
+  const phaseBlocks=phases.map((p,i)=>`<div class="phase-block" style="background:${phBg[i]};color:${phColors[i]};">${p}</div>`).join('');
+  const duration=start&&end?Math.round((new Date(end)-new Date(start))/(86400000))+'  يوم':'—';
+
+  document.getElementById('pv').innerHTML=`
+  <div class="preview-card">
+    <div class="p-head"><span class="p-title">${name}</span><span class="p-tag">Campaign Brief</span></div>
+    <div class="p-sec">
+      <div class="p-sec-title">معلومات أساسية</div>
+      <div class="p-row"><span class="p-label">العميل</span><span class="p-val">${client}</span></div>
+      ${owner?`<div class="p-row"><span class="p-label">المسؤول</span><span class="p-val">${owner}</span></div>`:''}
+      ${start||end?`<div class="p-row"><span class="p-label">المدة</span><span class="p-val">${start||'—'} ← ${end||'—'} (${duration})</span></div>`:''}
+    </div>
+    <div class="p-sec">
+      <div class="p-sec-title">الهدف والجمهور</div>
+      <div class="p-row"><span class="p-label">الهدف</span><span class="p-val">${obj.split('—')[0].trim()}</span></div>
+      <div class="p-row"><span class="p-label">الجمهور</span><span class="p-val long">${audience}</span></div>
+      ${usp?`<div class="p-row"><span class="p-label">USP</span><span class="p-val long">${usp}</span></div>`:''}
+    </div>
+    <div class="p-sec">
+      <div class="p-sec-title">المنصات والميزانية</div>
+      <div class="p-row"><span class="p-label">المنصات</span><span>${platTags||'—'}</span></div>
+      <div class="p-row"><span class="p-label">الميزانية</span><span class="p-val">${budget.toLocaleString()} EGP</span></div>
+      <div class="p-row"><span class="p-label">التوزيع</span><span class="p-val" style="font-size:11px;">${bsplit}</span></div>
+    </div>
+    ${kpis.length?`<div class="p-sec"><div class="p-sec-title">الـ KPIs</div>${kpiRows}</div>`:''}
+    <div class="p-sec">
+      <div class="p-sec-title">الكريتيف</div>
+      <div class="p-row"><span class="p-label">الأنواع</span><span>${creativeTags||'—'}</span></div>
+      ${msg?`<div class="p-row"><span class="p-label">الرسالة</span><span class="p-val long">${msg}</span></div>`:''}
+      <div class="p-row"><span class="p-label">Tone</span><span class="p-val">${tone.split('—')[0].trim()}</span></div>
+      <div class="p-row"><span class="p-label">CTA</span><span class="p-val">${cta}</span></div>
+    </div>
+    ${phases.length?`<div class="p-sec"><div class="p-sec-title">مراحل الحملة</div><div class="phase-bar">${phaseBlocks}</div></div>`:''}
+    ${notes?`<div class="p-sec"><div class="p-sec-title">ملاحظات</div><div style="font-size:12px;color:var(--color-text-primary);line-height:1.6;">${notes}</div></div>`:''}
+  `;
+
+  buildJson();
+}
+
+function buildJson(){
+  const schema={
+    name:"Campaign Brief",
+    category:"Marketing",
+    thumbnail_color:"#D85A30",
+    fields:[
+      {key:"campaign_name",label:"اسم الحملة",type:"text",required:true,default:""},
+      {key:"client_name",label:"اسم العميل",type:"text",required:true,default:""},
+      {key:"campaign_owner",label:"المسؤول عن الحملة",type:"text",required:false,default:""},
+      {key:"start_date",label:"تاريخ البداية",type:"date",required:false,default:""},
+      {key:"end_date",label:"تاريخ النهاية",type:"date",required:false,default:""},
+      {key:"campaign_objective",label:"هدف الحملة الرئيسي",type:"select",required:true,options:["Brand Awareness — زيادة الوعي","Lead Generation — توليد ليدز","Conversions — مبيعات مباشرة","Traffic — زيادة الزيارات","Engagement — تفاعل","App Installs — تحميلات"],default:"Lead Generation — توليد ليدز"},
+      {key:"target_audience",label:"الجمهور المستهدف",type:"textarea",required:true,default:""},
+      {key:"usp",label:"Unique Selling Point",type:"textarea",required:false,default:""},
+      {key:"platforms",label:"المنصات الإعلانية",type:"multi_select",required:true,options:["Meta Ads","Instagram","TikTok Ads","Google Ads","YouTube","Snapchat"],default:["Meta Ads","Instagram"]},
+      {key:"total_budget",label:"إجمالي الميزانية",type:"currency",required:true,default:0,currency:"EGP"},
+      {key:"budget_split",label:"توزيع الميزانية",type:"select",required:false,options:["Meta 70% / Google 30%","Meta 60% / TikTok 40%","Meta 50% / Google 30% / TikTok 20%","موزع بالتساوي","Custom"],default:"Meta 60% / TikTok 40%"},
+      {key:"kpi_leads",label:"عدد الليدز المستهدف",type:"number",required:false,default:0,unit:"ليد"},
+      {key:"kpi_cpl",label:"أقصى CPL مقبول",type:"currency",required:false,default:0,currency:"EGP"},
+      {key:"kpi_roas",label:"ROAS المستهدف",type:"number",required:false,default:0,unit:"x"},
+      {key:"kpi_ctr",label:"نسبة CTR المستهدفة",type:"number",required:false,default:0,unit:"%"},
+      {key:"kpi_impressions",label:"Impressions المستهدفة",type:"number",required:false,default:0},
+      {key:"creative_types",label:"أنواع الكريتيف",type:"multi_select",required:false,options:["فيديو 15 ث","كاروسيل","Static Image","Stories","Reels","UGC"],default:["فيديو 15 ث","كاروسيل"]},
+      {key:"main_message",label:"الرسالة الرئيسية",type:"textarea",required:false,default:""},
+      {key:"content_tone",label:"لهجة المحتوى",type:"select",required:false,options:["Inspiring — ملهم","Friendly — ودود","Professional — احترافي","Urgent — استعجالي","Playful — مرح"],default:"Friendly — ودود"},
+      {key:"cta",label:"الـ CTA الرئيسي",type:"select",required:false,options:["اشتري دلوقتي","تواصلي معنا","سجلي بياناتك","اعرفي أكتر","احجزي مجانًا"],default:"تواصلي معنا"},
+      {key:"phase_awareness",label:"مرحلة Awareness",type:"text",required:false,default:"أسبوع 1–2"},
+      {key:"phase_conversion",label:"مرحلة Conversion",type:"text",required:false,default:"أسبوع 3–4"},
+      {key:"phase_retargeting",label:"مرحلة Retargeting",type:"text",required:false,default:"أسبوع 5"},
+      {key:"notes",label:"ملاحظات إضافية",type:"textarea",required:false,default:""}
+    ],
+    sections:[
+      {title:"معلومات أساسية",fields:["campaign_name","client_name","campaign_owner","start_date","end_date"]},
+      {title:"الهدف والجمهور",fields:["campaign_objective","target_audience","usp"]},
+      {title:"المنصات والميزانية",fields:["platforms","total_budget","budget_split"]},
+      {title:"الـ KPIs",fields:["kpi_leads","kpi_cpl","kpi_roas","kpi_ctr","kpi_impressions"]},
+      {title:"الكريتيف والمحتوى",fields:["creative_types","main_message","content_tone","cta"]},
+      {title:"مراحل الحملة",fields:["phase_awareness","phase_conversion","phase_retargeting","notes"]}
+    ]
+  };
+  document.getElementById('json-wrap').textContent=JSON.stringify(schema,null,2);
+}
+
+let currentView='form';
+function switchView(v){
+  currentView=v;
+  document.querySelectorAll('.vtab').forEach((t,i)=>t.classList.toggle('active',['form','preview','json'][i]===v));
+  const pw=document.getElementById('preview-wrap');
+  const jw=document.getElementById('json-wrap');
+  if(v==='json'){pw.classList.add('hidden');jw.classList.add('active');}
+  else{pw.classList.remove('hidden');jw.classList.remove('active');}
+}
+
+function copyJson(){
+  const txt=document.getElementById('json-wrap').textContent;
+  navigator.clipboard.writeText(txt).then(()=>{
+    const btn=document.querySelector('.copy-btn');
+    btn.textContent='تم النسخ!';
+    setTimeout(()=>btn.textContent='نسخ JSON Schema',2000);
+  });
+}
+
+document.getElementById('f-start').value=new Date().toISOString().split('T')[0];
+document.getElementById('f-end').value=new Date(Date.now()+35*86400000).toISOString().split('T')[0];
+rp();
+</script>

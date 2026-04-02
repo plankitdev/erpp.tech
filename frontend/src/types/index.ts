@@ -272,6 +272,7 @@ export interface ProjectFile {
   file_path: string;
   file_type: string | null;
   file_size: number;
+  parent_id: number | null;
   uploaded_by: User | null;
   created_at: string;
 }

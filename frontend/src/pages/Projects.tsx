@@ -166,7 +166,7 @@ export default function Projects() {
   useMarkBadgeSeen('projects');
   const { hasPermission, user } = useAuthStore();
   const canViewBudget = hasPermission('treasury.view');
-  const canDelete = user?.role === 'super_admin' || user?.role === 'manager' || user?.role === 'marketing_manager';
+  const canDelete = user?.role === 'super_admin' || user?.role === 'company_admin' || user?.role === 'manager' || user?.role === 'marketing_manager';
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');

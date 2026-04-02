@@ -236,6 +236,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     // ========== Projects ==========
     Route::apiResource('projects', ProjectController::class);
     Route::post('/projects/{project}/files', [ProjectController::class, 'uploadFile']);
+    Route::post('/projects/{project}/folders', [ProjectController::class, 'createFolder']);
     Route::delete('/projects/{project}/files/{file}', [ProjectController::class, 'deleteFile']);
     Route::get('/projects/{project}/client-profile', [ProjectController::class, 'clientProfile']);
 

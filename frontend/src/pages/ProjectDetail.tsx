@@ -16,6 +16,7 @@ import {
   Calendar, AlertCircle, Trash2, ChevronDown, ChevronUp, CircleDot, Download,
   User, Clock, Loader2, CheckCircle2, Circle, Repeat, BarChart3,
   TrendingUp, DollarSign, Timer, Target, Eye, Image, File,
+  FolderPlus, FolderOpen, ChevronLeft, Home, X,
 } from 'lucide-react';
 
 // ============ Configs ============
@@ -120,6 +121,9 @@ export default function ProjectDetail() {
   const [taskFilter, setTaskFilter] = useState<string>('all');
   const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; message: string; action: () => void }>({ open: false, message: '', action: () => {} });
   const [previewFile, setPreviewFile] = useState<{ name: string; path: string } | null>(null);
+  const [currentFolderId, setCurrentFolderId] = useState<number | null>(null);
+  const [showNewFolder, setShowNewFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
 
   const [taskForm, setTaskForm] = useState({
     title: '', description: '', assigned_to: '', priority: 'medium' as string,
@@ -210,7 +214,7 @@ export default function ProjectDetail() {
     if (files.length === 0) return;
     try {
       for (const file of files) {
-        await projectsApi.uploadFile(slug || '', file);
+        await projectsApi.uploadFile(slug || '', file, undefined, currentFolderId ?? undefined);
       }
       refetch();
       toast.success(files.length > 1 ? `تم رفع ${files.length} ملفات` : 'تم رفع الملف');
@@ -222,7 +226,7 @@ export default function ProjectDetail() {
 
   const handleFileDrop = async (file: File) => {
     try {
-      await projectsApi.uploadFile(slug || '', file);
+      await projectsApi.uploadFile(slug || '', file, undefined, currentFolderId ?? undefined);
       refetch();
       toast.success('تم رفع الملف');
     } catch {
@@ -233,12 +237,26 @@ export default function ProjectDetail() {
   const handleFilesDrop = async (files: File[]) => {
     try {
       for (const file of files) {
-        await projectsApi.uploadFile(slug || '', file);
+        await projectsApi.uploadFile(slug || '', file, undefined, currentFolderId ?? undefined);
       }
       refetch();
       toast.success(files.length > 1 ? `تم رفع ${files.length} ملفات` : 'تم رفع الملف');
     } catch {
       toast.error('حدث خطأ في رفع الملف');
+    }
+  };
+
+  const handleCreateFolder = async () => {
+    const name = newFolderName.trim();
+    if (!name) return;
+    try {
+      await projectsApi.createFolder(slug || '', name, currentFolderId ?? undefined);
+      refetch();
+      setNewFolderName('');
+      setShowNewFolder(false);
+      toast.success('تم إنشاء المجلد');
+    } catch {
+      toast.error('حدث خطأ في إنشاء المجلد');
     }
   };
 
@@ -637,27 +655,124 @@ export default function ProjectDetail() {
       )}
 
       {/* ====== Files Tab ====== */}
-      {activeTab === 'files' && (
+      {activeTab === 'files' && (() => {
+        const allFiles = project.files || [];
+        const folders = allFiles.filter(f => f.file_type === 'folder' && f.parent_id === currentFolderId);
+        const files = allFiles.filter(f => f.file_type !== 'folder' && f.parent_id === currentFolderId);
+        const currentFolder = currentFolderId ? allFiles.find(f => f.id === currentFolderId) : null;
+        // Build breadcrumb path
+        const breadcrumbs: { id: number | null; name: string }[] = [{ id: null, name: 'الملفات' }];
+        if (currentFolder) {
+          const trail: typeof breadcrumbs = [];
+          let cur = currentFolder;
+          while (cur) {
+            trail.unshift({ id: cur.id, name: cur.name });
+            cur = cur.parent_id ? allFiles.find(f => f.id === cur!.parent_id) as any : null;
+          }
+          breadcrumbs.push(...trail);
+        }
+
+        return (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-gray-800">الملفات ({project.files?.length || 0})</h2>
-            <label className="flex items-center gap-1.5 bg-primary-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-primary-700 transition-colors cursor-pointer shadow-sm">
-              <Upload size={16} /> رفع ملفات
-              <input type="file" className="hidden" onChange={handleFileUpload} multiple />
-            </label>
+          {/* Header */}
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2 text-sm">
+              {breadcrumbs.map((bc, i) => (
+                <span key={i} className="flex items-center gap-1">
+                  {i > 0 && <ChevronLeft size={14} className="text-gray-400" />}
+                  <button
+                    onClick={() => setCurrentFolderId(bc.id)}
+                    className={`px-1.5 py-0.5 rounded hover:bg-gray-100 transition-colors ${
+                      i === breadcrumbs.length - 1 ? 'font-semibold text-gray-800' : 'text-gray-500'
+                    }`}
+                  >
+                    {i === 0 ? <span className="flex items-center gap-1"><Home size={14} /> {bc.name}</span> : bc.name}
+                  </button>
+                </span>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowNewFolder(true)}
+                className="flex items-center gap-1.5 bg-white border border-gray-200 text-gray-700 px-3 py-2 rounded-xl text-sm hover:bg-gray-50 transition-colors"
+              >
+                <FolderPlus size={16} /> مجلد جديد
+              </button>
+              <label className="flex items-center gap-1.5 bg-primary-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-primary-700 transition-colors cursor-pointer shadow-sm">
+                <Upload size={16} /> رفع ملفات
+                <input type="file" className="hidden" onChange={handleFileUpload} multiple />
+              </label>
+            </div>
           </div>
-          {(!project.files || project.files.length === 0) ? (
+
+          {/* New folder input */}
+          {showNewFolder && (
+            <div className="flex items-center gap-2 bg-white rounded-xl border border-gray-200 p-3">
+              <FolderOpen size={18} className="text-amber-500" />
+              <input
+                autoFocus
+                type="text"
+                value={newFolderName}
+                onChange={e => setNewFolderName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleCreateFolder(); if (e.key === 'Escape') setShowNewFolder(false); }}
+                placeholder="اسم المجلد الجديد..."
+                className="flex-1 text-sm border-0 focus:outline-none focus:ring-0 placeholder:text-gray-300"
+                maxLength={255}
+              />
+              <button onClick={handleCreateFolder} disabled={!newFolderName.trim()} className="px-3 py-1.5 bg-primary-600 text-white rounded-lg text-sm hover:bg-primary-700 disabled:opacity-40 transition-colors">
+                إنشاء
+              </button>
+              <button onClick={() => { setShowNewFolder(false); setNewFolderName(''); }} className="px-2 py-1.5 text-gray-400 hover:text-gray-600">
+                <X size={16} />
+              </button>
+            </div>
+          )}
+
+          {folders.length === 0 && files.length === 0 ? (
             <FileDropZone onFileDrop={handleFileDrop} onFilesDrop={handleFilesDrop} multiple>
               <div className="bg-white rounded-2xl p-12 border-2 border-dashed border-gray-200 text-center hover:border-primary-300 transition-colors">
                 <Upload size={48} className="text-gray-200 mx-auto mb-3" />
-                <p className="text-gray-500 font-medium">لا توجد ملفات</p>
+                <p className="text-gray-500 font-medium">{currentFolderId ? 'المجلد فارغ' : 'لا توجد ملفات'}</p>
                 <p className="text-gray-400 text-sm mt-1">اسحب الملفات هنا أو اضغط لرفع ملفات</p>
               </div>
             </FileDropZone>
           ) : (
             <FileDropZone onFileDrop={handleFileDrop} onFilesDrop={handleFilesDrop} multiple className="rounded-2xl">
+              {/* Folders grid */}
+              {folders.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 mb-4">
+                  {folders.map(folder => (
+                    <div
+                      key={folder.id}
+                      className="bg-white rounded-xl border border-gray-100 p-4 hover:shadow-md hover:border-primary-200 transition-all cursor-pointer group"
+                      onClick={() => setCurrentFolderId(folder.id)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
+                          <FolderOpen size={20} className="text-amber-500" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-800 truncate">{folder.name}</p>
+                          <p className="text-[11px] text-gray-400 mt-0.5">
+                            {allFiles.filter(f => f.parent_id === folder.id && f.file_type !== 'folder').length} ملفات
+                          </p>
+                        </div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDeleteFile(folder.id); }}
+                          className="p-1.5 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Files grid */}
+              {files.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {project.files.map(file => {
+                {files.map(file => {
                 const FileIcon = getFileIconComponent(file.name);
                 const iconColor = getFileIconColor(file.name);
                 const canPreview = isPreviewable(file.name);
@@ -704,6 +819,7 @@ export default function ProjectDetail() {
                 );
               })}
               </div>
+              )}
               <div className="mt-3 border-2 border-dashed border-gray-200 rounded-xl p-4 text-center hover:border-primary-300 transition-colors">
                 <p className="text-gray-400 text-sm">اسحب ملف هنا لرفعه</p>
               </div>
@@ -713,12 +829,13 @@ export default function ProjectDetail() {
           {previewFile && (
             <FilePreviewModal
               file={previewFile}
-              files={(project.files || []).filter(f => isPreviewable(f.name)).map(f => ({ name: f.name, path: f.file_path }))}
+              files={(project.files || []).filter(f => f.file_type !== 'folder' && isPreviewable(f.name)).map(f => ({ name: f.name, path: f.file_path }))}
               onClose={() => setPreviewFile(null)}
             />
           )}
         </div>
-      )}
+        );
+      })()}
 
       {/* ====== Info Tab ====== */}
       {activeTab === 'info' && (

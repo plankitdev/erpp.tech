@@ -17,14 +17,18 @@ export const projectsApi = {
   delete: (slug: string) =>
     api.delete<ApiResponse<null>>(`/projects/${slug}`),
 
-  uploadFile: (slug: string, file: File, name?: string) => {
+  uploadFile: (slug: string, file: File, name?: string, parentId?: number) => {
     const formData = new FormData();
     formData.append('file', file);
     if (name) formData.append('name', name);
+    if (parentId) formData.append('parent_id', String(parentId));
     return api.post<ApiResponse<ProjectFile>>(`/projects/${slug}/files`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+
+  createFolder: (slug: string, name: string, parentId?: number) =>
+    api.post<ApiResponse<ProjectFile>>(`/projects/${slug}/folders`, { name, parent_id: parentId }),
 
   deleteFile: (slug: string, fileId: number) =>
     api.delete<ApiResponse<null>>(`/projects/${slug}/files/${fileId}`),
