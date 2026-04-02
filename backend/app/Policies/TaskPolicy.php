@@ -46,14 +46,14 @@ class TaskPolicy
 
     public function delete(User $user, Task $task): Response
     {
-        return $user->hasRole(['super_admin', 'manager', 'marketing_manager'])
+        return $user->hasRole(['super_admin', 'company_admin', 'manager', 'marketing_manager'])
             ? Response::allow()
             : Response::deny('حذف المهام متاح فقط للمديرين. تواصل مع المدير إذا كنت تحتاج لحذف هذه المهمة.');
     }
 
     public function deleteAny(User $user): Response
     {
-        return $user->hasRole(['super_admin', 'manager', 'marketing_manager'])
+        return $user->hasRole(['super_admin', 'company_admin', 'manager', 'marketing_manager'])
             ? Response::allow()
             : Response::deny('حذف المهام متاح فقط للمديرين.');
     }

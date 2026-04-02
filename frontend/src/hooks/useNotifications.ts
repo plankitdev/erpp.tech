@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notificationsApi } from '../api/notifications';
+import { playNotificationSound } from '../utils/notificationSound';
 import toast from 'react-hot-toast';
 
 export function useNotifications(params?: Record<string, unknown>) {
@@ -18,6 +19,7 @@ export function useUnreadCount() {
     queryFn: async () => {
       const count = await notificationsApi.unreadCount().then(r => r.data.data.count);
       if (prevCount.current !== null && count > prevCount.current) {
+        playNotificationSound('notification');
         toast('لديك إشعارات جديدة 🔔', { icon: '🔔', duration: 4000 });
       }
       prevCount.current = count;

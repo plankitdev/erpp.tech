@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { chatApi } from '../api/chat';
+import { playNotificationSound } from '../utils/notificationSound';
 import toast from 'react-hot-toast';
+import { useRef } from 'react';
 
 export function useChatChannels() {
   return useQuery({ queryKey: ['chat-channels'], queryFn: chatApi.getChannels, refetchInterval: 15000, staleTime: 5000, refetchOnWindowFocus: true });
@@ -75,7 +77,19 @@ export function useMarkRead() {
 }
 
 export function useChatUnreadCount() {
-  return useQuery({ queryKey: ['chat-unread'], queryFn: chatApi.getTotalUnread, refetchInterval: 15000 });
+  const prevCount = useRef<number | null>(null);
+  return useQuery({
+    queryKey: ['chat-unread'],
+    queryFn: async () => {
+      const count = await chatApi.getTotalUnread();
+      if (prevCount.current !== null && count > prevCount.current) {
+        playNotificationSound('message');
+      }
+      prevCount.current = count;
+      return count;
+    },
+    refetchInterval: 15000,
+  });
 }
 
 export function useAddMembers() {

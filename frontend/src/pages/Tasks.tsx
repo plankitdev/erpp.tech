@@ -36,7 +36,7 @@ const statusConfig: Record<string, { label: string; color: string; bg: string; d
 export default function Tasks() {
   useMarkBadgeSeen('tasks');
   const { user } = useAuthStore();
-  const canDelete = user?.role === 'super_admin' || user?.role === 'manager' || user?.role === 'marketing_manager';
+  const canDelete = user?.role === 'super_admin' || user?.role === 'company_admin' || user?.role === 'manager' || user?.role === 'marketing_manager';
   const { getParam, setParam } = useUrlFilters({ statusFilter: 'all', priorityFilter: 'all' });
   const statusFilter = getParam('statusFilter') || 'all';
   const priorityFilter = getParam('priorityFilter') || 'all';

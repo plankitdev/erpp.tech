@@ -38,7 +38,7 @@ export default function FileManager() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { folderId: folderIdParam } = useParams<{ folderId: string }>();
-  const isManager = user?.role === 'super_admin' || user?.role === 'manager';
+  const isManager = user?.role === 'super_admin' || user?.role === 'company_admin' || user?.role === 'manager';
   const isEmployee = user?.role === 'employee';
 
   // Derive currentFolderId from URL param
