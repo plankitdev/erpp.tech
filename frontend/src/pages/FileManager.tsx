@@ -551,7 +551,7 @@ export default function FileManager() {
                           e.preventDefault();
                           setContextMenu({ x: e.clientX, y: e.clientY, type: 'folder', item: folder });
                         }}
-                        isManager={isManager}
+                        canModify={isManager || folder.created_by === user?.id}
                       />
                     ))}
                   </div>
@@ -571,7 +571,7 @@ export default function FileManager() {
                         onDelete={() => {
                           if (confirm(`حذف المجلد "${folder.name}" وكل محتوياته؟`)) deleteFolderMut.mutate(folder.id);
                         }}
-                        isManager={isManager}
+                        canModify={isManager || folder.created_by === user?.id}
                       />
                     ))}
                   </div>
@@ -598,8 +598,8 @@ export default function FileManager() {
                         onRenameChange={setRenameValue}
                         onMove={() => setMovingItem({ type: 'file', item: file })}
                         onDelete={() => {
-                          if (isEmployee) {
-                            toast('مش مسموحلك تحذف ملفات 🙅‍♂️\nتواصل مع المدير لو عايز تحذف حاجة', { icon: '🔒' });
+                          if (isEmployee && file.uploaded_by?.id !== user?.id) {
+                            toast('مش مسموحلك تحذف ملفات غيرك 🙅‍♂️\nتواصل مع المدير لو عايز تحذف حاجة', { icon: '🔒' });
                             return;
                           }
                           if (confirm(`حذف الملف "${file.name}"?`)) deleteFileMut.mutate(file.id);
@@ -625,8 +625,8 @@ export default function FileManager() {
                         onRenameChange={setRenameValue}
                         onMove={() => setMovingItem({ type: 'file', item: file })}
                         onDelete={() => {
-                          if (isEmployee) {
-                            toast('مش مسموحلك تحذف ملفات 🙅‍♂️\nتواصل مع المدير لو عايز تحذف حاجة', { icon: '🔒' });
+                          if (isEmployee && file.uploaded_by?.id !== user?.id) {
+                            toast('مش مسموحلك تحذف ملفات غيرك 🙅‍♂️\nتواصل مع المدير لو عايز تحذف حاجة', { icon: '🔒' });
                             return;
                           }
                           if (confirm(`حذف الملف "${file.name}"?`)) deleteFileMut.mutate(file.id);
@@ -694,7 +694,7 @@ export default function FileManager() {
                 <FolderOpen className="w-4 h-4 text-gray-400" />
                 فتح
               </button>
-              {!isEmployee && (
+              {(isManager || (contextMenu.item as FMFolder).created_by === user?.id) && (
                 <button
                   onClick={() => {
                     setRenamingFolder((contextMenu.item as FMFolder).id);
@@ -717,7 +717,7 @@ export default function FileManager() {
                 <FolderInput className="w-4 h-4 text-gray-400" />
                 نقل
               </button>
-              {isManager && (
+              {(isManager || (contextMenu.item as FMFolder).created_by === user?.id) && (
                 <button
                   onClick={() => {
                     if (confirm(`حذف المجلد "${(contextMenu.item as FMFolder).name}" وكل محتوياته؟`))
@@ -789,8 +789,8 @@ export default function FileManager() {
               )}
               <button
                 onClick={() => {
-                  if (isEmployee) {
-                    toast('مش مسموحلك تحذف ملفات 🙅‍♂️\nتواصل مع المدير لو عايز تحذف حاجة', { icon: '🔒' });
+                  if (isEmployee && (contextMenu.item as FMFile).uploaded_by?.id !== user?.id) {
+                    toast('مش مسموحلك تحذف ملفات غيرك 🙅‍♂️\nتواصل مع المدير لو عايز تحذف حاجة', { icon: '🔒' });
                     setContextMenu(null);
                     return;
                   }
@@ -839,7 +839,7 @@ export default function FileManager() {
 
 // ========== Sub-components ==========
 
-function FolderCard({ folder, isRenaming, renameValue, onNavigate, onStartRename, onRename, onCancelRename, onRenameChange, onDelete, onContextMenu, isManager }: {
+function FolderCard({ folder, isRenaming, renameValue, onNavigate, onStartRename, onRename, onCancelRename, onRenameChange, onDelete, onContextMenu, canModify }: {
   folder: FMFolder;
   isRenaming: boolean;
   renameValue: string;
@@ -850,7 +850,7 @@ function FolderCard({ folder, isRenaming, renameValue, onNavigate, onStartRename
   onRenameChange: (v: string) => void;
   onDelete: () => void;
   onContextMenu: (e: React.MouseEvent) => void;
-  isManager: boolean;
+  canModify: boolean;
 }) {
   return (
     <div
@@ -861,7 +861,7 @@ function FolderCard({ folder, isRenaming, renameValue, onNavigate, onStartRename
       <div className="flex items-start justify-between mb-2">
         <FolderOpen className="w-10 h-10 text-amber-500" />
         <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5">
-          {isManager && (
+          {canModify && (
             <>
               <button onClick={(e) => { e.stopPropagation(); onStartRename(); }} className="p-1 rounded hover:bg-white/80">
                 <Edit3 className="w-3.5 h-3.5 text-gray-500" />
@@ -899,7 +899,7 @@ function FolderCard({ folder, isRenaming, renameValue, onNavigate, onStartRename
   );
 }
 
-function FolderRow({ folder, isRenaming, renameValue, onNavigate, onStartRename, onRename, onCancelRename, onRenameChange, onDelete, isManager }: {
+function FolderRow({ folder, isRenaming, renameValue, onNavigate, onStartRename, onRename, onCancelRename, onRenameChange, onDelete, canModify }: {
   folder: FMFolder;
   isRenaming: boolean;
   renameValue: string;
@@ -909,7 +909,7 @@ function FolderRow({ folder, isRenaming, renameValue, onNavigate, onStartRename,
   onCancelRename: () => void;
   onRenameChange: (v: string) => void;
   onDelete: () => void;
-  isManager: boolean;
+  canModify: boolean;
 }) {
   return (
     <div
@@ -940,7 +940,7 @@ function FolderRow({ folder, isRenaming, renameValue, onNavigate, onStartRename,
       </span>
       <span className="text-xs text-gray-400 whitespace-nowrap">{folder.created_at && formatDate(folder.created_at)}</span>
       <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1">
-        {isManager && (
+        {canModify && (
           <>
             <button onClick={(e) => { e.stopPropagation(); onStartRename(); }} className="p-1.5 rounded-lg hover:bg-gray-200">
               <Edit3 className="w-4 h-4 text-gray-500" />

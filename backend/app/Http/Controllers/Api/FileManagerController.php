@@ -35,6 +35,7 @@ class FileManagerController extends Controller
                 'project' => $f->project,
                 'children_count' => $f->children_count,
                 'files_count' => $f->files_count,
+                'created_by' => $f->created_by,
                 'created_at' => $f->created_at?->format('Y-m-d H:i'),
             ]);
 
@@ -114,6 +115,11 @@ class FileManagerController extends Controller
      */
     public function renameFolder(Request $request, Folder $folder): JsonResponse
     {
+        $user = auth()->user();
+        if ($user->role === 'employee' && $folder->created_by !== $user->id) {
+            return $this->errorResponse('غير مسموح — يمكنك تعديل المجلدات التي أنشأتها فقط', 403);
+        }
+
         $request->validate(['name' => 'required|string|max:255']);
         $oldName = $folder->name;
         $folder->update(['name' => $request->name]);

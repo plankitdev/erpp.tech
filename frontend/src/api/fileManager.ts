@@ -9,6 +9,7 @@ export interface FMFolder {
   project?: { id: number; name: string } | null;
   children_count: number;
   files_count: number;
+  created_by: number | null;
   created_at: string;
 }
 
