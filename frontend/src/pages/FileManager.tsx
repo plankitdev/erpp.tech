@@ -305,15 +305,13 @@ export default function FileManager() {
               </button>
             )
           )}
-          {!isEmployee && (
-            <button
-              onClick={() => setShowNewFolder(true)}
-              className="btn-secondary flex items-center gap-1.5 text-sm"
-            >
-              <FolderPlus className="w-4 h-4" />
-              مجلد جديد
-            </button>
-          )}
+          <button
+            onClick={() => setShowNewFolder(true)}
+            className="btn-secondary flex items-center gap-1.5 text-sm"
+          >
+            <FolderPlus className="w-4 h-4" />
+            مجلد جديد
+          </button>
           <button
             onClick={() => fileInputRef.current?.click()}
             className="btn-primary flex items-center gap-1.5 text-sm"
@@ -648,14 +646,12 @@ export default function FileManager() {
               <div className="text-center py-20">
                 <FolderOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <p className="text-gray-500 text-lg mb-2">هذا المجلد فارغ</p>
-                <p className="text-gray-400 text-sm mb-6">{isEmployee ? 'ارفع ملفاتك هنا' : 'أنشئ مجلد جديد أو ارفع ملفات'}</p>
+                <p className="text-gray-400 text-sm mb-6">أنشئ مجلد جديد أو ارفع ملفات</p>
                 <div className="flex items-center justify-center gap-3">
-                  {!isEmployee && (
-                    <button onClick={() => setShowNewFolder(true)} className="btn-secondary flex items-center gap-1.5 text-sm">
-                      <FolderPlus className="w-4 h-4" />
-                      مجلد جديد
-                    </button>
-                  )}
+                  <button onClick={() => setShowNewFolder(true)} className="btn-secondary flex items-center gap-1.5 text-sm">
+                    <FolderPlus className="w-4 h-4" />
+                    مجلد جديد
+                  </button>
                   <button onClick={() => fileInputRef.current?.click()} className="btn-primary flex items-center gap-1.5 text-sm">
                     <Upload className="w-4 h-4" />
                     رفع ملف
