@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { X, Download, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize2, FileText, File, Image as ImageIcon, Film, Music } from 'lucide-react';
+import { X, Download, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Maximize2, FileText, File, Image as ImageIcon, Film, Music, Loader2 } from 'lucide-react';
+import { fileManagerApi } from '../api/fileManager';
 
 // ── Helpers ──────────────────────────────────────────────
 
@@ -95,6 +96,7 @@ export function FileThumbnail({ name, path, className = '', onClick }: FileThumb
 interface PreviewFile {
   name: string;
   path: string;
+  id?: number;
 }
 
 interface FilePreviewModalProps {
@@ -115,6 +117,33 @@ export function FilePreviewModal({ file, files = [], onClose }: FilePreviewModal
   const cat = getFileCategory(currentFile.name);
   const url = resolveFileUrl(currentFile.path);
   const hasMultiple = files.length > 1;
+
+  // For video/audio: fetch via API (handles Drive-only files + broken paths)
+  const [mediaUrl, setMediaUrl] = useState<string | null>(null);
+  const [mediaLoading, setMediaLoading] = useState(false);
+
+  useEffect(() => {
+    if ((cat === 'video' || cat === 'audio') && currentFile.id) {
+      setMediaLoading(true);
+      setMediaUrl(null);
+      fileManagerApi.downloadFile(currentFile.id)
+        .then(response => {
+          const ct = response.headers['content-type'] || 'application/octet-stream';
+          const blob = new Blob([response.data], { type: ct });
+          const blobUrl = URL.createObjectURL(blob);
+          setMediaUrl(blobUrl);
+        })
+        .catch(() => {
+          // Fallback to direct URL
+          setMediaUrl(url);
+        })
+        .finally(() => setMediaLoading(false));
+    }
+    return () => {
+      if (mediaUrl && mediaUrl.startsWith('blob:')) URL.revokeObjectURL(mediaUrl);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentFile.id, currentFile.path, cat]);
 
   const goNext = useCallback(() => {
     if (hasMultiple) {
@@ -222,20 +251,33 @@ export function FilePreviewModal({ file, files = [], onClose }: FilePreviewModal
           />
         )}
         {cat === 'video' && (
-          <video
-            src={url}
-            controls
-            autoPlay
-            className="max-h-[85vh] max-w-[90vw] rounded-lg shadow-2xl bg-black"
-          >
-            المتصفح لا يدعم تشغيل الفيديو
-          </video>
+          mediaLoading ? (
+            <div className="flex flex-col items-center gap-3 text-white">
+              <Loader2 size={32} className="animate-spin" />
+              <span className="text-sm">جاري تحميل الفيديو...</span>
+            </div>
+          ) : (
+            <video
+              src={mediaUrl || url}
+              controls
+              className="max-h-[85vh] max-w-[90vw] rounded-lg shadow-2xl bg-black"
+            >
+              المتصفح لا يدعم تشغيل الفيديو
+            </video>
+          )
         )}
         {cat === 'audio' && (
           <div className="bg-white rounded-2xl p-8 shadow-2xl text-center min-w-[320px]">
             <Music size={48} className="text-amber-500 mx-auto mb-4" />
             <p className="text-gray-800 font-medium mb-4">{currentFile.name}</p>
-            <audio src={url} controls autoPlay className="w-full" />
+            {mediaLoading ? (
+              <div className="flex items-center justify-center gap-2 text-gray-500 py-4">
+                <Loader2 size={20} className="animate-spin" />
+                <span className="text-sm">جاري التحميل...</span>
+              </div>
+            ) : (
+              <audio src={mediaUrl || url} controls className="w-full" />
+            )}
           </div>
         )}
         {cat === 'office' && (

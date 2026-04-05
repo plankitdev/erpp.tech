@@ -51,7 +51,7 @@ export default function FileManager() {
   const [renamingFile, setRenamingFile] = useState<number | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; type: 'folder' | 'file'; item: FMFolder | FMFile } | null>(null);
-  const [previewFile, setPreviewFile] = useState<{ name: string; path: string } | null>(null);
+  const [previewFile, setPreviewFile] = useState<{ name: string; path: string; id?: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [movingItem, setMovingItem] = useState<{ type: 'file' | 'folder'; item: FMFile | FMFolder } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -253,7 +253,7 @@ export default function FileManager() {
   // Build previewable files list for gallery
   const previewableFiles = files
     .filter(f => isPreviewable(f.name))
-    .map(f => ({ name: f.name, path: f.file_path }));
+    .map(f => ({ name: f.name, path: f.file_path, id: f.id }));
 
   const isSearchMode = searchQuery.length >= 2;
 
@@ -495,7 +495,7 @@ export default function FileManager() {
                             </div>
                             {isPreviewable(f.name) && (
                               <button
-                                onClick={() => setPreviewFile({ name: f.name, path: f.file_path })}
+                                onClick={() => setPreviewFile({ name: f.name, path: f.file_path, id: f.id })}}
                                 className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-500"
                               >
                                 <Eye className="w-4 h-4" />
@@ -591,7 +591,7 @@ export default function FileManager() {
                         file={file}
                         isRenaming={renamingFile === file.id}
                         renameValue={renameValue}
-                        onPreview={() => isPreviewable(file.name) && setPreviewFile({ name: file.name, path: file.file_path })}
+                        onPreview={() => isPreviewable(file.name) && setPreviewFile({ name: file.name, path: file.file_path, id: file.id })}
                         onStartRename={() => { setRenamingFile(file.id); setRenameValue(file.name); }}
                         onRename={name => renameFileMut.mutate({ id: file.id, name })}
                         onCancelRename={() => setRenamingFile(null)}
@@ -618,7 +618,7 @@ export default function FileManager() {
                         file={file}
                         isRenaming={renamingFile === file.id}
                         renameValue={renameValue}
-                        onPreview={() => isPreviewable(file.name) && setPreviewFile({ name: file.name, path: file.file_path })}
+                        onPreview={() => isPreviewable(file.name) && setPreviewFile({ name: file.name, path: file.file_path, id: file.id })}
                         onStartRename={() => { setRenamingFile(file.id); setRenameValue(file.name); }}
                         onRename={name => renameFileMut.mutate({ id: file.id, name })}
                         onCancelRename={() => setRenamingFile(null)}
@@ -738,7 +738,7 @@ export default function FileManager() {
                 <button
                   onClick={() => {
                     const f = contextMenu.item as FMFile;
-                    setPreviewFile({ name: f.name, path: f.file_path });
+                    setPreviewFile({ name: f.name, path: f.file_path, id: f.id });
                     setContextMenu(null);
                   }}
                   className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-sm text-right"
