@@ -495,7 +495,7 @@ export default function FileManager() {
                             </div>
                             {isPreviewable(f.name) && (
                               <button
-                                onClick={() => setPreviewFile({ name: f.name, path: f.file_path, id: f.id })}}
+                                onClick={() => setPreviewFile({ name: f.name, path: f.file_path, id: f.id })}
                                 className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-500"
                               >
                                 <Eye className="w-4 h-4" />
