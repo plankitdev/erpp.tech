@@ -204,6 +204,8 @@ class FileManagerController extends Controller
         $path = $uploaded->store('file-manager', 'public');
 
         $fileName = $request->name ?: $uploaded->getClientOriginalName();
+        // Sanitize: remove / and \ from filename
+        $fileName = str_replace(['/', '\\'], '-', $fileName);
 
         $managedFile = ManagedFile::create([
             'folder_id' => $request->folder_id,
@@ -379,11 +381,14 @@ class FileManagerController extends Controller
      */
     public function downloadFile(ManagedFile $managedFile)
     {
+        // Sanitize filename — remove / and \ that break Content-Disposition
+        $safeName = str_replace(['/', '\\'], '-', $managedFile->name);
+
         $localPath = Storage::disk('public')->path($managedFile->file_path);
 
         // If file exists locally, serve it
         if (file_exists($localPath)) {
-            return response()->download($localPath, $managedFile->name);
+            return response()->download($localPath, $safeName);
         }
 
         // File deleted locally — try fetching from Drive
@@ -410,7 +415,87 @@ class FileManagerController extends Controller
 
                     return response($content, 200, [
                         'Content-Type' => $mimeType,
-                        'Content-Disposition' => 'attachment; filename="' . $managedFile->name . '"',
+                        'Content-Disposition' => 'attachment; filename="' . $safeName . '"',
+                        'Content-Length' => strlen($content),
+                    ]);
+                }
+            }
+        }
+
+        return response()->json(['message' => 'الملف غير متوفر'], 404);
+    }
+
+    /**
+     * Stream a file inline (for video/audio/pdf preview without downloading).
+     * Accepts ?token= query param for <video>/<audio> src attribute (no Bearer header).
+     */
+    public function streamFile(Request $request, ManagedFile $managedFile)
+    {
+        // Auth via query token if no session auth
+        if (!auth()->check() && $request->query('token')) {
+            $user = \Laravel\Sanctum\PersonalAccessToken::findToken($request->query('token'));
+            if (!$user) {
+                return response()->json(['message' => 'Unauthorized'], 401);
+            }
+            auth()->login($user->tokenable);
+        }
+
+        if (!auth()->check()) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
+        $localPath = Storage::disk('public')->path($managedFile->file_path);
+        $mimeType = $managedFile->mime_type ?: 'application/octet-stream';
+
+        if (file_exists($localPath)) {
+            $size = filesize($localPath);
+            $headers = [
+                'Content-Type' => $mimeType,
+                'Accept-Ranges' => 'bytes',
+                'Content-Length' => $size,
+            ];
+
+            // Support Range requests for video seeking
+            if (request()->hasHeader('Range')) {
+                $range = request()->header('Range');
+                if (preg_match('/bytes=(\d+)-(\d*)/', $range, $matches)) {
+                    $start = (int) $matches[1];
+                    $end = $matches[2] !== '' ? (int) $matches[2] : $size - 1;
+                    $end = min($end, $size - 1);
+                    $length = $end - $start + 1;
+
+                    return response()->stream(function () use ($localPath, $start, $length) {
+                        $fp = fopen($localPath, 'rb');
+                        fseek($fp, $start);
+                        $remaining = $length;
+                        while ($remaining > 0 && !feof($fp)) {
+                            $chunk = min(8192, $remaining);
+                            echo fread($fp, $chunk);
+                            $remaining -= $chunk;
+                            flush();
+                        }
+                        fclose($fp);
+                    }, 206, [
+                        'Content-Type' => $mimeType,
+                        'Content-Range' => "bytes $start-$end/$size",
+                        'Content-Length' => $length,
+                        'Accept-Ranges' => 'bytes',
+                    ]);
+                }
+            }
+
+            return response()->file($localPath, $headers);
+        }
+
+        // Fallback: fetch from Drive and serve inline
+        if ($managedFile->drive_file_id && auth()->user()->company_id) {
+            $driveService = GoogleDriveService::forCompany(auth()->user()->company_id);
+            if ($driveService) {
+                $content = $driveService->downloadFile($managedFile->drive_file_id);
+                if ($content) {
+                    return response($content, 200, [
+                        'Content-Type' => $mimeType,
+                        'Content-Disposition' => 'inline',
                         'Content-Length' => strlen($content),
                     ]);
                 }

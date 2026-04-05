@@ -57,6 +57,9 @@ Route::middleware('throttle:5,1')->post('/auth/login', [AuthController::class, '
 Route::middleware('throttle:5,1')->post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::middleware('throttle:5,1')->post('/auth/reset-password', [AuthController::class, 'resetPassword']);
 
+// ========== File Streaming (token-based auth for <video>/<audio> src) ==========
+Route::middleware('throttle:api')->get('/file-manager/files/{managedFile}/stream', [FileManagerController::class, 'streamFile']);
+
 // ========== Authenticated Routes ==========
 Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 

@@ -91,4 +91,10 @@ export const fileManagerApi = {
 
   downloadFile: (id: number) =>
     api.get(`/file-manager/files/${id}/download`, { responseType: 'blob' }),
+
+  /** Get authenticated stream URL for video/audio preview */
+  getStreamUrl: (id: number) => {
+    const token = localStorage.getItem('token') || '';
+    return `/api/file-manager/files/${id}/stream?token=${encodeURIComponent(token)}`;
+  },
 };
