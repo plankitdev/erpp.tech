@@ -68,7 +68,8 @@ export default function Chat() {
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const [showPinned, setShowPinned] = useState(false);
   const [readsMsgId, setReadsMsgId] = useState<number | null>(null);
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(true);
+  const [mobileShowChat, setMobileShowChat] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const mentionsRef = useRef<{ id: number; name: string }[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -105,6 +106,13 @@ export default function Chat() {
   useEffect(() => {
     if (activeChannelId) markRead.mutate(activeChannelId);
   }, [activeChannelId]);
+
+  // Track screen size
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   // Warn before leaving if there's unsent text or attachment
   useEffect(() => {
@@ -292,13 +300,16 @@ export default function Chat() {
 
   const selectChannel = (id: number) => {
     setActiveChannelId(id);
-    setMobileSidebarOpen(false);
+    setMobileShowChat(true);
   };
 
+  const showSidebar = isMobile ? !mobileShowChat : true;
+  const showChat = isMobile ? mobileShowChat : true;
+
   return (
-    <div className="h-[calc(100vh-120px)] flex bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden relative">
+    <div className="h-[calc(100vh-120px)] flex bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
       {/* Sidebar */}
-      <div className={`${mobileSidebarOpen ? 'flex' : 'hidden'} md:flex w-full md:w-80 border-l border-gray-200 flex-col bg-gray-50 absolute md:relative inset-0 z-10`}>
+      {showSidebar && <div className={`${isMobile ? 'w-full' : 'w-80'} border-l border-gray-200 flex flex-col bg-gray-50`}>
         {/* Header */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between mb-3">
@@ -351,21 +362,23 @@ export default function Chat() {
             ))
           )}
         </div>
-      </div>
+      </div>}
 
       {/* Main Chat Area */}
-      <div className={`flex-1 flex flex-col ${mobileSidebarOpen ? 'hidden md:flex' : 'flex'}`}>
+      {showChat && <div className="flex-1 flex flex-col">
         {activeChannel ? (
           <>
             {/* Channel header */}
             <div className="px-3 sm:px-4 py-3 border-b border-gray-200 flex items-center justify-between bg-white">
               <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                <button
-                  onClick={() => setMobileSidebarOpen(true)}
-                  className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 transition md:hidden shrink-0"
-                >
-                  <ChevronRight size={20} />
-                </button>
+                {isMobile && (
+                  <button
+                    onClick={() => setMobileShowChat(false)}
+                    className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 transition shrink-0"
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                )}
                 {getChannelIcon(activeChannel)}
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
@@ -707,13 +720,13 @@ export default function Chat() {
             <div className="text-center">
               <MessageSquare size={48} className="mx-auto mb-3 opacity-30" />
               <p className="text-lg">اختر محادثة أو ابدأ واحدة جديدة</p>
-              <button onClick={() => setMobileSidebarOpen(true)} className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg text-sm md:hidden">
+              {isMobile && <button onClick={() => setMobileShowChat(false)} className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg text-sm">
                 عرض المحادثات
-              </button>
+              </button>}
             </div>
           </div>
         )}
-      </div>
+      </div>}
 
       {/* New Channel Modal */}
       {showNewChannel && <NewChannelModal users={chatUsers} onClose={() => setShowNewChannel(false)} onCreate={(data) => { createChannel.mutate(data); setShowNewChannel(false); }} />}
@@ -761,7 +774,7 @@ export default function Chat() {
                 searchResults.map((msg: any) => (
                   <button
                     key={msg.id}
-                    onClick={() => { setActiveChannelId(msg.channel_id); setShowGlobalSearch(false); setGlobalSearch(''); setMobileSidebarOpen(false); }}
+                    onClick={() => { setActiveChannelId(msg.channel_id); setShowGlobalSearch(false); setGlobalSearch(''); setMobileShowChat(true); }}
                     className="w-full text-right p-3 hover:bg-gray-50 rounded-xl transition"
                   >
                     <div className="flex items-center gap-2 mb-1">
