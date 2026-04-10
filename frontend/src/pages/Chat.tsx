@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { MessageSquare, Plus, Send, Paperclip, Trash2, Users, Hash, X, Search, ArrowRight, Building2, UserPlus, UserMinus, Lock, Globe, AtSign, Image, Reply, Smile, Pin, PinOff, Pencil, Check, CheckCheck } from 'lucide-react';
+import { MessageSquare, Plus, Send, Paperclip, Trash2, Users, Hash, X, Search, ArrowRight, Building2, UserPlus, UserMinus, Lock, Globe, AtSign, Image, Reply, Smile, Pin, PinOff, Pencil, Check, CheckCheck, ChevronRight } from 'lucide-react';
 import { useChatChannels, useChatMessages, useChatUsers, useCreateChannel, useSendMessage, useEditMessage, useDeleteMessage, useDeleteChannel, useMarkRead, useAddMembers, useRemoveMember, useToggleReaction, useTogglePin, usePinnedMessages, useSearchMessages, useTypingUsers } from '../hooks/useChat';
 import { useAuthStore } from '../store/authStore';
 import type { ChatChannel, ChatMessage } from '../types';
@@ -68,6 +68,7 @@ export default function Chat() {
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const [showPinned, setShowPinned] = useState(false);
   const [readsMsgId, setReadsMsgId] = useState<number | null>(null);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(true);
   const mentionsRef = useRef<{ id: number; name: string }[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -289,10 +290,15 @@ export default function Chat() {
     return d.toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' });
   };
 
+  const selectChannel = (id: number) => {
+    setActiveChannelId(id);
+    setMobileSidebarOpen(false);
+  };
+
   return (
-    <div className="h-[calc(100vh-120px)] flex bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="h-[calc(100vh-120px)] flex bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden relative">
       {/* Sidebar */}
-      <div className="w-80 border-l border-gray-200 flex flex-col bg-gray-50">
+      <div className={`${mobileSidebarOpen ? 'flex' : 'hidden'} md:flex w-full md:w-80 border-l border-gray-200 flex-col bg-gray-50 absolute md:relative inset-0 z-10`}>
         {/* Header */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between mb-3">
@@ -335,39 +341,45 @@ export default function Chat() {
                   <span className="text-[10px] text-gray-400 mr-auto">{companyChannels.length}</span>
                 </div>
                 {companyChannels.map((ch: ChatChannel) => (
-                  <ChannelItem key={ch.id} ch={ch} activeChannelId={activeChannelId} onClick={() => setActiveChannelId(ch.id)} getChannelIcon={getChannelIcon} getChannelName={getChannelName} formatTime={formatTime} user={user} />
+                  <ChannelItem key={ch.id} ch={ch} activeChannelId={activeChannelId} onClick={() => selectChannel(ch.id)} getChannelIcon={getChannelIcon} getChannelName={getChannelName} formatTime={formatTime} user={user} />
                 ))}
               </div>
             ))
           ) : (
             filteredChannels.map((ch: ChatChannel) => (
-              <ChannelItem key={ch.id} ch={ch} activeChannelId={activeChannelId} onClick={() => setActiveChannelId(ch.id)} getChannelIcon={getChannelIcon} getChannelName={getChannelName} formatTime={formatTime} user={user} />
+              <ChannelItem key={ch.id} ch={ch} activeChannelId={activeChannelId} onClick={() => selectChannel(ch.id)} getChannelIcon={getChannelIcon} getChannelName={getChannelName} formatTime={formatTime} user={user} />
             ))
           )}
         </div>
       </div>
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col">
+      <div className={`flex-1 flex flex-col ${mobileSidebarOpen ? 'hidden md:flex' : 'flex'}`}>
         {activeChannel ? (
           <>
             {/* Channel header */}
-            <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between bg-white">
-              <div className="flex items-center gap-3">
+            <div className="px-3 sm:px-4 py-3 border-b border-gray-200 flex items-center justify-between bg-white">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                <button
+                  onClick={() => setMobileSidebarOpen(true)}
+                  className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 transition md:hidden shrink-0"
+                >
+                  <ChevronRight size={20} />
+                </button>
                 {getChannelIcon(activeChannel)}
-                <div>
+                <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-gray-800">{getChannelName(activeChannel)}</h3>
-                    {activeChannel.type === 'public' && <Globe size={14} className="text-gray-400" />}
-                    {activeChannel.type === 'private' && <Lock size={14} className="text-yellow-500" />}
+                    <h3 className="font-bold text-gray-800 truncate">{getChannelName(activeChannel)}</h3>
+                    {activeChannel.type === 'public' && <Globe size={14} className="text-gray-400 shrink-0" />}
+                    {activeChannel.type === 'private' && <Lock size={14} className="text-yellow-500 shrink-0" />}
                   </div>
                   <p className="text-xs text-gray-500">{activeChannel.members.length} عضو</p>
                 </div>
               </div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
                 <button
                   onClick={() => setShowGlobalSearch(true)}
-                  className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition"
+                  className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition"
                   title="بحث في الرسائل"
                 >
                   <Search size={18} />
@@ -437,7 +449,7 @@ export default function Chat() {
                 }, {});
                 return (
                   <div key={msg.id} className={`flex ${isMe ? 'justify-start' : 'justify-end'} group`}>
-                    <div className={`max-w-[70%] ${isMe ? 'order-1' : ''}`}>
+                    <div className={`max-w-[85%] sm:max-w-[70%] ${isMe ? 'order-1' : ''}`}>
                       {/* Reply preview */}
                       {msg.reply_to && (
                         <div className={`mb-1 px-3 py-1.5 rounded-lg text-xs border-r-2 ${isMe ? 'bg-blue-400/20 border-blue-300 text-blue-100' : 'bg-gray-100 border-gray-300 text-gray-600'}`}>
@@ -618,7 +630,7 @@ export default function Chat() {
             )}
 
             {/* Compose */}
-            <div className="p-3 border-t border-gray-200 bg-white">
+            <div className="p-2 sm:p-3 border-t border-gray-200 bg-white">
               {/* Reply preview bar */}
               {replyTo && (
                 <div className="flex items-center gap-2 mb-2 bg-blue-50 px-3 py-2 rounded-lg text-sm border-r-2 border-blue-400">
@@ -695,6 +707,9 @@ export default function Chat() {
             <div className="text-center">
               <MessageSquare size={48} className="mx-auto mb-3 opacity-30" />
               <p className="text-lg">اختر محادثة أو ابدأ واحدة جديدة</p>
+              <button onClick={() => setMobileSidebarOpen(true)} className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg text-sm md:hidden">
+                عرض المحادثات
+              </button>
             </div>
           </div>
         )}
@@ -746,7 +761,7 @@ export default function Chat() {
                 searchResults.map((msg: any) => (
                   <button
                     key={msg.id}
-                    onClick={() => { setActiveChannelId(msg.channel_id); setShowGlobalSearch(false); setGlobalSearch(''); }}
+                    onClick={() => { setActiveChannelId(msg.channel_id); setShowGlobalSearch(false); setGlobalSearch(''); setMobileSidebarOpen(false); }}
                     className="w-full text-right p-3 hover:bg-gray-50 rounded-xl transition"
                   >
                     <div className="flex items-center gap-2 mb-1">
