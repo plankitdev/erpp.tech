@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { MessageSquare, Plus, Send, Paperclip, Trash2, Users, Hash, X, Search, ArrowRight, Building2, UserPlus, UserMinus, Lock, Globe, AtSign, Image, Reply, Smile, Pin, PinOff, Pencil, Check, CheckCheck, ChevronRight } from 'lucide-react';
+import { MessageSquare, Plus, Send, Paperclip, Trash2, Users, Hash, X, Search, ArrowRight, Building2, UserPlus, UserMinus, Lock, Globe, AtSign, Image, Reply, Smile, Pin, PinOff, Pencil, Check, CheckCheck } from 'lucide-react';
 import { useChatChannels, useChatMessages, useChatUsers, useCreateChannel, useSendMessage, useEditMessage, useDeleteMessage, useDeleteChannel, useMarkRead, useAddMembers, useRemoveMember, useToggleReaction, useTogglePin, usePinnedMessages, useSearchMessages, useTypingUsers } from '../hooks/useChat';
 import { useAuthStore } from '../store/authStore';
 import type { ChatChannel, ChatMessage } from '../types';
@@ -68,8 +68,6 @@ export default function Chat() {
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const [showPinned, setShowPinned] = useState(false);
   const [readsMsgId, setReadsMsgId] = useState<number | null>(null);
-  const [mobileShowChat, setMobileShowChat] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const mentionsRef = useRef<{ id: number; name: string }[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -106,13 +104,6 @@ export default function Chat() {
   useEffect(() => {
     if (activeChannelId) markRead.mutate(activeChannelId);
   }, [activeChannelId]);
-
-  // Track screen size
-  useEffect(() => {
-    const onResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, []);
 
   // Warn before leaving if there's unsent text or attachment
   useEffect(() => {
@@ -298,18 +289,10 @@ export default function Chat() {
     return d.toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' });
   };
 
-  const selectChannel = (id: number) => {
-    setActiveChannelId(id);
-    setMobileShowChat(true);
-  };
-
-  const showSidebar = isMobile ? !mobileShowChat : true;
-  const showChat = isMobile ? mobileShowChat : true;
-
   return (
     <div className="h-[calc(100vh-120px)] flex bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
       {/* Sidebar */}
-      {showSidebar && <div className={`${isMobile ? 'w-full' : 'w-80'} border-l border-gray-200 flex flex-col bg-gray-50`}>
+      <div className="w-72 lg:w-80 shrink-0 border-l border-gray-200 flex flex-col bg-gray-50">
         {/* Header */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between mb-3">
@@ -352,33 +335,25 @@ export default function Chat() {
                   <span className="text-[10px] text-gray-400 mr-auto">{companyChannels.length}</span>
                 </div>
                 {companyChannels.map((ch: ChatChannel) => (
-                  <ChannelItem key={ch.id} ch={ch} activeChannelId={activeChannelId} onClick={() => selectChannel(ch.id)} getChannelIcon={getChannelIcon} getChannelName={getChannelName} formatTime={formatTime} user={user} />
+                  <ChannelItem key={ch.id} ch={ch} activeChannelId={activeChannelId} onClick={() => setActiveChannelId(ch.id)} getChannelIcon={getChannelIcon} getChannelName={getChannelName} formatTime={formatTime} user={user} />
                 ))}
               </div>
             ))
           ) : (
             filteredChannels.map((ch: ChatChannel) => (
-              <ChannelItem key={ch.id} ch={ch} activeChannelId={activeChannelId} onClick={() => selectChannel(ch.id)} getChannelIcon={getChannelIcon} getChannelName={getChannelName} formatTime={formatTime} user={user} />
+              <ChannelItem key={ch.id} ch={ch} activeChannelId={activeChannelId} onClick={() => setActiveChannelId(ch.id)} getChannelIcon={getChannelIcon} getChannelName={getChannelName} formatTime={formatTime} user={user} />
             ))
           )}
         </div>
-      </div>}
+      </div>
 
       {/* Main Chat Area */}
-      {showChat && <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         {activeChannel ? (
           <>
             {/* Channel header */}
-            <div className="px-3 sm:px-4 py-3 border-b border-gray-200 flex items-center justify-between bg-white">
-              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                {isMobile && (
-                  <button
-                    onClick={() => setMobileShowChat(false)}
-                    className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 transition shrink-0"
-                  >
-                    <ChevronRight size={20} />
-                  </button>
-                )}
+            <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between bg-white">
+              <div className="flex items-center gap-3 min-w-0">
                 {getChannelIcon(activeChannel)}
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
@@ -389,10 +364,10 @@ export default function Chat() {
                   <p className="text-xs text-gray-500">{activeChannel.members.length} عضو</p>
                 </div>
               </div>
-              <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+              <div className="flex items-center gap-1 shrink-0">
                 <button
                   onClick={() => setShowGlobalSearch(true)}
-                  className="p-1.5 sm:p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition"
+                  className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 transition"
                   title="بحث في الرسائل"
                 >
                   <Search size={18} />
@@ -462,7 +437,7 @@ export default function Chat() {
                 }, {});
                 return (
                   <div key={msg.id} className={`flex ${isMe ? 'justify-start' : 'justify-end'} group`}>
-                    <div className={`max-w-[85%] sm:max-w-[70%] ${isMe ? 'order-1' : ''}`}>
+                    <div className={`max-w-[70%] ${isMe ? 'order-1' : ''}`}>
                       {/* Reply preview */}
                       {msg.reply_to && (
                         <div className={`mb-1 px-3 py-1.5 rounded-lg text-xs border-r-2 ${isMe ? 'bg-blue-400/20 border-blue-300 text-blue-100' : 'bg-gray-100 border-gray-300 text-gray-600'}`}>
@@ -643,7 +618,7 @@ export default function Chat() {
             )}
 
             {/* Compose */}
-            <div className="p-2 sm:p-3 border-t border-gray-200 bg-white">
+            <div className="p-3 border-t border-gray-200 bg-white">
               {/* Reply preview bar */}
               {replyTo && (
                 <div className="flex items-center gap-2 mb-2 bg-blue-50 px-3 py-2 rounded-lg text-sm border-r-2 border-blue-400">
@@ -720,13 +695,11 @@ export default function Chat() {
             <div className="text-center">
               <MessageSquare size={48} className="mx-auto mb-3 opacity-30" />
               <p className="text-lg">اختر محادثة أو ابدأ واحدة جديدة</p>
-              {isMobile && <button onClick={() => setMobileShowChat(false)} className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg text-sm">
-                عرض المحادثات
-              </button>}
+
             </div>
           </div>
         )}
-      </div>}
+      </div>
 
       {/* New Channel Modal */}
       {showNewChannel && <NewChannelModal users={chatUsers} onClose={() => setShowNewChannel(false)} onCreate={(data) => { createChannel.mutate(data); setShowNewChannel(false); }} />}
@@ -774,7 +747,7 @@ export default function Chat() {
                 searchResults.map((msg: any) => (
                   <button
                     key={msg.id}
-                    onClick={() => { setActiveChannelId(msg.channel_id); setShowGlobalSearch(false); setGlobalSearch(''); setMobileShowChat(true); }}
+                    onClick={() => { setActiveChannelId(msg.channel_id); setShowGlobalSearch(false); setGlobalSearch(''); }}
                     className="w-full text-right p-3 hover:bg-gray-50 rounded-xl transition"
                   >
                     <div className="flex items-center gap-2 mb-1">
