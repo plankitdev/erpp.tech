@@ -215,6 +215,17 @@ const superAdminTabs: SidebarTab[] = [
   },
 ];
 
+// Role-based section ordering — each role sees their most relevant sections first
+const roleSectionOrder: Record<string, string[]> = {
+  super_admin: ['المهام والمشاريع', 'إدارة العملاء', 'المحاسبة والخزينة', 'المبيعات والتسويق', 'الموارد البشرية', 'التقارير المالية', 'التقارير والملفات', 'إدارة النظام'],
+  company_admin: ['المهام والمشاريع', 'إدارة العملاء', 'المحاسبة والخزينة', 'المبيعات والتسويق', 'الموارد البشرية', 'التقارير المالية', 'التقارير والملفات', 'إدارة النظام'],
+  manager: ['المهام والمشاريع', 'إدارة العملاء', 'المبيعات والتسويق', 'الموارد البشرية', 'المحاسبة والخزينة', 'التقارير المالية', 'التقارير والملفات', 'إدارة النظام'],
+  marketing_manager: ['المهام والمشاريع', 'إدارة العملاء', 'المبيعات والتسويق', 'التقارير والملفات', 'المحاسبة والخزينة', 'الموارد البشرية', 'التقارير المالية', 'إدارة النظام'],
+  accountant: ['المحاسبة والخزينة', 'التقارير المالية', 'المهام والمشاريع', 'إدارة العملاء', 'التقارير والملفات', 'المبيعات والتسويق', 'الموارد البشرية', 'إدارة النظام'],
+  sales: ['إدارة العملاء', 'المبيعات والتسويق', 'المهام والمشاريع', 'المحاسبة والخزينة', 'التقارير والملفات', 'التقارير المالية', 'الموارد البشرية', 'إدارة النظام'],
+  employee: ['المهام والمشاريع', 'إدارة العملاء', 'الموارد البشرية', 'التقارير والملفات', 'المبيعات والتسويق', 'المحاسبة والخزينة', 'التقارير المالية', 'إدارة النظام'],
+};
+
 const SIDEBAR_PINNED_KEY = 'erpflex_sidebar_pinned';
 const SIDEBAR_RECENT_KEY = 'erpflex_sidebar_recent';
 const SIDEBAR_USAGE_KEY = 'erpflex_sidebar_usage';
@@ -289,12 +300,22 @@ export default function Layout() {
 
   const isSuperAdmin = user?.role === 'super_admin';
 
+  // Apply role-based ordering
+  const orderedSections = (() => {
+    const order = roleSectionOrder[user?.role || 'employee'] || roleSectionOrder.employee;
+    return [...filteredSections].sort((a, b) => {
+      const aIdx = order.indexOf(a.title);
+      const bIdx = order.indexOf(b.title);
+      return (aIdx === -1 ? 999 : aIdx) - (bIdx === -1 ? 999 : bIdx);
+    });
+  })();
+
   const visibleSections = isSuperAdmin
-    ? filteredSections.filter(section => {
+    ? orderedSections.filter(section => {
         const activeTab = superAdminTabs.find(tab => tab.id === activeSidebarTab);
         return activeTab ? activeTab.sectionTitles.includes(section.title) : true;
       })
-    : filteredSections;
+    : orderedSections;
 
   const accessibleMenuItems = allMenuItems.filter(item => {
     if (item.roles && item.roles.length > 0 && !item.roles.includes(user?.role || '')) return false;
@@ -401,22 +422,22 @@ export default function Layout() {
   const sidebarContent = (
     <>
       {/* Brand */}
-      <div className="relative px-5 py-5">
+      <div className="relative px-4 py-5">
         <div className="flex items-center gap-3">
           {user?.company?.icon ? (
-            <img src={user.company.icon} alt="" className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-primary-500/20 flex-shrink-0 ring-1 ring-white/10" onError={e => (e.currentTarget.style.display = 'none')} />
+            <img src={user.company.icon} alt="" className="w-11 h-11 rounded-2xl object-cover shadow-lg shadow-primary-500/30 flex-shrink-0 ring-2 ring-white/10" onError={e => (e.currentTarget.style.display = 'none')} />
           ) : user?.company?.logo ? (
-            <img src={user.company.logo} alt="" className="w-10 h-10 rounded-xl object-cover shadow-lg shadow-primary-500/20 flex-shrink-0 ring-1 ring-white/10" onError={e => (e.currentTarget.style.display = 'none')} />
+            <img src={user.company.logo} alt="" className="w-11 h-11 rounded-2xl object-cover shadow-lg shadow-primary-500/30 flex-shrink-0 ring-2 ring-white/10" onError={e => (e.currentTarget.style.display = 'none')} />
           ) : (
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-lg shadow-primary-500/20 flex-shrink-0 ring-1 ring-white/10">
-              <span className="text-white font-bold text-lg">E</span>
+            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary-400 via-primary-500 to-teal-600 flex items-center justify-center shadow-lg shadow-primary-500/30 flex-shrink-0 ring-2 ring-white/10">
+              <span className="text-white font-black text-lg">E</span>
             </div>
           )}
           {sidebarOpen && (
             <div className="animate-fade-in min-w-0">
-              <h1 className="font-bold text-[15px] text-white tracking-wide truncate">{user?.company?.name || 'ERPFlex'}</h1>
+              <h1 className="font-extrabold text-[16px] text-white tracking-wide truncate">{user?.company?.name || 'ERPFlex'}</h1>
               {user?.company && user.company.name !== 'ERPFlex' && (
-                <p className="text-[10px] text-primary-400/70 font-medium tracking-wider">ERPFlex</p>
+                <p className="text-[10px] text-primary-300/60 font-semibold tracking-widest uppercase">ERPFlex</p>
               )}
             </div>
           )}
@@ -424,7 +445,7 @@ export default function Layout() {
       </div>
 
       {/* Gradient divider */}
-      <div className="mx-4 h-px bg-gradient-to-l from-transparent via-white/[0.05] to-transparent" />
+      <div className="mx-4 h-px bg-gradient-to-l from-transparent via-primary-400/20 to-transparent" />
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-2.5 px-3 sidebar-scroll" data-tour="sidebar">
@@ -567,21 +588,27 @@ export default function Layout() {
               <div key={section.title}>
                 {/* Section header */}
                 {sidebarOpen ? (
-                  <div className="flex items-center rounded-lg">
+                  <div className="relative">
                     <button
                       onClick={() => toggleSection(section.title)}
-                      className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[12px] font-semibold tracking-wide transition-all ${
-                        hasActive ? 'text-slate-200' : 'text-slate-500 hover:text-slate-300'
+                      className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[12px] font-bold tracking-wide transition-all duration-200 ${
+                        hasActive
+                          ? 'text-white bg-white/[0.04]'
+                          : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.03]'
                       }`}
                     >
-                      <SectionIcon size={13} className={hasActive ? accentColor : 'text-slate-600'} />
+                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 transition-all ${
+                        hasActive ? 'bg-gradient-to-br from-primary-500/30 to-teal-500/20 shadow-sm shadow-primary-500/10' : 'bg-white/[0.04]'
+                      }`}>
+                        <SectionIcon size={14} className={hasActive ? accentColor : 'text-slate-500'} />
+                      </div>
                       <span className="flex-1 text-right">{section.title}</span>
                       {sectionBadge > 0 && (
-                        <span className="bg-white/[0.05] text-slate-300 text-[9px] font-semibold rounded-full px-1.5 py-0.5 border border-white/[0.08]">
+                        <span className="bg-primary-500/20 text-primary-300 text-[9px] font-bold rounded-full px-1.5 py-0.5 border border-primary-400/20 animate-pulse">
                           {sectionBadge}
                         </span>
                       )}
-                      <ChevronDown size={13} className={`transition-transform duration-200 ${!isOpen ? '-rotate-90' : ''}`} />
+                      <ChevronDown size={13} className={`transition-transform duration-300 text-slate-500 ${!isOpen ? '-rotate-90' : ''}`} />
                     </button>
                   </div>
                 ) : (
@@ -590,11 +617,11 @@ export default function Layout() {
                     <div
                       onClick={() => toggleSection(section.title)}
                       title={section.title}
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer transition-all ${
-                        hasActive ? 'bg-white/[0.05]' : 'hover:bg-white/[0.03]'
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center cursor-pointer transition-all duration-200 ${
+                        hasActive ? 'bg-gradient-to-br from-primary-500/20 to-teal-500/10 shadow-sm' : 'hover:bg-white/[0.04]'
                       }`}
                     >
-                      <SectionIcon size={16} className={hasActive ? accentColor : 'text-slate-600'} />
+                      <SectionIcon size={16} className={hasActive ? accentColor : 'text-slate-500'} />
                     </div>
                   </div>
                 )}
@@ -633,14 +660,14 @@ export default function Layout() {
                           to={item.path}
                           onClick={() => setMobileMenuOpen(false)}
                           title={!sidebarOpen ? item.label : undefined}
-                          className={`group relative flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12.5px] font-medium transition-all duration-150 ${
+                          className={`group relative flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12.5px] font-medium transition-all duration-200 ${
                             isActive
-                              ? 'bg-white/[0.08] text-slate-100'
+                              ? 'bg-gradient-to-l from-primary-500/[0.12] to-transparent text-white'
                               : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
                           } ${!sidebarOpen ? 'justify-center' : ''}`}
                         >
                           {isActive && (
-                            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[2.5px] h-4 rounded-l-full bg-primary-400" />
+                            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-l-full bg-gradient-to-b from-primary-300 to-teal-400 shadow-sm shadow-primary-400/50" />
                           )}
                           <Icon
                             size={16}
@@ -682,42 +709,45 @@ export default function Layout() {
       {/* User section */}
       <div className="relative p-3">
         {sidebarOpen ? (
-          <div className="rounded-xl bg-white/[0.025] border border-white/[0.04] overflow-hidden">
+          <div className="rounded-2xl bg-gradient-to-br from-white/[0.04] to-white/[0.01] border border-white/[0.06] overflow-hidden backdrop-blur-sm">
             {/* User info row */}
-            <div className="flex items-center gap-3 px-3 py-3">
+            <div className="flex items-center gap-3 px-3.5 py-3.5">
               {user?.avatar ? (
-                <img src={user.avatar} alt={user.name} className="w-9 h-9 rounded-lg object-cover shadow-md flex-shrink-0" onError={e => (e.currentTarget.style.display = 'none')} />
+                <img src={user.avatar} alt={user.name} className="w-10 h-10 rounded-xl object-cover shadow-lg flex-shrink-0 ring-2 ring-white/10" onError={e => (e.currentTarget.style.display = 'none')} />
               ) : (
-                <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${roleColors[user?.role || 'employee']} flex items-center justify-center text-white font-bold text-sm shadow-md flex-shrink-0`}>
+                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${roleColors[user?.role || 'employee']} flex items-center justify-center text-white font-bold text-sm shadow-lg flex-shrink-0 ring-2 ring-white/10`}>
                   {user?.name?.charAt(0) || 'U'}
                 </div>
               )}
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">{user?.name}</p>
-                <p className="text-[10px] text-slate-500">{user?.role ? (statusLabels.role as Record<string, string>)[user.role] : ''}</p>
+                <p className="text-[13px] font-bold text-white truncate">{user?.name}</p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50" />
+                  <p className="text-[10px] text-slate-400 font-medium">{user?.role ? (statusLabels.role as Record<string, string>)[user.role] : ''}</p>
+                </div>
               </div>
               <button
                 onClick={() => setSidebarOpen(false)}
-                className="text-slate-500 hover:text-slate-200 transition-colors p-1.5 rounded-lg hover:bg-white/[0.04]"
+                className="text-slate-500 hover:text-slate-200 transition-all p-1.5 rounded-lg hover:bg-white/[0.06]"
                 title="تصغير القائمة"
               >
                 <PanelRightOpen size={15} />
               </button>
             </div>
             {/* Quick actions row */}
-            <div className="flex border-t border-white/[0.04]">
+            <div className="flex border-t border-white/[0.05]">
               <Link
                 to="/settings"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2 text-slate-500 hover:text-slate-200 hover:bg-white/[0.03] text-[11px] font-medium transition-all"
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-slate-500 hover:text-slate-200 hover:bg-white/[0.04] text-[11px] font-semibold transition-all"
               >
                 <Settings size={13} />
                 <span>الإعدادات</span>
               </Link>
-              <div className="w-px bg-white/[0.04]" />
+              <div className="w-px bg-white/[0.05]" />
               <button
                 onClick={() => logout()}
-                className="flex-1 flex items-center justify-center gap-1.5 py-2 text-slate-500 hover:text-rose-300 hover:bg-rose-500/[0.08] text-[11px] font-medium transition-all"
+                className="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-slate-500 hover:text-rose-300 hover:bg-rose-500/[0.06] text-[11px] font-semibold transition-all"
                 title="تسجيل الخروج"
               >
                 <LogOut size={13} />
@@ -768,11 +798,15 @@ export default function Layout() {
       {/* Sidebar - Desktop */}
       <aside className={`
         hidden lg:flex
-        ${sidebarOpen ? 'w-[272px]' : 'w-[72px]'}
-        bg-gradient-to-b from-[#111c2e] via-[#0f1827] to-[#0c1422]
+        ${sidebarOpen ? 'w-[280px]' : 'w-[76px]'}
+        bg-gradient-to-b from-[#0f172a] via-[#0e1525] to-[#0a1018]
         border-l border-white/[0.06]
-        text-white transition-all duration-300 ease-in-out flex-col relative z-10
+        text-white transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] flex-col relative z-10
+        shadow-2xl shadow-black/20
       `}>
+        {/* Ambient glow */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/[0.03] rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-teal-500/[0.02] rounded-full blur-3xl pointer-events-none" />
         {sidebarContent}
       </aside>
 
