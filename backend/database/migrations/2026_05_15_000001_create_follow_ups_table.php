@@ -25,7 +25,6 @@ return new class extends Migration
 
             $table->index(['company_id', 'status']);
             $table->index(['assigned_to', 'status']);
-            $table->index(['followable_type', 'followable_id']);
             $table->index('due_date');
         });
     }
