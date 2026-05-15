@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from './index';
+import api from './axios';
 
 export const followUpsApi = {
   getAll: (params?: any) => api.get('/follow-ups', { params }),
