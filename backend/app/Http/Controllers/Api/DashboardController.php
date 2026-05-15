@@ -36,7 +36,7 @@ class DashboardController extends Controller
         $common = $this->getCommonData();
 
         $roleData = match ($role) {
-            'super_admin' => $this->getSuperAdminData($year, $dateFrom, $dateTo),
+            'super_admin', 'company_admin' => $this->getSuperAdminData($year, $dateFrom, $dateTo),
             'manager', 'marketing_manager' => $this->getManagerData($year, $dateFrom, $dateTo),
             'accountant' => $this->getAccountantData($year, $dateFrom, $dateTo),
             'sales' => $this->getSalesData($dateFrom, $dateTo),
@@ -88,10 +88,38 @@ class DashboardController extends Controller
             ->where('created_at', '>=', $projectsSince)
             ->count();
 
+        // Overdue invoices
+        $overdueInvoices = Invoice::where('status', Invoice::STATUS_OVERDUE)->count();
+
+        // New leads (last 7 days)
+        $newLeads = Lead::where('stage', 'new')
+            ->where('created_at', '>=', now()->subDays(7))
+            ->count();
+
+        // Pending salary payments for current month
+        $pendingSalaries = SalaryPayment::where('remaining', '>', 0)
+            ->where('month', now()->month)
+            ->where('year', now()->year)
+            ->count();
+
+        // Open tickets
+        $openTickets = 0;
+        try {
+            $openTickets = \DB::table('tickets')
+                ->whereIn('status', ['open', 'in_progress'])
+                ->count();
+        } catch (\Throwable $e) {
+            // tickets table may not exist
+        }
+
         return $this->successResponse([
             'new_tasks' => $newTasks,
             'upcoming_meetings' => $upcomingMeetings,
             'new_projects' => $newProjects,
+            'overdue_invoices' => $overdueInvoices,
+            'new_leads' => $newLeads,
+            'pending_salaries' => $pendingSalaries,
+            'open_tickets' => $openTickets,
         ]);
     }
 
@@ -140,55 +168,91 @@ class DashboardController extends Controller
 
     private function getManagerData(int $year, ?string $dateFrom, ?string $dateTo): array
     {
-        $revQ = TreasuryTransaction::where('type', TreasuryTransaction::TYPE_IN)->where('currency', 'EGP');
-        $expQ = TreasuryTransaction::where('type', TreasuryTransaction::TYPE_OUT)->where('currency', 'EGP');
+        // ===== Treasury: single query for revenue/expenses =====
+        $treasuryAgg = TreasuryTransaction::where('currency', 'EGP')
+            ->when($dateFrom && $dateTo, fn($q) => $q->whereBetween('date', [$dateFrom, $dateTo]))
+            ->selectRaw("
+                SUM(CASE WHEN type = ? THEN amount ELSE 0 END) as total_revenue,
+                SUM(CASE WHEN type = ? THEN amount ELSE 0 END) as total_expenses
+            ", [TreasuryTransaction::TYPE_IN, TreasuryTransaction::TYPE_OUT])
+            ->first();
 
-        if ($dateFrom && $dateTo) {
-            $revQ->whereBetween('date', [$dateFrom, $dateTo]);
-            $expQ->whereBetween('date', [$dateFrom, $dateTo]);
-        }
+        $totalRevenue = (float) ($treasuryAgg->total_revenue ?? 0);
+        $totalExpenses = (float) ($treasuryAgg->total_expenses ?? 0);
 
-        $totalRevenue = $revQ->sum('amount');
-        $totalExpenses = $expQ->sum('amount');
+        // ===== Tasks: single query for all status counts =====
+        $taskStats = Task::selectRaw("
+            COUNT(*) as total,
+            SUM(CASE WHEN status = 'done' THEN 1 ELSE 0 END) as completed,
+            SUM(CASE WHEN status = 'todo' THEN 1 ELSE 0 END) as todo,
+            SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as in_progress,
+            SUM(CASE WHEN status = 'review' THEN 1 ELSE 0 END) as review,
+            SUM(CASE WHEN due_date < NOW() AND status != 'done' THEN 1 ELSE 0 END) as overdue
+        ")->first();
 
-        $totalTasks = Task::count();
-        $completedTasks = Task::where('status', Task::STATUS_DONE)->count();
-        $overdueTasks = Task::where('due_date', '<', now())->whereNot('status', Task::STATUS_DONE)->count();
+        $totalTasks = (int) $taskStats->total;
+        $completedTasks = (int) $taskStats->completed;
+        $overdueTasks = (int) $taskStats->overdue;
 
-        $totalProjects = Project::count();
-        $activeProjects = Project::where('status', Project::STATUS_ACTIVE)->count();
+        $tasksByStatus = [
+            'todo'        => (int) $taskStats->todo,
+            'in_progress' => (int) $taskStats->in_progress,
+            'review'      => (int) $taskStats->review,
+            'done'        => $completedTasks,
+        ];
 
-        // Task completion rate
         $taskCompletionRate = $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100, 1) : 0;
 
-        // Invoice payment rate
-        $totalInvoices = Invoice::count();
-        $paidInvoices = Invoice::where('status', Invoice::STATUS_PAID)->count();
+        // ===== Invoices: single query for all counts =====
+        $invoiceStats = Invoice::selectRaw("
+            COUNT(*) as total,
+            SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as paid,
+            SUM(CASE WHEN status IN (?, ?) THEN 1 ELSE 0 END) as pending,
+            SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as overdue,
+            SUM(amount) as total_invoiced,
+            SUM(CASE WHEN status = ? THEN amount ELSE 0 END) as total_collected
+        ", [
+            Invoice::STATUS_PAID,
+            Invoice::STATUS_PENDING, Invoice::STATUS_OVERDUE,
+            Invoice::STATUS_OVERDUE,
+            Invoice::STATUS_PAID,
+        ])->first();
+
+        $totalInvoices = (int) $invoiceStats->total;
+        $paidInvoices = (int) $invoiceStats->paid;
         $invoicePaymentRate = $totalInvoices > 0 ? round(($paidInvoices / $totalInvoices) * 100, 1) : 0;
 
-        // Monthly revenue chart
-        $monthlyRevenue = [];
+        // ===== Projects: single query =====
+        $projectStats = Project::selectRaw("
+            COUNT(*) as total,
+            SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
+            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed
+        ")->first();
+
+        // Monthly revenue chart (single query with conditional aggregation)
+        $monthlyRevenue = TreasuryTransaction::where('currency', 'EGP')
+            ->whereYear('date', $year)
+            ->selectRaw("
+                MONTH(date) as month,
+                SUM(CASE WHEN type = ? THEN amount ELSE 0 END) as revenue,
+                SUM(CASE WHEN type = ? THEN amount ELSE 0 END) as expenses
+            ", [TreasuryTransaction::TYPE_IN, TreasuryTransaction::TYPE_OUT])
+            ->groupByRaw('MONTH(date)')
+            ->get()
+            ->keyBy('month');
+
+        $monthlyRevenueData = [];
         for ($i = 1; $i <= 12; $i++) {
-            $rev = TreasuryTransaction::where('type', TreasuryTransaction::TYPE_IN)
-                ->where('currency', 'EGP')
-                ->whereMonth('date', $i)->whereYear('date', $year)->sum('amount');
-            $exp = TreasuryTransaction::where('type', TreasuryTransaction::TYPE_OUT)
-                ->where('currency', 'EGP')
-                ->whereMonth('date', $i)->whereYear('date', $year)->sum('amount');
-            $monthlyRevenue[] = ['month' => $i, 'revenue' => $rev, 'expenses' => $exp];
+            $monthlyRevenueData[] = [
+                'month'    => $i,
+                'revenue'  => (float) ($monthlyRevenue[$i]->revenue ?? 0),
+                'expenses' => (float) ($monthlyRevenue[$i]->expenses ?? 0),
+            ];
         }
 
         // Weekly time tracking
         $weeklyHours = TimeEntry::whereBetween('started_at', [now()->startOfWeek(), now()->endOfWeek()])
             ->sum('duration_minutes');
-
-        // Task status distribution
-        $tasksByStatus = [
-            'todo' => Task::where('status', Task::STATUS_TODO)->count(),
-            'in_progress' => Task::where('status', Task::STATUS_IN_PROGRESS)->count(),
-            'review' => Task::where('status', Task::STATUS_REVIEW)->count(),
-            'done' => $completedTasks,
-        ];
 
         // Expense distribution
         $expDist = TreasuryTransaction::where('type', TreasuryTransaction::TYPE_OUT)
@@ -231,15 +295,42 @@ class DashboardController extends Controller
                 'end_date' => $p->end_date,
             ]);
 
+        // ===== This month / Last month: single query each =====
+        $currentMonthTreasury = TreasuryTransaction::where('currency', 'EGP')
+            ->whereMonth('date', now()->month)->whereYear('date', now()->year)
+            ->selectRaw("
+                SUM(CASE WHEN type = ? THEN amount ELSE 0 END) as revenue,
+                SUM(CASE WHEN type = ? THEN amount ELSE 0 END) as expenses
+            ", [TreasuryTransaction::TYPE_IN, TreasuryTransaction::TYPE_OUT])
+            ->first();
+
+        $lastMonthTreasury = TreasuryTransaction::where('currency', 'EGP')
+            ->whereMonth('date', now()->subMonth()->month)->whereYear('date', now()->subMonth()->year)
+            ->selectRaw("
+                SUM(CASE WHEN type = ? THEN amount ELSE 0 END) as revenue,
+                SUM(CASE WHEN type = ? THEN amount ELSE 0 END) as expenses
+            ", [TreasuryTransaction::TYPE_IN, TreasuryTransaction::TYPE_OUT])
+            ->first();
+
+        // Salary stats (single query)
+        $salaryStats = SalaryPayment::where('month', now()->month)->where('year', now()->year)
+            ->selectRaw("
+                SUM(CASE WHEN remaining > 0 THEN 1 ELSE 0 END) as pending,
+                SUM(total) as total_amount
+            ")->first();
+
         return [
             'clients_count' => Client::count(),
             'active_contracts' => Contract::where('status', Contract::STATUS_ACTIVE)->count(),
-            'pending_invoices' => Invoice::whereIn('status', [Invoice::STATUS_PENDING, Invoice::STATUS_OVERDUE])->count(),
+            'pending_invoices' => (int) $invoiceStats->pending,
+            'overdue_invoices' => (int) $invoiceStats->overdue,
             'total_revenue' => $totalRevenue,
             'total_expenses' => $totalExpenses,
             'net_profit' => $totalRevenue - $totalExpenses,
-            'total_projects' => $totalProjects,
-            'active_projects' => $activeProjects,
+            'profit_margin' => $totalRevenue > 0 ? round(($totalRevenue - $totalExpenses) / $totalRevenue * 100, 1) : 0,
+            'total_projects' => (int) $projectStats->total,
+            'active_projects' => (int) $projectStats->active,
+            'completed_projects' => (int) $projectStats->completed,
             'total_tasks' => $totalTasks,
             'completed_tasks' => $completedTasks,
             'overdue_tasks' => $overdueTasks,
@@ -247,12 +338,28 @@ class DashboardController extends Controller
             'invoice_payment_rate' => $invoicePaymentRate,
             'weekly_hours' => round($weeklyHours / 60, 1),
             'tasks_by_status' => $tasksByStatus,
-            'monthly_revenue' => $monthlyRevenue,
+            'monthly_revenue' => $monthlyRevenueData,
             'expense_distribution' => $expDist,
             'recent_invoices' => $recentInvoices,
             'project_progress' => $projectProgress,
             'employees_count' => Employee::count(),
             'team_count' => User::where('role', '!=', 'super_admin')->count(),
+
+            // --- Enhanced KPIs ---
+            'total_contracts_value' => Contract::where('status', Contract::STATUS_ACTIVE)->sum('value'),
+            'total_invoiced' => (float) $invoiceStats->total_invoiced,
+            'total_collected' => (float) $invoiceStats->total_collected,
+            'collection_rate' => $invoiceStats->total_invoiced > 0 ? round($invoiceStats->total_collected / $invoiceStats->total_invoiced * 100, 1) : 0,
+            'avg_project_progress' => $projectProgress->avg('progress') ?? 0,
+            'leads_count' => Lead::count(),
+            'leads_won' => Lead::where('stage', 'won')->count(),
+            'leads_conversion_rate' => Lead::count() > 0 ? round(Lead::where('stage', 'won')->count() / Lead::count() * 100, 1) : 0,
+            'this_month_revenue' => (float) ($currentMonthTreasury->revenue ?? 0),
+            'this_month_expenses' => (float) ($currentMonthTreasury->expenses ?? 0),
+            'last_month_revenue' => (float) ($lastMonthTreasury->revenue ?? 0),
+            'last_month_expenses' => (float) ($lastMonthTreasury->expenses ?? 0),
+            'pending_salaries' => (int) ($salaryStats->pending ?? 0),
+            'total_salaries_month' => (float) ($salaryStats->total_amount ?? 0),
         ];
     }
 

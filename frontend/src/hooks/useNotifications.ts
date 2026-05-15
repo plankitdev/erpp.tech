@@ -29,7 +29,7 @@ export function useUnreadCount() {
       prevCount.current = count;
       return count;
     },
-    refetchInterval: 15000,
+    refetchInterval: 60000, // 60s fallback poll — SSE handles real-time updates
   });
 }
 

@@ -6,6 +6,7 @@ import type { Company, User, PermissionsData } from '../types';
 import {
   Trash2, KeyRound, Plus, X, Shield, Users as UsersIcon,
   ChevronDown, ChevronUp, Check, RefreshCw, Edit2, AlertCircle,
+  ToggleLeft, ToggleRight,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -147,6 +148,25 @@ export default function Users() {
     });
   };
 
+  const handleToggleActive = (user: User) => {
+    const newStatus = !user.is_active;
+    const actionText = newStatus ? 'تفعيل' : 'تعطيل';
+    setConfirmDialog({
+      open: true,
+      title: `${actionText} الحساب`,
+      message: `هل تريد ${actionText} حساب "${user.name}"؟${!newStatus ? '\nلن يتمكن من تسجيل الدخول.' : ''}`,
+      action: async () => {
+        try {
+          await updateMutation.mutateAsync({ id: user.id, data: { is_active: newStatus } });
+          toast.success(`تم ${actionText} الحساب`);
+        } catch {
+          toast.error('حدث خطأ');
+        }
+        setConfirmDialog(d => ({ ...d, open: false }));
+      },
+    });
+  };
+
   const togglePermission = (perm: string) => {
     setForm(f => ({
       ...f,
@@ -205,21 +225,22 @@ export default function Users() {
               <th className="px-6 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">المستخدم</th>
               <th className="px-6 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">الدور</th>
               <th className="px-6 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">الشركة</th>
+              <th className="px-6 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">الحالة</th>
               <th className="px-6 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">الصلاحيات</th>
               <th className="px-6 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">إجراءات</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {isLoading ? (
-              <SkeletonTable rows={5} cols={5} />
+              <SkeletonTable rows={5} cols={6} />
             ) : isError ? (
-              <tr><td colSpan={5} className="px-6 py-12 text-center">
+              <tr><td colSpan={6} className="px-6 py-12 text-center">
                 <AlertCircle size={40} className="text-red-300 mx-auto mb-3" />
                 <p className="text-gray-500 mb-3">حدث خطأ في تحميل البيانات</p>
                 <button onClick={() => refetch()} className="text-sm text-primary-600 hover:underline">إعادة المحاولة</button>
               </td></tr>
             ) : filteredUsers.length === 0 ? (
-              <tr><td colSpan={5} className="px-6 py-12 text-center">
+              <tr><td colSpan={6} className="px-6 py-12 text-center">
                 <UsersIcon size={40} className="text-gray-200 mx-auto mb-3" />
                 <p className="text-gray-500">لا يوجد مستخدمين</p>
               </td></tr>
@@ -242,6 +263,23 @@ export default function Users() {
                   </span>
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-600">{u.company?.name || '—'}</td>
+                <td className="px-6 py-4">
+                  {u.role === 'super_admin' ? (
+                    <span className="text-xs text-gray-400">—</span>
+                  ) : (
+                    <button
+                      onClick={() => handleToggleActive(u)}
+                      className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border transition-all ${
+                        u.is_active
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                          : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
+                      }`}
+                    >
+                      {u.is_active ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
+                      {u.is_active ? 'مفعّل' : 'معطّل'}
+                    </button>
+                  )}
+                </td>
                 <td className="px-6 py-4">
                   <span className="text-xs text-gray-400">
                     {u.role === 'super_admin' ? 'كامل' : `${u.permissions?.length || 0} صلاحية`}

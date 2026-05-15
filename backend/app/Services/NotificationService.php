@@ -54,6 +54,46 @@ class NotificationService
         return self::notify($companyId, $managerId, Notification::TYPE_TASK_COMPLETED, 'تم إنجاز مهمة', "{$completedBy} أنجز المهمة \"{$taskTitle}\"", '/tasks/board');
     }
 
+    public static function taskInReview(int $companyId, int $managerId, string $taskTitle, string $submittedBy, int $taskId): Notification
+    {
+        return self::notify(
+            $companyId,
+            $managerId,
+            Notification::TYPE_TASK_IN_REVIEW,
+            'مهمة تنتظر مراجعتك',
+            "{$submittedBy} أنهى المهمة \"{$taskTitle}\" وهي بانتظار موافقتك",
+            "/tasks/{$taskId}"
+        );
+    }
+
+    public static function taskRejected(int $companyId, int $assigneeId, string $taskTitle, string $rejectedBy, ?string $reason, int $taskId): Notification
+    {
+        $body = "{$rejectedBy} أعاد المهمة \"{$taskTitle}\"";
+        if ($reason) {
+            $body .= " — السبب: {$reason}";
+        }
+        return self::notify(
+            $companyId,
+            $assigneeId,
+            Notification::TYPE_TASK_REJECTED,
+            'تم إرجاع مهمتك للتعديل',
+            $body,
+            "/tasks/{$taskId}"
+        );
+    }
+
+    public static function taskApproved(int $companyId, int $assigneeId, string $taskTitle, string $approvedBy, int $taskId): Notification
+    {
+        return self::notify(
+            $companyId,
+            $assigneeId,
+            Notification::TYPE_TASK_COMPLETED,
+            '✅ تمت الموافقة على مهمتك',
+            "{$approvedBy} وافق على إنجازك للمهمة \"{$taskTitle}\"",
+            "/tasks/{$taskId}"
+        );
+    }
+
     public static function leadCreated(int $companyId, string $leadName): int
     {
         return self::notifyRoles($companyId, ['super_admin', 'sales'], Notification::TYPE_LEAD_NEW, 'عميل محتمل جديد', "تم إضافة عميل محتمل: {$leadName}", '/leads');

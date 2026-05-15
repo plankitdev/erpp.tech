@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import {
   useLeaves, useLeaveBalance, useCreateLeave, useApproveLeave, useRejectLeave, useDeleteLeave,
-  useAttendanceToday, useAttendanceSummary, useCheckIn, useCheckOut,
+  useAttendance, useAttendanceToday, useAttendanceSummary, useCheckIn, useCheckOut,
+  useUpdateAttendance, useDeleteAttendance,
 } from '../hooks/useHR';
 import { useAuthStore } from '../store/authStore';
 import { formatDate } from '../utils';
-import type { LeaveRequest, AttendanceSummary } from '../api/hr';
+import type { LeaveRequest, AttendanceRecord, AttendanceSummary } from '../api/hr';
 import {
   Plus, X, Calendar, Clock, CheckCircle2, XCircle, AlertCircle,
-  LogIn, LogOut, Briefcase, Coffee, Trash2,
+  LogIn, LogOut, Briefcase, Coffee, Trash2, Edit3,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -24,25 +25,32 @@ const attendanceStatusLabels: Record<string, string> = { present: 'حاضر', ab
 export default function LeaveAttendance() {
   const { user } = useAuthStore();
   const isManager = user && ['super_admin', 'manager'].includes(user.role);
+  const isAdmin = user && ['super_admin', 'company_admin'].includes(user.role);
   const [tab, setTab] = useState<'leave' | 'attendance'>('leave');
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [leaveForm, setLeaveForm] = useState({ type: 'annual', start_date: '', end_date: '', reason: '' });
+  const [editRecord, setEditRecord] = useState<AttendanceRecord | null>(null);
+  const [editForm, setEditForm] = useState({ check_in: '', check_out: '', status: '', notes: '' });
 
   const { data: leavesData, isLoading: leavesLoading } = useLeaves();
   const { data: balanceData } = useLeaveBalance();
   const { data: todayData } = useAttendanceToday();
   const { data: summaryData } = useAttendanceSummary();
+  const { data: attendanceData, isLoading: attendanceLoading } = useAttendance();
   const createLeave = useCreateLeave();
   const approveLeave = useApproveLeave();
   const rejectLeave = useRejectLeave();
   const deleteLeave = useDeleteLeave();
   const checkIn = useCheckIn();
   const checkOut = useCheckOut();
+  const updateAttendance = useUpdateAttendance();
+  const deleteAttendance = useDeleteAttendance();
 
   const leaves: LeaveRequest[] = leavesData?.data || [];
   const balance = balanceData?.data;
   const todayRecord = todayData?.data;
   const summary: AttendanceSummary | null = summaryData?.data || null;
+  const attendanceRecords: AttendanceRecord[] = attendanceData?.data || [];
 
   const handleCreateLeave = () => {
     if (!leaveForm.start_date || !leaveForm.end_date) {
@@ -243,7 +251,89 @@ export default function LeaveAttendance() {
               <Coffee size={18} />
               <span>نصف يوم: أقل من 4 ساعات عمل</span>
             </div>
+            <div className="flex items-center gap-3 text-gray-500 text-sm mt-2">
+              <Clock size={18} />
+              <span>يتم تسجيل الخروج التلقائي الساعة 12 صباحاً يومياً</span>
+            </div>
           </div>
+
+          {/* Attendance History Table (Admin) */}
+          {isAdmin && (
+            <div className="bg-white rounded-xl shadow-sm border overflow-x-auto">
+              <div className="px-4 py-3 border-b flex items-center justify-between">
+                <h3 className="font-bold text-gray-900 flex items-center gap-2"><Edit3 size={18} /> سجلات الحضور (إدارة)</h3>
+              </div>
+              {attendanceLoading ? (
+                <div className="text-center py-8 text-gray-500">جاري التحميل...</div>
+              ) : attendanceRecords.length === 0 ? (
+                <div className="text-center py-8 text-gray-400">لا توجد سجلات</div>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 border-b">
+                    <tr>
+                      <th className="px-4 py-3 text-right font-medium text-gray-600">الموظف</th>
+                      <th className="px-4 py-3 text-right font-medium text-gray-600">التاريخ</th>
+                      <th className="px-4 py-3 text-right font-medium text-gray-600">الحضور</th>
+                      <th className="px-4 py-3 text-right font-medium text-gray-600">الانصراف</th>
+                      <th className="px-4 py-3 text-right font-medium text-gray-600">الساعات</th>
+                      <th className="px-4 py-3 text-right font-medium text-gray-600">الحالة</th>
+                      <th className="px-4 py-3 text-right font-medium text-gray-600">ملاحظات</th>
+                      <th className="px-4 py-3 text-right font-medium text-gray-600">إجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {attendanceRecords.map((r: AttendanceRecord) => (
+                      <tr key={r.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 font-medium">{r.user?.name || '—'}</td>
+                        <td className="px-4 py-3">{formatDate(r.date)}</td>
+                        <td className="px-4 py-3">{r.check_in || '—'}</td>
+                        <td className="px-4 py-3">{r.check_out || <span className="text-amber-600 font-medium">لم يسجل</span>}</td>
+                        <td className="px-4 py-3">{r.hours_worked ? `${Number(r.hours_worked).toFixed(1)}h` : '—'}</td>
+                        <td className="px-4 py-3">
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                            r.status === 'present' ? 'bg-green-100 text-green-700' :
+                            r.status === 'late' ? 'bg-yellow-100 text-yellow-700' :
+                            r.status === 'absent' ? 'bg-red-100 text-red-700' :
+                            r.status === 'half_day' ? 'bg-orange-100 text-orange-700' :
+                            'bg-blue-100 text-blue-700'
+                          }`}>
+                            {attendanceStatusLabels[r.status] || r.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-gray-500 max-w-[150px] truncate">{r.notes || '—'}</td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => {
+                                setEditRecord(r);
+                                setEditForm({
+                                  check_in: r.check_in?.substring(0, 5) || '',
+                                  check_out: r.check_out?.substring(0, 5) || '',
+                                  status: r.status,
+                                  notes: r.notes || '',
+                                });
+                              }}
+                              className="p-1.5 hover:bg-blue-50 rounded text-blue-600"
+                              title="تعديل"
+                            >
+                              <Edit3 size={15} />
+                            </button>
+                            <button
+                              onClick={() => { if (confirm('هل أنت متأكد من حذف هذا السجل؟')) deleteAttendance.mutate(r.id); }}
+                              className="p-1.5 hover:bg-red-50 rounded text-red-600"
+                              title="حذف"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
         </>
       )}
 
@@ -285,6 +375,67 @@ export default function LeaveAttendance() {
               <button onClick={() => setShowLeaveModal(false)} className="btn-secondary">إلغاء</button>
               <button onClick={handleCreateLeave} disabled={createLeave.isPending} className="btn-primary">
                 {createLeave.isPending ? 'جاري الإرسال...' : 'تقديم الطلب'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Attendance Modal (Admin only) */}
+      {editRecord && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold">تعديل سجل الحضور</h2>
+              <button onClick={() => setEditRecord(null)}><X size={20} /></button>
+            </div>
+            <div className="mb-3 text-sm text-gray-500">
+              <span className="font-medium text-gray-700">{editRecord.user?.name}</span> — {formatDate(editRecord.date)}
+            </div>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">وقت الحضور</label>
+                  <input type="time" value={editForm.check_in} onChange={e => setEditForm(f => ({ ...f, check_in: e.target.value }))} className="input w-full" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">وقت الانصراف</label>
+                  <input type="time" value={editForm.check_out} onChange={e => setEditForm(f => ({ ...f, check_out: e.target.value }))} className="input w-full" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">الحالة</label>
+                <select value={editForm.status} onChange={e => setEditForm(f => ({ ...f, status: e.target.value }))} className="input w-full">
+                  <option value="present">حاضر</option>
+                  <option value="late">متأخر</option>
+                  <option value="absent">غائب</option>
+                  <option value="half_day">نصف يوم</option>
+                  <option value="leave">إجازة</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">ملاحظات</label>
+                <textarea rows={2} value={editForm.notes} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} className="input w-full" placeholder="ملاحظات (اختياري)" />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <button onClick={() => setEditRecord(null)} className="btn-secondary">إلغاء</button>
+              <button
+                onClick={() => {
+                  updateAttendance.mutate({
+                    id: editRecord.id,
+                    data: {
+                      check_in: editForm.check_in || null,
+                      check_out: editForm.check_out || null,
+                      status: editForm.status,
+                      notes: editForm.notes || null,
+                    },
+                  }, { onSuccess: () => setEditRecord(null) });
+                }}
+                disabled={updateAttendance.isPending}
+                className="btn-primary"
+              >
+                {updateAttendance.isPending ? 'جاري الحفظ...' : 'حفظ التعديلات'}
               </button>
             </div>
           </div>

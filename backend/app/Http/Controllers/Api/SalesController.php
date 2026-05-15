@@ -36,6 +36,10 @@ class SalesController extends Controller
                 $q->whereNull('last_followup_date')
                   ->orWhere('last_followup_date', '<', now()->subDays(3));
             })
+            ->whereDoesntHave('activities', function ($q) {
+                $q->whereNotNull('next_followup_date')
+                    ->whereDate('next_followup_date', '>=', now()->toDateString());
+            })
             ->whereNotIn('stage', [Lead::STAGE_CONTRACT_SIGNED, Lead::STAGE_LOST])
             ->count();
 

@@ -31,7 +31,7 @@ class Contract extends Model
     ];
 
     protected $fillable = [
-        'client_id', 'company_id', 'value', 'currency',
+        'client_id', 'company_id', 'contract_number', 'value', 'currency',
         'payment_type', 'start_date', 'end_date',
         'installments_count', 'installment_amount',
         'status', 'notes',
@@ -43,6 +43,18 @@ class Contract extends Model
         'start_date' => 'datetime:Y-m-d',
         'end_date' => 'datetime:Y-m-d',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Contract $contract) {
+            if (empty($contract->contract_number)) {
+                $lastNumber = static::withoutGlobalScopes()
+                    ->where('company_id', $contract->company_id)
+                    ->max('id') ?? 0;
+                $contract->contract_number = 'CON-' . str_pad($lastNumber + 1, 5, '0', STR_PAD_LEFT);
+            }
+        });
+    }
 
     public function client(): BelongsTo
     {

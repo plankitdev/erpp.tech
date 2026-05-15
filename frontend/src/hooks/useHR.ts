@@ -117,3 +117,33 @@ export function useCheckOut() {
       toast.error(e?.response?.data?.message || 'فشل تسجيل الانصراف'),
   });
 }
+
+export function useUpdateAttendance() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Record<string, string | number | null> }) =>
+      attendanceApi.update(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['attendance'] });
+      qc.invalidateQueries({ queryKey: ['attendance-today'] });
+      qc.invalidateQueries({ queryKey: ['attendance-summary'] });
+      toast.success('تم تعديل سجل الحضور');
+    },
+    onError: (e: Error & { response?: { data?: { message?: string } } }) =>
+      toast.error(e?.response?.data?.message || 'فشل تعديل السجل'),
+  });
+}
+
+export function useDeleteAttendance() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: attendanceApi.delete,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['attendance'] });
+      qc.invalidateQueries({ queryKey: ['attendance-summary'] });
+      toast.success('تم حذف سجل الحضور');
+    },
+    onError: (e: Error & { response?: { data?: { message?: string } } }) =>
+      toast.error(e?.response?.data?.message || 'فشل الحذف'),
+  });
+}

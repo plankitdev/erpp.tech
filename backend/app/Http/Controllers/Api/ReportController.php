@@ -9,9 +9,12 @@ use App\Models\Invoice;
 use App\Models\SalaryPayment;
 use App\Models\Partner;
 use App\Models\TreasuryTransaction;
+use App\Models\FixedAsset;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class ReportController extends Controller
 {
@@ -362,7 +365,7 @@ class ReportController extends Controller
         // Finance KPIs
         $revenue = TreasuryTransaction::where('type', 'in')->whereBetween('date', [$startDate, $endDate])->sum('amount');
         $expenses = TreasuryTransaction::where('type', 'out')->whereBetween('date', [$startDate, $endDate])->sum('amount');
-        $invoicesPaid = Invoice::where('status', 'paid')->whereBetween('paid_date', [$startDate, $endDate])->count();
+        $invoicesPaid = Invoice::where('status', 'paid')->whereBetween('paid_at', [$startDate, $endDate])->count();
         $invoicesOverdue = Invoice::where('status', 'overdue')->count();
 
         // HR KPIs
@@ -450,5 +453,259 @@ class ReportController extends Controller
         $pdf->setPaper('A4', 'landscape');
 
         return $pdf->download("report-{$type}-{$year}.pdf");
+    }
+
+    // ========== Accounts Receivable Aging ==========
+    public function receivableAging(Request $request): JsonResponse
+    {
+        $asOfDate = $request->input('as_of_date', now()->toDateString());
+        $asOf = Carbon::parse($asOfDate);
+
+        $invoices = Invoice::with(['contract.client', 'client', 'payments'])
+            ->whereIn('status', ['pending', 'overdue', 'partial'])
+            ->get();
+
+        $aging = [];
+        foreach ($invoices as $invoice) {
+            $clientName = $invoice->client?->name ?? $invoice->contract?->client?->name ?? 'غير محدد';
+            $clientId = $invoice->client_id ?? $invoice->contract?->client_id;
+            $remaining = $invoice->remaining;
+            $daysPastDue = $invoice->due_date ? $asOf->diffInDays(Carbon::parse($invoice->due_date), false) * -1 : 0;
+
+            $bucket = match(true) {
+                $daysPastDue <= 0  => 'current',
+                $daysPastDue <= 30 => '1_30',
+                $daysPastDue <= 60 => '31_60',
+                $daysPastDue <= 90 => '61_90',
+                default            => 'over_90',
+            };
+
+            if (!isset($aging[$clientId])) {
+                $aging[$clientId] = [
+                    'client_id'   => $clientId,
+                    'client_name' => $clientName,
+                    'current'     => 0,
+                    '1_30'        => 0,
+                    '31_60'       => 0,
+                    '61_90'       => 0,
+                    'over_90'     => 0,
+                    'total'       => 0,
+                ];
+            }
+
+            $aging[$clientId][$bucket] += $remaining;
+            $aging[$clientId]['total'] += $remaining;
+        }
+
+        $agingData = array_values($aging);
+        $totals = [
+            'current' => collect($agingData)->sum('current'),
+            '1_30'    => collect($agingData)->sum('1_30'),
+            '31_60'   => collect($agingData)->sum('31_60'),
+            '61_90'   => collect($agingData)->sum('61_90'),
+            'over_90' => collect($agingData)->sum('over_90'),
+            'total'   => collect($agingData)->sum('total'),
+        ];
+
+        return $this->successResponse([
+            'as_of_date' => $asOfDate,
+            'clients'    => $agingData,
+            'totals'     => $totals,
+            'bucket_labels' => [
+                'current' => 'حالي',
+                '1_30'    => '1-30 يوم',
+                '31_60'   => '31-60 يوم',
+                '61_90'   => '61-90 يوم',
+                'over_90' => 'أكثر من 90 يوم',
+            ],
+        ]);
+    }
+
+    // ========== Client Statement ==========
+    public function clientStatement(Request $request): JsonResponse
+    {
+        $request->validate([
+            'client_id' => 'required|exists:clients,id',
+            'from'      => 'nullable|date',
+            'to'        => 'nullable|date',
+        ]);
+
+        $client = Client::findOrFail($request->client_id);
+        $invoices = Invoice::with('payments')
+            ->where(function ($q) use ($client) {
+                $q->where('client_id', $client->id)
+                  ->orWhereHas('contract', fn($cq) => $cq->where('client_id', $client->id));
+            })
+            ->when($request->from, fn($q) => $q->where('due_date', '>=', $request->from))
+            ->when($request->to, fn($q) => $q->where('due_date', '<=', $request->to))
+            ->orderBy('due_date')
+            ->get();
+
+        $statement = $invoices->map(fn($inv) => [
+            'invoice_id' => $inv->id,
+            'due_date'   => $inv->due_date,
+            'amount'     => $inv->amount,
+            'paid'       => $inv->paid_amount,
+            'remaining'  => $inv->remaining,
+            'status'     => $inv->status,
+            'currency'   => $inv->currency,
+        ]);
+
+        return $this->successResponse([
+            'client'       => ['id' => $client->id, 'name' => $client->name],
+            'statement'    => $statement,
+            'total_due'    => $statement->sum('amount'),
+            'total_paid'   => $statement->sum('paid'),
+            'total_remaining' => $statement->sum('remaining'),
+        ]);
+    }
+
+    // ========== Balance Sheet ==========
+    public function balanceSheet(Request $request): JsonResponse
+    {
+        $asOfDate = $request->input('as_of_date', now()->toDateString());
+        $currency = $request->input('currency', 'EGP');
+
+        // Assets
+        $cashBalance = TreasuryTransaction::where('currency', $currency)
+            ->where('date', '<=', $asOfDate)
+            ->selectRaw("COALESCE(SUM(CASE WHEN type = 'in' THEN amount ELSE -amount END), 0) as balance")
+            ->value('balance');
+
+        $receivables = Invoice::whereIn('status', ['pending', 'overdue', 'partial'])
+            ->where('currency', $currency)
+            ->get()
+            ->sum('remaining');
+
+        $fixedAssetsTotal = FixedAsset::where('status', 'active')->sum('current_value');
+        $accumulatedDepreciation = FixedAsset::where('status', 'active')->sum('accumulated_depreciation');
+
+        $totalCurrentAssets = $cashBalance + $receivables;
+        $totalFixedAssets = $fixedAssetsTotal;
+        $totalAssets = $totalCurrentAssets + $totalFixedAssets;
+
+        // Liabilities
+        $accruedSalaries = \App\Models\SalaryPayment::whereColumn('total', '>', 'transfer_amount')->sum(\DB::raw('total - transfer_amount'));
+        $totalLiabilities = $accruedSalaries;
+
+        // Equity
+        $totalEquity = $totalAssets - $totalLiabilities;
+
+        return $this->successResponse([
+            'as_of_date' => $asOfDate,
+            'currency'   => $currency,
+            'assets' => [
+                'current_assets' => [
+                    'النقدية والبنوك'   => round($cashBalance, 2),
+                    'العملاء (ذمم مدينة)' => round($receivables, 2),
+                    'الإجمالي'           => round($totalCurrentAssets, 2),
+                ],
+                'fixed_assets' => [
+                    'الأصول الثابتة'     => round($fixedAssetsTotal + $accumulatedDepreciation, 2),
+                    'مجمع الإهلاك'       => round($accumulatedDepreciation * -1, 2),
+                    'صافي الأصول الثابتة' => round($fixedAssetsTotal, 2),
+                ],
+                'total_assets' => round($totalAssets, 2),
+            ],
+            'liabilities' => [
+                'current_liabilities' => [
+                    'رواتب مستحقة'     => round($accruedSalaries, 2),
+                    'الإجمالي'          => round($totalLiabilities, 2),
+                ],
+                'total_liabilities' => round($totalLiabilities, 2),
+            ],
+            'equity' => [
+                'حقوق الملكية' => round($totalEquity, 2),
+            ],
+            'check_balance' => round($totalAssets - $totalLiabilities - $totalEquity, 2),
+        ]);
+    }
+
+    // ========== Financial KPIs ==========
+    public function financialKpis(Request $request): JsonResponse
+    {
+        $year = $request->input('year', now()->year);
+        $currency = $request->input('currency', 'EGP');
+
+        // Revenue & Expenses
+        $revenue = TreasuryTransaction::where('type', 'in')->where('currency', $currency)
+            ->whereYear('date', $year)->sum('amount');
+        $expenses = TreasuryTransaction::where('type', 'out')->where('currency', $currency)
+            ->whereYear('date', $year)->sum('amount');
+        $netProfit = $revenue - $expenses;
+
+        // Previous year for comparison
+        $prevRevenue = TreasuryTransaction::where('type', 'in')->where('currency', $currency)
+            ->whereYear('date', $year - 1)->sum('amount');
+        $prevExpenses = TreasuryTransaction::where('type', 'out')->where('currency', $currency)
+            ->whereYear('date', $year - 1)->sum('amount');
+        $prevNetProfit = $prevRevenue - $prevExpenses;
+
+        // Receivables
+        $totalReceivables = Invoice::whereIn('status', ['pending', 'overdue', 'partial'])
+            ->where('currency', $currency)->get()->sum('remaining');
+        $overdueReceivables = Invoice::where('status', 'overdue')
+            ->where('currency', $currency)->get()->sum('remaining');
+
+        // Collection metrics
+        $totalInvoiced = Invoice::where('currency', $currency)->whereYear('created_at', $year)->sum('amount');
+        $totalCollected = Invoice::where('currency', $currency)->whereYear('created_at', $year)
+            ->get()->sum('paid_amount');
+
+        // Cash balance
+        $cashBalance = TreasuryTransaction::where('currency', $currency)
+            ->selectRaw("COALESCE(SUM(CASE WHEN type = 'in' THEN amount ELSE -amount END), 0) as balance")
+            ->value('balance');
+
+        // Monthly revenue trend
+        $monthlyTrend = [];
+        for ($m = 1; $m <= 12; $m++) {
+            $monthlyTrend[] = TreasuryTransaction::where('type', 'in')->where('currency', $currency)
+                ->whereYear('date', $year)->whereMonth('date', $m)->sum('amount');
+        }
+
+        return $this->successResponse([
+            'profitability' => [
+                'revenue'           => round($revenue, 2),
+                'expenses'          => round($expenses, 2),
+                'net_profit'        => round($netProfit, 2),
+                'profit_margin'     => $revenue > 0 ? round(($netProfit / $revenue) * 100, 1) : 0,
+                'revenue_growth'    => $prevRevenue > 0 ? round((($revenue - $prevRevenue) / $prevRevenue) * 100, 1) : 0,
+                'profit_growth'     => $prevNetProfit > 0 ? round((($netProfit - $prevNetProfit) / $prevNetProfit) * 100, 1) : 0,
+            ],
+            'receivables' => [
+                'total_receivables'  => round($totalReceivables, 2),
+                'overdue_receivables'=> round($overdueReceivables, 2),
+                'collection_rate'    => $totalInvoiced > 0 ? round(($totalCollected / $totalInvoiced) * 100, 1) : 0,
+                'avg_collection_days'=> $this->calculateAvgCollectionDays($year, $currency),
+            ],
+            'liquidity' => [
+                'cash_balance'     => round($cashBalance, 2),
+                'current_ratio'    => $expenses > 0 ? round($cashBalance / ($expenses / 12), 2) : 0,
+            ],
+            'monthly_trend' => $monthlyTrend,
+            'year' => $year,
+            'currency' => $currency,
+        ]);
+    }
+
+    private function calculateAvgCollectionDays(int $year, string $currency): float
+    {
+        $payments = DB::table('invoice_payments')
+            ->join('invoices', 'invoice_payments.invoice_id', '=', 'invoices.id')
+            ->where('invoices.currency', $currency)
+            ->whereYear('invoice_payments.paid_at', $year)
+            ->whereNotNull('invoice_payments.paid_at')
+            ->select('invoice_payments.paid_at', 'invoices.issue_date', 'invoices.created_at')
+            ->get();
+
+        if ($payments->isEmpty()) return 0;
+
+        $totalDays = $payments->sum(function ($p) {
+            $issueDate = $p->issue_date ?? $p->created_at;
+            return Carbon::parse($issueDate)->diffInDays(Carbon::parse($p->paid_at));
+        });
+
+        return round($totalDays / $payments->count(), 1);
     }
 }

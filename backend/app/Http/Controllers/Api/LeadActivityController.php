@@ -28,17 +28,16 @@ class LeadActivityController extends Controller
         $this->authorize('update', $lead);
 
         $data = $request->validated();
-        $data['user_id'] = auth()->id();
+        $data['user_id'] = $request->user()->id;
 
         $activity = $lead->activities()->create($data);
 
-        // Update lead's last followup date
-        $lead->update(['last_followup_date' => now()->toDateString()]);
-
-        // If next followup date is set, update on lead too
-        if (!empty($data['next_followup_date'])) {
-            $lead->update(['last_followup_date' => now()->toDateString()]);
+        // Keep lead activity timeline fresh.
+        $updateLeadData = ['last_followup_date' => now()->toDateString()];
+        if (!$lead->first_contact_date) {
+            $updateLeadData['first_contact_date'] = now()->toDateString();
         }
+        $lead->update($updateLeadData);
 
         $activity->load('user');
 

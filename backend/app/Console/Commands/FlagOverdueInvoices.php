@@ -15,7 +15,7 @@ class FlagOverdueInvoices extends Command
     public function handle(): int
     {
         $overdueInvoices = Invoice::with('contract.client')
-            ->where('status', 'pending')
+            ->whereIn('status', ['pending', 'partial'])
             ->where('due_date', '<', now())
             ->get();
 

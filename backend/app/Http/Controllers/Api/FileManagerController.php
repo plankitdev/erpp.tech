@@ -161,6 +161,11 @@ class FileManagerController extends Controller
      */
     public function moveFolder(Request $request, Folder $folder): JsonResponse
     {
+        $user = auth()->user();
+        if ($user->role === 'employee' && $folder->created_by !== $user->id) {
+            return $this->errorResponse('غير مسموح — يمكنك نقل المجلدات التي أنشأتها فقط', 403);
+        }
+
         $request->validate(['parent_id' => 'nullable|exists:folders,id']);
 
         // Prevent moving folder into itself or its children
@@ -269,6 +274,11 @@ class FileManagerController extends Controller
      */
     public function moveFile(Request $request, ManagedFile $managedFile): JsonResponse
     {
+        $user = auth()->user();
+        if ($user->role === 'employee' && $managedFile->uploaded_by !== $user->id) {
+            return $this->errorResponse('غير مسموح — يمكنك نقل الملفات التي رفعتها فقط', 403);
+        }
+
         $request->validate(['folder_id' => 'nullable|exists:folders,id']);
         $managedFile->update(['folder_id' => $request->folder_id]);
 
@@ -289,6 +299,11 @@ class FileManagerController extends Controller
      */
     public function renameFile(Request $request, ManagedFile $managedFile): JsonResponse
     {
+        $user = auth()->user();
+        if ($user->role === 'employee' && $managedFile->uploaded_by !== $user->id) {
+            return $this->errorResponse('غير مسموح — يمكنك تعديل الملفات التي رفعتها فقط', 403);
+        }
+
         $request->validate(['name' => 'required|string|max:255']);
         $managedFile->update(['name' => $request->name]);
 

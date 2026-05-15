@@ -22,7 +22,7 @@ const employeeSchema = z.object({
   contract_start: z.string().optional(),
   contract_end: z.string().optional(),
   notes: z.string().optional(),
-  user_id: z.coerce.number().optional(),
+  user_id: z.coerce.number().min(1, 'يجب ربط الموظف بحساب مستخدم'),
 });
 
 type EmployeeFormData = z.infer<typeof employeeSchema>;
@@ -65,7 +65,7 @@ export default function EmployeeForm() {
   const onSubmit = async (data: EmployeeFormData) => {
     try {
       // Treat user_id = 0 as null (no linking)
-      const submitData = { ...data, user_id: data.user_id || null };
+      const submitData = { ...data };
       if (editId) {
         if (file) {
           const formData = new FormData();
@@ -110,13 +110,15 @@ export default function EmployeeForm() {
           </div>
         </div>
         <div>
-          <label className="input-label">ربط بحساب مستخدم</label>
+          <label className="input-label">حساب المستخدم *</label>
           <select {...register('user_id')} className="input">
-            <option value="">بدون ربط</option>
+            <option value="">— اختر مستخدم —</option>
             {users.map((u) => (
               <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
             ))}
           </select>
+          {errors.user_id && <p className="text-red-500 text-xs mt-1">{errors.user_id.message}</p>}
+          <p className="text-xs text-gray-400 mt-1">يجب إنشاء حساب مستخدم أولاً من صفحة المستخدمين ثم ربطه هنا</p>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>

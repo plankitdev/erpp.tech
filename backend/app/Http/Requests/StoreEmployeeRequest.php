@@ -28,7 +28,7 @@ class StoreEmployeeRequest extends FormRequest
             'contract_start' => 'nullable|date',
             'contract_end'   => 'nullable|date|after_or_equal:contract_start',
             'notes'          => 'nullable|string',
-            'user_id'        => 'nullable|exists:users,id',
+            'user_id'        => 'required|exists:users,id',
             'contract_file'  => 'nullable|file|mimes:pdf,doc,docx|max:10240',
         ];
     }

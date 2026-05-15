@@ -413,7 +413,7 @@ export default function Chat() {
                   <div key={pm.id} className="bg-white rounded-lg px-3 py-1.5 mb-1 text-sm border border-amber-100 flex items-center gap-2">
                     <span className="font-medium text-amber-800">{pm.user?.name}:</span>
                     <span className="text-gray-700 truncate flex-1">{pm.body || '📎 مرفق'}</span>
-                    {(activeChannel?.created_by === user?.id || user?.role === 'super_admin' || user?.role === 'manager' || user?.role === 'company_admin') && (
+                    {(activeChannel?.created_by === user?.id || user?.role === 'super_admin' || user?.role === 'manager') && (
                       <button onClick={() => togglePin.mutate({ channelId: activeChannel!.id, messageId: pm.id })} className="text-amber-400 hover:text-red-500 shrink-0" title="إلغاء التثبيت">
                         <PinOff size={13} />
                       </button>
@@ -532,7 +532,7 @@ export default function Chat() {
                             <Reply size={13} />
                           </button>
                           {/* Pin button — admin/manager/creator */}
-                          {(activeChannel?.created_by === user?.id || user?.role === 'super_admin' || user?.role === 'manager' || user?.role === 'company_admin') && (
+                          {(activeChannel?.created_by === user?.id || user?.role === 'super_admin' || user?.role === 'manager') && (
                             <button
                               onClick={() => activeChannelId && togglePin.mutate({ channelId: activeChannelId, messageId: msg.id })}
                               className={`transition p-0.5 ${msg.is_pinned ? 'text-amber-500 hover:text-amber-600' : 'text-gray-300 hover:text-amber-500'}`}

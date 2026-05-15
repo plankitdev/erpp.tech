@@ -37,8 +37,61 @@ class ContractController extends Controller
         $this->authorize('create', Contract::class);
 
         $contract = Contract::create($request->validated());
+
+        // Auto-generate installments if payment_type is installments
+        if ($contract->payment_type === Contract::PAYMENT_TYPE_INSTALLMENTS
+            && $contract->installments_count > 0
+        ) {
+            $startDate = $contract->start_date->copy();
+            $installmentAmount = $contract->installment_amount
+                ?? round($contract->value / $contract->installments_count, 2);
+
+            for ($i = 1; $i <= $contract->installments_count; $i++) {
+                $contract->installments()->create([
+                    'company_id'         => $contract->company_id,
+                    'installment_number' => $i,
+                    'amount'             => $installmentAmount,
+                    'currency'           => $contract->currency,
+                    'due_date'           => $startDate->copy()->addMonths($i),
+                    'status'             => 'pending',
+                ]);
+            }
+
+            // Store the installment_amount if it was auto-calculated
+            if (!$contract->installment_amount) {
+                $contract->update(['installment_amount' => $installmentAmount]);
+            }
+        }
+
+        // Auto-generate first invoice for monthly contracts
+        if ($contract->payment_type === Contract::PAYMENT_TYPE_MONTHLY) {
+            $monthlyAmount = $contract->installment_amount ?? round($contract->value / 12, 2);
+
+            // Set due_date based on client's payment_day if available
+            $dueDate = now()->endOfMonth();
+            $client = $contract->client;
+            if ($client && $client->payment_day) {
+                $day = min($client->payment_day, now()->daysInMonth);
+                $dueDate = now()->day($day);
+                if ($dueDate->isPast()) {
+                    $dueDate = $dueDate->addMonth();
+                }
+            }
+
+            \App\Models\Invoice::create([
+                'contract_id' => $contract->id,
+                'company_id'  => $contract->company_id,
+                'client_id'   => $contract->client_id,
+                'amount'      => $monthlyAmount,
+                'currency'    => $contract->currency,
+                'status'      => 'pending',
+                'issue_date'  => now()->toDateString(),
+                'due_date'    => $dueDate,
+            ]);
+        }
+
         return $this->successResponse(
-            new ContractResource($contract->load('client')),
+            new ContractResource($contract->load(['client', 'installments'])),
             'تم إنشاء العقد بنجاح', 201
         );
     }

@@ -16,6 +16,8 @@ class LeadActivity extends Model
     public const TYPE_PROPOSAL_SENT = 'proposal_sent';
     public const TYPE_MEETING       = 'meeting';
     public const TYPE_FOLLOWUP      = 'followup';
+    public const TYPE_STAGE_CHANGE  = 'stage_change';
+    public const TYPE_CONVERSION    = 'conversion';
     public const TYPES = [
         self::TYPE_CALL,
         self::TYPE_MESSAGE,
@@ -23,6 +25,8 @@ class LeadActivity extends Model
         self::TYPE_PROPOSAL_SENT,
         self::TYPE_MEETING,
         self::TYPE_FOLLOWUP,
+        self::TYPE_STAGE_CHANGE,
+        self::TYPE_CONVERSION,
     ];
 
     public const OUTCOME_POSITIVE = 'positive';

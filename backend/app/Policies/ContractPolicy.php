@@ -29,6 +29,6 @@ class ContractPolicy
 
     public function delete(User $user, Contract $contract): bool
     {
-        return $user->hasRole(['super_admin', 'manager']);
+        return $user->hasRole(['super_admin', 'company_admin', 'manager']);
     }
 }

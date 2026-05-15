@@ -11,6 +11,9 @@ Artisan::command('inspire', function () {
 // تحديث الفواتير المتأخرة يومياً
 Schedule::command('invoices:flag-overdue')->daily();
 
+// تحديث الأقساط المتأخرة يومياً
+Schedule::command('installments:flag-overdue')->daily();
+
 // توليد الفواتير الشهرية المتكررة أول كل شهر
 Schedule::command('invoices:generate-recurring')->monthlyOn(1, '07:00');
 
@@ -26,6 +29,12 @@ Schedule::command('clients:check-follow-ups')->dailyAt('10:00');
 // تشغيل قواعد الأتمتة يومياً
 Schedule::command('workflows:run')->dailyAt('08:30');
 
+// توليد المتابعات الذكية يومياً
+Schedule::command('followups:generate')->dailyAt('08:15');
+
+// إرسال التقرير اليومي التلقائي للمديرين نهاية اليوم
+Schedule::command('reports:daily-digest')->dailyAt('17:00');
+
 // معالجة المهام المتكررة يومياً
 Schedule::command('tasks:process-recurring')->dailyAt('07:30');
 
@@ -37,3 +46,6 @@ Schedule::command('system:health-check')->everySixHours();
 
 // مزامنة جوجل درايف تلقائياً كل ساعة
 Schedule::command('drive:sync')->hourly();
+
+// إعادة تعيين ليلية: تسجيل خروج تلقائي + إلغاء التوكنات
+Schedule::command('attendance:midnight-reset')->dailyAt('00:00');

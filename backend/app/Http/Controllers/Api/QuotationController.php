@@ -129,6 +129,42 @@ class QuotationController extends Controller
         return $this->successResponse(null, 'تم حذف عرض السعر');
     }
 
+    public function convertToInvoice(Quotation $quotation): JsonResponse
+    {
+        if ($quotation->status !== Quotation::STATUS_ACCEPTED) {
+            return $this->errorResponse('يجب أن يكون عرض السعر مقبولاً للتحويل إلى فاتورة', 422);
+        }
+
+        // Check if already converted
+        $existingInvoice = \App\Models\Invoice::where('company_id', $quotation->company_id)
+            ->where('amount', $quotation->total)
+            ->where('client_id', $quotation->client_id)
+            ->where('created_at', '>=', $quotation->updated_at)
+            ->first();
+
+        if ($existingInvoice) {
+            return $this->errorResponse('تم تحويل عرض السعر إلى فاتورة مسبقاً', 422);
+        }
+
+        $invoice = \App\Models\Invoice::create([
+            'company_id'     => $quotation->company_id,
+            'client_id'      => $quotation->client_id,
+            'amount'         => $quotation->subtotal,
+            'vat_rate'       => $quotation->tax_rate,
+            'vat_amount'     => $quotation->tax_amount,
+            'total_with_vat' => $quotation->total,
+            'currency'       => $quotation->currency,
+            'status'         => 'pending',
+            'issue_date'     => now()->toDateString(),
+            'due_date'       => now()->addDays(30)->toDateString(),
+        ]);
+
+        return $this->successResponse([
+            'invoice_id' => $invoice->id,
+            'amount'     => $invoice->total_with_vat ?? $invoice->amount,
+        ], 'تم تحويل عرض السعر إلى فاتورة بنجاح', 201);
+    }
+
     public function downloadPdf(Quotation $quotation)
     {
         $quotation->load(['client', 'lead', 'creator', 'company']);

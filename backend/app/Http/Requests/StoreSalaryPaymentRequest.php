@@ -37,6 +37,26 @@ class StoreSalaryPaymentRequest extends FormRequest
         ];
     }
 
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $baseSalary = (float) $this->input('base_salary', 0);
+            $bonus = (float) $this->input('bonus', 0);
+            $deductions = (float) $this->input('deductions', 0);
+
+            if ($deductions > ($baseSalary + $bonus)) {
+                $validator->errors()->add('deductions', 'الخصومات لا يمكن أن تتجاوز الراتب الأساسي + المكافأة');
+            }
+
+            // Auto-validate total
+            $expectedTotal = $baseSalary + $bonus - $deductions;
+            $total = (float) $this->input('total', 0);
+            if (abs($total - $expectedTotal) > 0.01) {
+                $validator->errors()->add('total', 'الإجمالي يجب أن يساوي الراتب الأساسي + المكافأة - الخصومات');
+            }
+        });
+    }
+
     public function messages(): array
     {
         return [

@@ -24,6 +24,7 @@ class TreasuryTransaction extends Model
     public const CATEGORY_REVENUE          = 'revenue';
     public const CATEGORY_PARTNER_PAYMENT  = 'partner_payment';
     public const CATEGORY_PARTNER_CAPITAL  = 'partner_capital';
+    public const CATEGORY_PARTNER_PROFIT   = 'partner_profit';
     public const CATEGORY_EXPENSE          = 'expense';
     public const CATEGORIES = [
         self::CATEGORY_SALARIES,
@@ -31,12 +32,14 @@ class TreasuryTransaction extends Model
         self::CATEGORY_REVENUE,
         self::CATEGORY_PARTNER_PAYMENT,
         self::CATEGORY_PARTNER_CAPITAL,
+        self::CATEGORY_PARTNER_PROFIT,
         self::CATEGORY_EXPENSE,
     ];
 
     protected $fillable = [
         'company_id', 'type', 'amount', 'currency',
         'category', 'date', 'description', 'balance_after',
+        'project_id', 'employee_id', 'client_id',
     ];
 
     protected $casts = [
@@ -48,5 +51,20 @@ class TreasuryTransaction extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
+    }
+
+    public function employee(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class);
+    }
+
+    public function client(): BelongsTo
+    {
+        return $this->belongsTo(Client::class);
     }
 }

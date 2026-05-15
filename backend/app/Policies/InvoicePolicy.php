@@ -29,12 +29,12 @@ class InvoicePolicy
 
     public function delete(User $user, Invoice $invoice): bool
     {
-        return $user->hasRole(['super_admin', 'manager']);
+        return $user->hasRole(['super_admin', 'company_admin', 'manager']);
     }
 
     public function deleteAny(User $user): bool
     {
-        return $user->hasRole(['super_admin', 'manager']);
+        return $user->hasRole(['super_admin', 'company_admin', 'manager']);
     }
 
     public function recordPayment(User $user, Invoice $invoice): bool

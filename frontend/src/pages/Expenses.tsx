@@ -1,52 +1,65 @@
-import { useState } from 'react';
-import { useExpenses, useCreateExpense, useDeleteExpense } from '../hooks/useExpenses';
+import { useState, useMemo } from 'react';
+import { useTreasury, useCreateTransaction, useDeleteTransaction } from '../hooks/useTreasury';
 import { formatCurrency, formatDate } from '../utils';
 import toast from 'react-hot-toast';
-import { Trash2, Download, Plus, X, Receipt } from 'lucide-react';
+import { Trash2, Download, Plus, X, Receipt, TrendingDown } from 'lucide-react';
 import { exportToCSV } from '../utils/exportCsv';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { SkeletonTable } from '../components/Skeletons';
 
 const categoryLabels: Record<string, string> = {
-  'إيجار': 'إيجار',
-  'مرافق': 'مرافق',
-  'أدوات': 'أدوات',
-  'نثريات': 'نثريات',
-  'رواتب': 'رواتب',
-  'تسويق': 'تسويق',
-  'نقل': 'نقل',
-  'أخرى': 'أخرى',
+  expense: 'مصروفات',
+  salaries: 'رواتب',
+  client_expense: 'مصروفات عملاء',
+  partner_payment: 'سحب شريك',
+  partner_profit: 'أرباح شريك',
+  other: 'أخرى',
+};
+
+const categoryColors: Record<string, string> = {
+  expense: 'bg-red-50 text-red-700',
+  salaries: 'bg-blue-50 text-blue-700',
+  client_expense: 'bg-amber-50 text-amber-700',
+  partner_payment: 'bg-purple-50 text-purple-700',
+  partner_profit: 'bg-teal-50 text-teal-700',
+  other: 'bg-gray-50 text-gray-700',
 };
 
 export default function Expenses() {
-  const [filters, setFilters] = useState({ category: '', currency: '' });
-  const { data, isLoading, isError, refetch } = useExpenses(filters);
-  const createMutation = useCreateExpense();
-  const deleteMutation = useDeleteExpense();
+  const [filters, setFilters] = useState<Record<string, string>>({ type: 'out' });
+  const { data, isLoading, isError, refetch } = useTreasury(filters);
+  const createMutation = useCreateTransaction();
+  const deleteMutation = useDeleteTransaction();
   const expenses = data?.data ?? [];
 
   const [showForm, setShowForm] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [form, setForm] = useState({
-    category: 'نثريات',
+    category: 'expense',
     amount: '',
     currency: 'EGP',
-    date: '',
-    notes: '',
+    date: new Date().toISOString().split('T')[0],
+    description: '',
   });
+
+  const totalAmount = useMemo(() =>
+    expenses.reduce((s: number, t: any) => s + Number(t.amount || 0), 0),
+    [expenses]
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await createMutation.mutateAsync({
+        type: 'out',
         category: form.category,
         amount: parseFloat(form.amount),
-        currency: form.currency as 'EGP' | 'USD' | 'SAR',
+        currency: form.currency,
         date: form.date,
-        notes: form.notes || null,
-      });
+        description: form.description || '',
+      } as any);
       setShowForm(false);
-      setForm({ category: 'نثريات', amount: '', currency: 'EGP', date: '', notes: '' });
+      setForm({ category: 'expense', amount: '', currency: 'EGP', date: new Date().toISOString().split('T')[0], description: '' });
       toast.success('تم تسجيل المصروف بنجاح');
     } catch {
       toast.error('حدث خطأ أثناء التسجيل');
@@ -69,10 +82,10 @@ export default function Expenses() {
       <div className="page-header">
         <div>
           <h1 className="page-title">المصروفات</h1>
-          <p className="page-subtitle">تتبع وإدارة المصروفات</p>
+          <p className="page-subtitle">تتبع وإدارة جميع المصروفات والمدفوعات الصادرة</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => exportToCSV('expenses', ['التاريخ', 'التصنيف', 'المبلغ', 'العملة', 'ملاحظات'], expenses.map(exp => [exp.date, categoryLabels[exp.category] || exp.category, String(exp.amount), exp.currency, exp.notes || '']))} disabled={expenses.length === 0} className="btn-secondary">
+          <button onClick={() => exportToCSV('expenses', ['التاريخ', 'التصنيف', 'المبلغ', 'العملة', 'الوصف'], expenses.map((exp: any) => [exp.date, categoryLabels[exp.category] || exp.category, String(exp.amount), exp.currency, exp.description || '']))} disabled={expenses.length === 0} className="btn-secondary">
             <Download size={16} /> تصدير
           </button>
           <button onClick={() => setShowForm(!showForm)} className={showForm ? 'btn-secondary' : 'btn-primary'}>
@@ -81,14 +94,36 @@ export default function Expenses() {
         </div>
       </div>
 
+      {/* Summary Card */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+        <div className="card card-body flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center">
+            <TrendingDown size={20} className="text-red-600" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">إجمالي المصروفات</p>
+            <p className="text-lg font-bold text-red-600">{formatCurrency(totalAmount)}</p>
+          </div>
+        </div>
+        <div className="card card-body flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center">
+            <Receipt size={20} className="text-gray-600" />
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">عدد الحركات</p>
+            <p className="text-lg font-bold text-gray-800">{expenses.length}</p>
+          </div>
+        </div>
+      </div>
+
       <div className="filter-bar">
-        <select value={filters.category} onChange={e => setFilters({ ...filters, category: e.target.value })} className="select max-w-[160px]">
+        <select value={filters.category || ''} onChange={e => setFilters({ ...filters, category: e.target.value })} className="select max-w-[160px]">
           <option value="">كل التصنيفات</option>
           {Object.entries(categoryLabels).map(([key, label]) => (
             <option key={key} value={key}>{label}</option>
           ))}
         </select>
-        <select value={filters.currency} onChange={e => setFilters({ ...filters, currency: e.target.value })} className="select max-w-[140px]">
+        <select value={filters.currency || ''} onChange={e => setFilters({ ...filters, currency: e.target.value })} className="select max-w-[140px]">
           <option value="">كل العملات</option>
           <option value="EGP">جنيه مصري</option>
           <option value="USD">دولار</option>
@@ -110,9 +145,9 @@ export default function Expenses() {
             <div>
               <label className="input-label">العملة</label>
               <select value={form.currency} onChange={e => setForm({ ...form, currency: e.target.value })} className="select">
-                <option value="EGP">EGP</option>
-                <option value="USD">USD</option>
-                <option value="SAR">SAR</option>
+                <option value="EGP">جنيه مصري</option>
+                <option value="USD">دولار</option>
+                <option value="SAR">ريال</option>
               </select>
             </div>
           </div>
@@ -127,8 +162,8 @@ export default function Expenses() {
             </div>
           </div>
           <div>
-            <label className="input-label">ملاحظات</label>
-            <input type="text" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} className="input" />
+            <label className="input-label">الوصف</label>
+            <input type="text" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="input" placeholder="وصف المصروف..." />
           </div>
           <button type="submit" disabled={createMutation.isPending} className="btn-primary disabled:opacity-50">
             {createMutation.isPending ? 'جاري الحفظ...' : 'حفظ'}
@@ -144,7 +179,7 @@ export default function Expenses() {
                 <th>التاريخ</th>
                 <th>التصنيف</th>
                 <th>المبلغ</th>
-                <th>ملاحظات</th>
+                <th>الوصف</th>
                 <th>إجراءات</th>
               </tr>
             </thead>
@@ -158,12 +193,12 @@ export default function Expenses() {
                   <Receipt size={40} className="mx-auto mb-3 text-gray-300" />
                   <p className="text-gray-400">لا يوجد مصروفات</p>
                 </td></tr>
-              ) : expenses.map((expense) => (
+              ) : expenses.map((expense: any) => (
                 <tr key={expense.id}>
                   <td className="text-gray-500 text-[13px]">{formatDate(expense.date)}</td>
-                  <td><span className="badge-neutral">{categoryLabels[expense.category] || expense.category}</span></td>
-                  <td className="font-semibold text-red-500">{formatCurrency(expense.amount, expense.currency)}</td>
-                  <td className="text-gray-500 text-[13px]">{expense.notes || '—'}</td>
+                  <td><span className={`text-xs font-medium px-2.5 py-1 rounded-lg ${categoryColors[expense.category] || 'bg-gray-50 text-gray-700'}`}>{categoryLabels[expense.category] || expense.category}</span></td>
+                  <td className="font-semibold text-red-500">{formatCurrency(Number(expense.amount), expense.currency)}</td>
+                  <td className="text-gray-500 text-[13px]">{expense.description || '—'}</td>
                   <td>
                     <button onClick={() => setDeleteId(expense.id)} className="action-icon text-gray-400 hover:text-red-500 hover:bg-red-50">
                       <Trash2 size={15} />

@@ -3,6 +3,7 @@ import { useDashboard, useMarkBadgeSeen } from '../hooks/useDashboard';
 import { useProjects } from '../hooks/useProjects';
 import { useTasks } from '../hooks/useTasks';
 import { useMeetings } from '../hooks/useMeetings';
+import { useFollowUps, useResolveFollowUp, useDismissFollowUp } from '../api/followUps';
 import { formatDate } from '../utils';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -10,7 +11,7 @@ import {
 } from 'recharts';
 import {
   FolderKanban, CheckSquare, Clock, Calendar, Video, ArrowUpRight,
-  Plus, ListChecks, AlertTriangle, Sparkles, Target, LayoutGrid,
+  Plus, ListChecks, AlertTriangle, Sparkles, Target, LayoutGrid, CheckCircle2, X, BellRing
 } from 'lucide-react';
 import StatusBadge from '../components/StatusBadge';
 import Breadcrumbs from '../components/Breadcrumbs';
@@ -34,9 +35,12 @@ const PRIORITY_COLORS: Record<string, string> = {
 export default function TasksHub() {
   useMarkBadgeSeen('tasks');
   const { data: dashData, isLoading: dashLoading } = useDashboard();
-  const { data: projectsData } = useProjects({ per_page: 1000 });
-  const { data: tasksData } = useTasks({ per_page: 1000 });
+  const { data: projectsData } = useProjects({ per_page: 50, status: 'active' });
+  const { data: tasksData } = useTasks({ per_page: 50 });
   const { data: meetingsData } = useMeetings();
+  const { data: followUpsData } = useFollowUps({ status: 'pending' });
+  const resolveFollowUp = useResolveFollowUp();
+  const dismissFollowUp = useDismissFollowUp();
 
   const stats = (dashData || {}) as Record<string, any>;
   const projects = projectsData?.data || [];
@@ -88,7 +92,7 @@ export default function TasksHub() {
 
   return (
     <div className="page-container">
-      <Breadcrumbs items={[{ label: 'إدارة المهام' }]} />
+      <Breadcrumbs items={[{ label: 'مساحة العمل الموحدة' }]} />
 
       {/* Hero Banner */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-l from-teal-600 via-teal-700 to-emerald-800 p-7">
@@ -104,7 +108,7 @@ export default function TasksHub() {
             <p className="text-teal-200/80 text-sm">متابعة المشاريع والمهام والاجتماعات</p>
           </div>
           <div className="hidden md:flex items-center gap-3">
-            <Link to="/projects/create" className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-all border border-white/10">
+            <Link to="/projects" className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-all border border-white/10">
               <Plus size={16} /> مشروع جديد
             </Link>
             <Link to="/tasks/board" className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-all border border-white/10">
@@ -188,7 +192,7 @@ export default function TasksHub() {
                   ? Math.round((p.completed_tasks_count || 0) / p.tasks_count * 100)
                   : 0;
                 return (
-                  <Link key={p.id} to={`/projects/${p.id}`} className="block group">
+                  <Link key={p.id} to={`/projects/${p.slug ?? p.id}`} className="block group">
                     <div className="flex items-center justify-between mb-1.5">
                       <div className="flex items-center gap-2">
                         <FolderKanban size={14} className="text-gray-400 group-hover:text-primary-500 transition-colors" />
@@ -217,6 +221,43 @@ export default function TasksHub() {
         </div>
       </div>
 
+      {/* Follow-ups */}
+      {followUpsData?.data?.data && followUpsData.data.data.length > 0 && (
+        <div className="card card-body animate-fade-in-up">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center ring-1 ring-orange-100">
+                <BellRing size={18} className="text-orange-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">المتابعات الذكية</h3>
+                <p className="text-xs text-gray-400">إجراءات تتطلب تدخلك</p>
+              </div>
+            </div>
+            <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full font-bold">{followUpsData.data.data.length}</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {followUpsData.data.data.map((fu: any) => (
+              <div key={fu.id} className="bg-white border border-orange-100 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] bg-orange-50 text-orange-600 px-2 py-0.5 rounded font-bold">{fu.type_label}</span>
+                  <span className="text-[10px] text-gray-400">{fu.due_date}</span>
+                </div>
+                <p className="text-sm font-semibold text-gray-800 mb-4">{fu.note}</p>
+                <div className="flex items-center gap-2 mt-auto">
+                  <button onClick={() => resolveFollowUp.mutate({ id: fu.id })} className="flex-1 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 px-3 py-2 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1">
+                    <CheckCircle2 size={14} /> تم الحل
+                  </button>
+                  <button onClick={() => dismissFollowUp.mutate({ id: fu.id })} className="flex-1 bg-gray-50 text-gray-600 hover:bg-gray-100 px-3 py-2 rounded-lg text-xs font-semibold transition-colors flex items-center justify-center gap-1">
+                    <X size={14} /> تجاهل
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Bottom Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Overdue Tasks */}
@@ -242,7 +283,7 @@ export default function TasksHub() {
             ) : (
               <div className="space-y-1">
                 {overdueTasks.slice(0, 5).map((t: Task) => (
-                  <Link key={t.id} to={`/tasks/${t.id}/edit`}
+                  <Link key={t.id} to={`/tasks/${t.id}`}
                     className="flex items-center justify-between p-3 rounded-xl hover:bg-red-50 transition-colors group">
                     <div className="flex items-center gap-3">
                       <div className={`text-xs px-2 py-0.5 rounded-full font-semibold ${PRIORITY_COLORS[t.priority] || 'text-gray-600 bg-gray-50'}`}>
@@ -287,7 +328,7 @@ export default function TasksHub() {
             ) : (
               <div className="space-y-1">
                 {upcomingMeetings.map((m: any) => (
-                  <Link key={m.id} to={`/meetings/${m.id}`}
+                  <Link key={m.id} to={`/meetings/${m.id}/edit`}
                     className="flex items-center justify-between p-3 rounded-xl hover:bg-violet-50 transition-colors group">
                     <div>
                       <p className="text-sm font-semibold text-gray-800">{m.title}</p>
@@ -311,8 +352,8 @@ export default function TasksHub() {
         <p className="text-xs text-gray-400 mb-5">الوصول السريع لأهم العمليات</p>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {[
-            { label: 'مشروع جديد', icon: FolderKanban, to: '/projects/create', color: 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100' },
-            { label: 'مهمة جديدة', icon: CheckSquare, to: '/tasks/create', color: 'bg-blue-50 text-blue-600 hover:bg-blue-100' },
+            { label: 'مشروع جديد', icon: FolderKanban, to: '/projects', color: 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100' },
+            { label: 'مهمة جديدة', icon: CheckSquare, to: '/tasks', color: 'bg-blue-50 text-blue-600 hover:bg-blue-100' },
             { label: 'لوحة كانبان', icon: LayoutGrid, to: '/tasks/board', color: 'bg-teal-50 text-teal-600 hover:bg-teal-100' },
             { label: 'التقويم', icon: Calendar, to: '/calendar', color: 'bg-amber-50 text-amber-600 hover:bg-amber-100' },
             { label: 'اجتماع جديد', icon: Video, to: '/meetings/create', color: 'bg-violet-50 text-violet-600 hover:bg-violet-100' },

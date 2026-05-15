@@ -19,16 +19,16 @@ class PartnerPolicy
 
     public function create(User $user): bool
     {
-        return $user->hasRole(['super_admin', 'manager']);
+        return $user->hasRole(['super_admin', 'company_admin', 'manager']);
     }
 
     public function update(User $user, Partner $partner): bool
     {
-        return $user->hasRole(['super_admin', 'manager']);
+        return $user->hasRole(['super_admin', 'company_admin', 'manager']);
     }
 
     public function delete(User $user, Partner $partner): bool
     {
-        return $user->hasRole(['super_admin', 'manager']);
+        return $user->hasRole(['super_admin', 'company_admin', 'manager']);
     }
 }

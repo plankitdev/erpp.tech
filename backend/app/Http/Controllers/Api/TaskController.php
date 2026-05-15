@@ -55,6 +55,11 @@ class TaskController extends Controller
         if ($recurrence = $request->input('recurrence')) {
             $query->where('recurrence', $recurrence);
         }
+        if ($request->boolean('overdue')) {
+            $query->whereNotIn('status', ['done'])
+                  ->where('due_date', '<', now())
+                  ->whereNull('parent_id');
+        }
 
         if ($request->user()->role === 'employee') {
             $userId = $request->user()->id;
@@ -124,7 +129,8 @@ class TaskController extends Controller
         $this->authorize('update', $task);
 
         $data = $request->validated();
-        $wasCompleted = $task->status === Task::STATUS_DONE;
+        $wasCompleted   = $task->status === Task::STATUS_DONE;
+        $previousStatus = $task->status;
 
         $assigneeIds = null;
         if (isset($data['assignee_ids'])) {
@@ -132,16 +138,52 @@ class TaskController extends Controller
             unset($data['assignee_ids']);
         }
 
+        // إذا الحالة بتتغير من review → todo/in_progress، احفظ rejection_reason
+        $isRejecting = $previousStatus === Task::STATUS_REVIEW
+            && isset($data['status'])
+            && in_array($data['status'], [Task::STATUS_TODO, Task::STATUS_IN_PROGRESS]);
+
         $task->update($data);
 
         if ($assigneeIds !== null) {
             $task->assignees()->sync($assigneeIds);
         }
 
+        $currentUser = $request->user();
+
+        // إشعار للمدير لما المهمة تنتقل لـ review
+        if ($previousStatus !== Task::STATUS_REVIEW && $task->status === Task::STATUS_REVIEW) {
+            if ($task->created_by && $task->created_by !== $currentUser->id) {
+                NotificationService::taskInReview($task->company_id, $task->created_by, $task->title, $currentUser->name, $task->id);
+            }
+        }
+
+        // إشعار للموظف لما المهمة ترجع من review
+        if ($isRejecting) {
+            $notifyUserId = $task->assigned_to;
+            if ($notifyUserId && $notifyUserId !== $currentUser->id) {
+                NotificationService::taskRejected(
+                    $task->company_id,
+                    $notifyUserId,
+                    $task->title,
+                    $currentUser->name,
+                    $task->rejection_reason,
+                    $task->id
+                );
+            }
+        }
+
+        // Notify assigned user when task is approved (review → done)
+        if ($previousStatus === Task::STATUS_REVIEW && $task->status === Task::STATUS_DONE) {
+            if ($task->assigned_to && $task->assigned_to !== $currentUser->id) {
+                NotificationService::taskApproved($task->company_id, $task->assigned_to, $task->title, $currentUser->name, $task->id);
+            }
+        }
+
         // Notify manager/creator when task is completed
         if (!$wasCompleted && $task->status === Task::STATUS_DONE) {
-            if ($task->created_by && $task->created_by !== $request->user()->id) {
-                NotificationService::taskCompleted($task->company_id, $task->created_by, $task->title, $request->user()->name);
+            if ($task->created_by && $task->created_by !== $currentUser->id) {
+                NotificationService::taskCompleted($task->company_id, $task->created_by, $task->title, $currentUser->name);
             }
             WorkflowService::fire(WorkflowRule::TRIGGER_TASK_COMPLETED, $task->company_id, $task);
         }
@@ -225,5 +267,111 @@ class TaskController extends Controller
         $file->delete();
 
         return $this->successResponse(null, 'تم حذف الملف');
+    }
+
+    /**
+     * Quick Actions — perform common task operations in one click.
+     *
+     * Actions: complete, submit_review, request_help, add_note, extend_deadline
+     */
+    public function quickAction(Request $request, Task $task): JsonResponse
+    {
+        $this->authorize('update', $task);
+
+        $request->validate([
+            'action'   => 'required|in:complete,submit_review,request_help,add_note,extend_deadline',
+            'note'     => 'nullable|string|max:500',
+            'days'     => 'nullable|integer|min:1|max:90', // for extend_deadline
+        ]);
+
+        $action = $request->input('action');
+        $currentUser = $request->user();
+        $previousStatus = $task->status;
+        $message = '';
+
+        switch ($action) {
+            case 'complete':
+                $task->update(['status' => Task::STATUS_DONE]);
+                $message = 'تم إنهاء المهمة';
+
+                // Notify creator
+                if ($task->created_by && $task->created_by !== $currentUser->id) {
+                    NotificationService::taskCompleted($task->company_id, $task->created_by, $task->title, $currentUser->name);
+                }
+                WorkflowService::fire(\App\Models\WorkflowRule::TRIGGER_TASK_COMPLETED, $task->company_id, $task);
+
+                // Auto-resolve any follow-ups
+                \App\Models\FollowUp::where('followable_type', Task::class)
+                    ->where('followable_id', $task->id)
+                    ->active()
+                    ->get()
+                    ->each(fn($fu) => $fu->resolve('تم إنجاز المهمة'));
+                break;
+
+            case 'submit_review':
+                $task->update(['status' => Task::STATUS_REVIEW]);
+                $message = 'تم إرسال المهمة للمراجعة';
+
+                if ($task->created_by && $task->created_by !== $currentUser->id) {
+                    NotificationService::taskInReview($task->company_id, $task->created_by, $task->title, $currentUser->name, $task->id);
+                }
+                break;
+
+            case 'request_help':
+                // Add a comment and notify the creator/manager
+                $helpNote = $request->input('note', 'أحتاج مساعدة في هذه المهمة');
+
+                $task->comments()->create([
+                    'task_id' => $task->id,
+                    'user_id' => $currentUser->id,
+                    'comment' => "🆘 طلب مساعدة: {$helpNote}",
+                ]);
+
+                // Notify task creator
+                if ($task->created_by && $task->created_by !== $currentUser->id) {
+                    NotificationService::notify(
+                        $task->company_id,
+                        $task->created_by,
+                        'task_help_requested',
+                        '🆘 طلب مساعدة',
+                        "{$currentUser->name} يطلب مساعدة في المهمة \"{$task->title}\"",
+                        "/tasks/{$task->id}"
+                    );
+                }
+                $message = 'تم إرسال طلب المساعدة';
+                break;
+
+            case 'add_note':
+                $note = $request->input('note');
+                if (!$note) {
+                    return $this->errorResponse('الملاحظة مطلوبة', 422);
+                }
+
+                $task->comments()->create([
+                    'task_id' => $task->id,
+                    'user_id' => $currentUser->id,
+                    'comment' => $note,
+                ]);
+                $message = 'تم إضافة الملاحظة';
+                break;
+
+            case 'extend_deadline':
+                $days = $request->input('days', 3);
+                $newDueDate = ($task->due_date ?? now())->addDays($days);
+                $task->update(['due_date' => $newDueDate]);
+
+                $task->comments()->create([
+                    'task_id' => $task->id,
+                    'user_id' => $currentUser->id,
+                    'comment' => "📅 تم تمديد الموعد النهائي بـ {$days} أيام إلى {$newDueDate->format('Y-m-d')}",
+                ]);
+                $message = "تم تمديد الموعد النهائي إلى {$newDueDate->format('Y-m-d')}";
+                break;
+        }
+
+        return $this->successResponse(
+            new TaskResource($task->fresh()->load(['assignedUser', 'client', 'project', 'assignees', 'subtasks'])),
+            $message
+        );
     }
 }

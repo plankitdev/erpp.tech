@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreProjectRequest;
+use App\Http\Requests\UpdateProjectRequest;
 use App\Http\Resources\ProjectResource;
 use App\Http\Resources\ProjectFileResource;
 use App\Http\Resources\TaskResource;
@@ -46,19 +48,10 @@ class ProjectController extends Controller
         return $this->paginatedResponse($projects);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreProjectRequest $request): JsonResponse
     {
         $this->authorize('create', Project::class);
-        $data = $request->validate([
-            'name'        => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'client_id'   => 'nullable|exists:clients,id',
-            'status'      => 'sometimes|in:active,completed,on_hold,cancelled',
-            'start_date'  => 'nullable|date',
-            'end_date'    => 'nullable|date|after_or_equal:start_date',
-            'budget'      => 'nullable|numeric|min:0',
-            'currency'    => 'sometimes|in:EGP,USD,SAR',
-        ]);
+        $data = $request->validated();
 
         $data['created_by'] = $request->user()->id;
         $project = Project::create($data);
@@ -105,19 +98,10 @@ class ProjectController extends Controller
         return $this->successResponse(new ProjectResource($project));
     }
 
-    public function update(Request $request, Project $project): JsonResponse
+    public function update(UpdateProjectRequest $request, Project $project): JsonResponse
     {
         $this->authorize('update', $project);
-        $data = $request->validate([
-            'name'        => 'sometimes|string|max:255',
-            'description' => 'nullable|string',
-            'client_id'   => 'nullable|exists:clients,id',
-            'status'      => 'sometimes|in:active,completed,on_hold,cancelled',
-            'start_date'  => 'nullable|date',
-            'end_date'    => 'nullable|date',
-            'budget'      => 'nullable|numeric|min:0',
-            'currency'    => 'sometimes|in:EGP,USD,SAR',
-        ]);
+        $data = $request->validated();
 
         $project->update($data);
 

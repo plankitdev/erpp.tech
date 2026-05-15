@@ -31,3 +31,11 @@ export function useCreateTransaction() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['treasury'] }),
   });
 }
+
+export function useDeleteTransaction() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => treasuryApi.delete(id).then(r => r.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['treasury'] }),
+  });
+}

@@ -19,4 +19,7 @@ export const treasuryApi = {
 
   getBalance: () =>
     api.get<ApiResponse<TreasuryBalance>>('/treasury/balance'),
+
+  delete: (id: number) =>
+    api.delete<ApiResponse<null>>(`/treasury/${id}`),
 };

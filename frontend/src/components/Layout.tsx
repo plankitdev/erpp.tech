@@ -1,23 +1,28 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, Fragment } from 'react';
 import { statusLabels } from '../utils';
 import { useClickOutside } from '../hooks/useClickOutside';
 import {
   LayoutDashboard, Users, FileText, Receipt, UserCog, Wallet, Landmark,
   CheckSquare, Kanban, Handshake, BarChart3, KeyRound, ChevronRight, ChevronLeft,
   LogOut, CreditCard, Settings, Activity, ChevronDown, Building2, User, Shield, FolderKanban, FolderOpen,
-  PanelRightOpen, PanelRightClose, Search, Target, UserPlus, Menu, X,
-  CalendarDays, ImageIcon, Video, Heart, Timer, ClipboardList, Ticket, GanttChartSquare, Mail, Zap, BookOpen, MessageSquare, Tag, Monitor, Megaphone, HardDrive,
+  PanelRightOpen, PanelRightClose, Target, UserPlus, Menu, X,
+  CalendarDays, ImageIcon, Video, Heart, Timer, ClipboardList, Ticket, GanttChartSquare, Mail, Zap, BookOpen, Tag, Monitor, Megaphone, HardDrive,
+  Star, Pin, PinOff, Sun, Moon,
+  FolderTree, BookOpenCheck, GitBranch, Calculator, Box, Clock, Scale, TrendingUp, LayoutList, MessageSquare,
 } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import Breadcrumbs, { type BreadcrumbItem } from './Breadcrumbs';
-import GlobalSearch from './GlobalSearch';
 import FloatingActionButton from './FloatingActionButton';
 import OnboardingTour from './OnboardingTour';
+import AttendanceTimer from './AttendanceTimer';
+import OverdueBanner from './OverdueBanner';
 import { useAnnouncementUnreadCount } from '../hooks/useAnnouncements';
 import { useChatUnreadCount } from '../hooks/useChat';
 import { useSidebarBadges } from '../hooks/useDashboard';
+import { useThemeStore } from '../store/themeStore';
+import { useNotificationStream } from '../hooks/useNotificationStream';
 
 interface MenuItem {
   path: string;
@@ -25,35 +30,51 @@ interface MenuItem {
   icon: typeof LayoutDashboard;
   permission: string | null;
   roles?: string[];
+  dividerBefore?: boolean;
 }
 
 interface MenuSection {
   title: string;
   icon: typeof LayoutDashboard;
   items: MenuItem[];
+  hubPath?: string;        // if provided, section title becomes a link
+  hubPermission?: string | null; // explicit permission for the hub page (defaults to first non-null item permission)
+  color?: string;          // accent color class for the section icon
 }
 
-// Standalone items shown at top (outside sections)
+interface SidebarTab {
+  id: 'team' | 'finance' | 'clients' | 'system';
+  label: string;
+  icon: typeof LayoutDashboard;
+  sectionTitles: string[];
+}
+
+// Standalone items — only items with badges or always-visible nav
 const standaloneItems: MenuItem[] = [
   { path: '/announcements', label: 'الإعلانات', icon: Megaphone, permission: null },
   { path: '/chat', label: 'المحادثات', icon: MessageSquare, permission: null },
-  { path: '/personal-todos', label: 'مهامي الشخصية', icon: CheckSquare, permission: null },
-  { path: '/settings', label: 'الإعدادات', icon: Settings, permission: null },
 ];
 
 const menuSections: MenuSection[] = [
   {
-    title: 'العملاء والمبيعات',
+    title: 'إدارة العملاء',
     icon: Users,
+    hubPath: '/clients-hub',
+    color: 'text-blue-400',
     items: [
-      { path: '/clients-hub', label: 'نظرة عامة', icon: LayoutDashboard, permission: 'clients' },
       { path: '/clients', label: 'العملاء', icon: Users, permission: 'clients' },
       { path: '/contracts', label: 'العقود', icon: FileText, permission: 'contracts' },
-      { path: '/invoices', label: 'الفواتير', icon: Receipt, permission: 'invoices' },
-      { path: '/sales-hub', label: 'المبيعات', icon: Target, permission: 'sales' },
-      { path: '/sales', label: 'تحليلات المبيعات', icon: BarChart3, permission: 'sales' },
-      { path: '/leads', label: 'العملاء المحتملين', icon: UserPlus, permission: 'sales' },
       { path: '/quotations', label: 'عروض الأسعار', icon: ClipboardList, permission: 'sales' },
+    ],
+  },
+  {
+    title: 'المبيعات والتسويق',
+    icon: Target,
+    hubPath: '/sales-hub',
+    hubPermission: 'sales',
+    color: 'text-orange-400',
+    items: [
+      { path: '/leads', label: 'العملاء المحتملين', icon: UserPlus, permission: 'sales' },
       { path: '/tickets', label: 'تذاكر الدعم', icon: Ticket, permission: 'clients' },
       { path: '/email', label: 'البريد الإلكتروني', icon: Mail, permission: 'sales' },
     ],
@@ -61,68 +82,168 @@ const menuSections: MenuSection[] = [
   {
     title: 'المهام والمشاريع',
     icon: CheckSquare,
+    hubPath: '/tasks-hub',
+    hubPermission: 'tasks',
+    color: 'text-teal-400',
     items: [
-      { path: '/tasks-hub', label: 'نظرة عامة', icon: LayoutDashboard, permission: 'tasks' },
-      { path: '/projects', label: 'المشاريع', icon: FolderKanban, permission: 'tasks' },
+      { path: '/personal-todos', label: 'مهامي الشخصية', icon: ClipboardList, permission: null },
+      { path: '/account-manager', label: 'لوحة مدير الحساب', icon: LayoutList, permission: 'tasks', roles: ['super_admin', 'company_admin', 'manager', 'marketing_manager'] },
+      { path: '/weekly-report', label: 'التقرير الأسبوعي', icon: BarChart3, permission: 'tasks', roles: ['super_admin', 'company_admin', 'manager', 'marketing_manager'] },
+      { path: '/client-report', label: 'تقرير العميل', icon: Users, permission: 'tasks', roles: ['super_admin', 'company_admin', 'manager', 'marketing_manager'] },
+      { path: '/projects', label: 'المشاريع', icon: FolderKanban, permission: 'projects' },
       { path: '/tasks', label: 'المهام', icon: CheckSquare, permission: 'tasks' },
-      { path: '/tasks/board', label: 'لوحة Kanban', icon: Kanban, permission: 'tasks' },
-      { path: '/calendar', label: 'التقويم', icon: CalendarDays, permission: 'tasks' },
+      { path: '/tasks/board', label: 'لوحة كانبان', icon: Kanban, permission: 'tasks' },
+      { path: '/calendar', label: 'التقويم', icon: CalendarDays, permission: 'tasks', dividerBefore: true },
       { path: '/meetings', label: 'الاجتماعات', icon: Video, permission: 'tasks' },
+      { path: '/time-tracking', label: 'تتبع الوقت', icon: Timer, permission: 'tasks', dividerBefore: true },
+      { path: '/gantt', label: 'مخطط جانت', icon: GanttChartSquare, permission: 'projects' },
       { path: '/kpi', label: 'لوحة الأداء', icon: Target, permission: null },
-    ],
-  },
-  {
-    title: 'المالية',
-    icon: Landmark,
-    items: [
-      { path: '/finance-hub', label: 'نظرة عامة', icon: LayoutDashboard, permission: 'treasury' },
-      { path: '/treasury', label: 'الخزينة', icon: Landmark, permission: 'treasury' },
-      { path: '/expenses', label: 'المصروفات', icon: CreditCard, permission: 'expenses' },
-      { path: '/partners', label: 'الشركاء', icon: Handshake, permission: 'partners' },
     ],
   },
   {
     title: 'الموارد البشرية',
     icon: UserCog,
+    hubPath: '/hr-hub',
+    color: 'text-violet-400',
     items: [
-      { path: '/hr-hub', label: 'نظرة عامة', icon: LayoutDashboard, permission: 'employees' },
       { path: '/employees', label: 'الموظفين', icon: UserCog, permission: 'employees' },
       { path: '/salaries', label: 'الرواتب', icon: Wallet, permission: 'salaries' },
       { path: '/leave-attendance', label: 'الإجازات والحضور', icon: CalendarDays, permission: null },
     ],
   },
   {
+    title: 'المحاسبة والخزينة',
+    icon: Landmark,
+    hubPath: '/finance-hub',
+    hubPermission: 'treasury',
+    color: 'text-emerald-400',
+    items: [
+      { path: '/invoices', label: 'الفواتير', icon: Receipt, permission: 'invoices' },
+      { path: '/treasury', label: 'الخزينة', icon: Wallet, permission: 'treasury' },
+      { path: '/expenses', label: 'المصروفات', icon: CreditCard, permission: 'expenses' },
+      { path: '/partners', label: 'الشركاء', icon: Handshake, permission: 'treasury' },
+      { path: '/chart-of-accounts', label: 'دليل الحسابات', icon: FolderTree, permission: 'treasury', roles: ['super_admin', 'company_admin', 'manager', 'accountant'] },
+      { path: '/journal-entries', label: 'قيود اليومية', icon: BookOpenCheck, permission: 'treasury', roles: ['super_admin', 'company_admin', 'manager', 'accountant'] },
+      { path: '/cost-centers', label: 'مراكز التكلفة', icon: GitBranch, permission: 'treasury', roles: ['super_admin', 'company_admin', 'manager', 'accountant'] },
+      { path: '/budgets', label: 'الموازنات', icon: Calculator, permission: 'treasury', roles: ['super_admin', 'company_admin', 'manager', 'accountant'] },
+      { path: '/bank-accounts', label: 'الحسابات البنكية', icon: Landmark, permission: 'treasury', roles: ['super_admin', 'company_admin', 'manager', 'accountant'] },
+      { path: '/fixed-assets', label: 'الأصول الثابتة', icon: Box, permission: 'treasury', roles: ['super_admin', 'company_admin', 'manager', 'accountant'] },
+    ],
+  },
+  {
+    title: 'التقارير المالية',
+    icon: TrendingUp,
+    color: 'text-cyan-400',
+    items: [
+      { path: '/accounts-receivable', label: 'الذمم المدينة', icon: Clock, permission: 'treasury', roles: ['super_admin', 'company_admin', 'manager', 'accountant'] },
+      { path: '/balance-sheet', label: 'الميزانية العمومية', icon: Scale, permission: 'treasury', roles: ['super_admin', 'company_admin', 'manager', 'accountant'] },
+      { path: '/financial-kpis', label: 'مؤشرات الأداء المالي', icon: TrendingUp, permission: 'treasury', roles: ['super_admin', 'company_admin', 'manager', 'accountant'] },
+    ],
+  },
+  {
     title: 'التقارير والملفات',
     icon: BarChart3,
+    color: 'text-amber-400',
     items: [
       { path: '/reports', label: 'التقارير', icon: BarChart3, permission: 'reports' },
       { path: '/reports/employees', label: 'تقارير الموظفين', icon: Users, permission: 'reports' },
       { path: '/file-manager', label: 'مدير الملفات', icon: HardDrive, permission: null },
-      { path: '/media', label: 'مكتبة الملفات', icon: ImageIcon, permission: 'users', roles: ['super_admin', 'company_admin', 'manager'] },
+      { path: '/media', label: 'مكتبة الوسائط', icon: ImageIcon, permission: 'users', roles: ['super_admin', 'company_admin', 'manager'] },
       { path: '/file-templates', label: 'قوالب الملفات', icon: FolderOpen, permission: 'users', roles: ['super_admin', 'company_admin', 'manager'] },
-      // { path: '/template-library', label: 'مكتبة التيمبليتس', icon: BookOpen, permission: null },
-      // { path: '/my-documents', label: 'مستنداتي', icon: FileText, permission: null },
     ],
   },
   {
     title: 'إدارة النظام',
     icon: Settings,
+    color: 'text-rose-400',
     items: [
       { path: '/users', label: 'المستخدمين', icon: KeyRound, permission: 'users', roles: ['super_admin', 'company_admin', 'manager'] },
       { path: '/activity-logs', label: 'سجل النشاطات', icon: Activity, permission: 'activity_logs', roles: ['super_admin', 'company_admin', 'manager'] },
-      { path: '/workflows', label: 'أتمتة العمليات', icon: Zap, permission: 'users', roles: ['super_admin', 'company_admin', 'manager'] },
+      { path: '/workflows', label: 'الأتمتة', icon: Zap, permission: 'users', roles: ['super_admin', 'company_admin', 'manager'] },
       { path: '/tags', label: 'العلامات', icon: Tag, permission: 'users', roles: ['super_admin', 'company_admin', 'manager'] },
-      { path: '/api-docs', label: 'توثيق الـ API', icon: BookOpen, permission: 'users', roles: ['super_admin', 'company_admin', 'manager'] },
+      { path: '/api-docs', label: 'توثيق الواجهة البرمجية', icon: BookOpen, permission: 'users', roles: ['super_admin', 'company_admin', 'manager'] },
       { path: '/system-monitor', label: 'مراقبة النظام', icon: Monitor, permission: 'users', roles: ['super_admin'] },
     ],
   },
 ];
 
+// Hub pages need to be in allMenuItems for recent/pinned to work
+const hubItems: MenuItem[] = menuSections
+  .filter(s => s.hubPath)
+  .map(s => ({
+    path: s.hubPath!,
+    label: s.title,
+    icon: s.icon,
+    // Use explicit hubPermission if set, otherwise derive from first non-null item permission
+    // This keeps hub items gated to users who actually have access to that section
+    permission: s.hubPermission !== undefined
+      ? s.hubPermission
+      : (s.items.find(i => i.permission !== null)?.permission ?? null),
+  }));
+
 const allMenuItems = [
-  { path: '/', label: 'لوحة التحكم', icon: LayoutDashboard, permission: 'dashboard' },
+  { path: '/', label: 'لوحة التحكم', icon: LayoutDashboard, permission: null }, // accessible to all authenticated users
   ...standaloneItems,
+  ...hubItems,
   ...menuSections.flatMap(s => s.items),
 ];
+
+const superAdminTabs: SidebarTab[] = [
+  {
+    id: 'team',
+    label: 'التيم',
+    icon: UserCog,
+    sectionTitles: ['المهام والمشاريع', 'الموارد البشرية', 'التقارير والملفات'],
+  },
+  {
+    id: 'finance',
+    label: 'الحسابات',
+    icon: Landmark,
+    sectionTitles: ['المحاسبة والخزينة', 'التقارير المالية'],
+  },
+  {
+    id: 'clients',
+    label: 'العملاء',
+    icon: Users,
+    sectionTitles: ['إدارة العملاء', 'المبيعات والتسويق'],
+  },
+  {
+    id: 'system',
+    label: 'الإدارة',
+    icon: Settings,
+    sectionTitles: ['إدارة النظام'],
+  },
+];
+
+const SIDEBAR_PINNED_KEY = 'erpflex_sidebar_pinned';
+const SIDEBAR_RECENT_KEY = 'erpflex_sidebar_recent';
+const SIDEBAR_USAGE_KEY = 'erpflex_sidebar_usage';
+
+function readStoredPaths(key: string): string[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) || '[]');
+    return Array.isArray(parsed) ? parsed.filter(v => typeof v === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+function readStoredUsageMap(): Record<string, number> {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(SIDEBAR_USAGE_KEY) || '{}');
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+
+    const normalized: Record<string, number> = {};
+    Object.entries(parsed).forEach(([path, count]) => {
+      if (typeof path === 'string' && typeof count === 'number' && Number.isFinite(count) && count > 0) {
+        normalized[path] = count;
+      }
+    });
+    return normalized;
+  } catch {
+    return {};
+  }
+}
 
 export default function Layout() {
   const { user, logout, hasPermission } = useAuthStore();
@@ -130,24 +251,27 @@ export default function Layout() {
   const { data: announcementUnread = 0 } = useAnnouncementUnreadCount();
   const { data: chatUnread = 0 } = useChatUnreadCount();
   const { data: badges } = useSidebarBadges();
+  const sidebarBadges = (badges || {}) as Record<string, number>;
+  const { theme, setTheme } = useThemeStore();
+
+  // Real-time notification stream (SSE) — falls back to 60s polling in NotificationBell
+  const isAuthenticated = !!useAuthStore.getState().token;
+  useNotificationStream(isAuthenticated);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const [profileOpen, setProfileOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [pinnedPaths, setPinnedPaths] = useState<string[]>([]);
+  const [recentPaths, setRecentPaths] = useState<string[]>([]);
+  const [usageCounts, setUsageCounts] = useState<Record<string, number>>({});
+  const [activeSidebarTab, setActiveSidebarTab] = useState<SidebarTab['id']>('team');
   const profileRef = useRef<HTMLDivElement>(null);
   const mobileOverlayRef = useRef<HTMLDivElement>(null);
 
-  // Ctrl+K global shortcut
   useEffect(() => {
-    const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault();
-        setSearchOpen(prev => !prev);
-      }
-    };
-    window.addEventListener('keydown', handleGlobalKeyDown);
-    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+    setPinnedPaths(readStoredPaths(SIDEBAR_PINNED_KEY));
+    setRecentPaths(readStoredPaths(SIDEBAR_RECENT_KEY));
+    setUsageCounts(readStoredUsageMap());
   }, []);
 
   useClickOutside(profileRef, useCallback(() => setProfileOpen(false), []));
@@ -163,6 +287,42 @@ export default function Layout() {
     }))
     .filter(section => section.items.length > 0);
 
+  const isSuperAdmin = user?.role === 'super_admin';
+
+  const visibleSections = isSuperAdmin
+    ? filteredSections.filter(section => {
+        const activeTab = superAdminTabs.find(tab => tab.id === activeSidebarTab);
+        return activeTab ? activeTab.sectionTitles.includes(section.title) : true;
+      })
+    : filteredSections;
+
+  const accessibleMenuItems = allMenuItems.filter(item => {
+    if (item.roles && item.roles.length > 0 && !item.roles.includes(user?.role || '')) return false;
+    if (!item.permission) return true;
+    return hasPermission(item.permission);
+  });
+
+  const pinnedItems = pinnedPaths
+    .map(path => accessibleMenuItems.find(i => i.path === path))
+    .filter(Boolean)
+    .slice(0, 6) as typeof allMenuItems;
+
+  const recentItems = recentPaths
+    .map(path => accessibleMenuItems.find(i => i.path === path))
+    .filter((i): i is NonNullable<typeof i> => i !== undefined)
+    .filter(i => !pinnedPaths.includes(i.path))
+    .slice(0, 6);
+
+  const togglePin = (path: string) => {
+    setPinnedPaths(prev => {
+      const next = prev.includes(path)
+        ? prev.filter(p => p !== path)
+        : [path, ...prev].slice(0, 8);
+      localStorage.setItem(SIDEBAR_PINNED_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+
   // Auto-collapse: only the section containing the active page stays open
   const isSectionOpen = (title: string, items: MenuItem[]) => {
     if (collapsedSections[title] !== undefined) return !collapsedSections[title];
@@ -170,24 +330,51 @@ export default function Layout() {
   };
 
   const toggleSection = (title: string) => {
-    const section = filteredSections.find(s => s.title === title);
+    const section = visibleSections.find(s => s.title === title);
     const currentlyOpen = isSectionOpen(title, section?.items || []);
     if (currentlyOpen) {
       setCollapsedSections(prev => ({ ...prev, [title]: true }));
     } else {
       // Accordion: close all others, open only this one
       const newState: Record<string, boolean> = {};
-      filteredSections.forEach(s => { newState[s.title] = s.title !== title; });
+      visibleSections.forEach(s => { newState[s.title] = s.title !== title; });
       setCollapsedSections(newState);
     }
   };
 
+  const isPathActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
+
   const currentPage = allMenuItems.find(m => m.path === location.pathname);
   const currentSection = menuSections.find(s => s.items.some(i => i.path === location.pathname));
+
+  useEffect(() => {
+    if (!isSuperAdmin || !currentSection) return;
+    const matchingTab = superAdminTabs.find(tab => tab.sectionTitles.includes(currentSection.title));
+    if (matchingTab && matchingTab.id !== activeSidebarTab) {
+      setActiveSidebarTab(matchingTab.id);
+    }
+  }, [isSuperAdmin, currentSection?.title, activeSidebarTab]);
 
   // Reset manual collapse state on navigation so auto-collapse takes over
   useEffect(() => {
     setCollapsedSections({});
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const current = accessibleMenuItems.find(i => location.pathname === i.path || location.pathname.startsWith(i.path + '/'));
+    if (!current) return;
+
+    setRecentPaths(prev => {
+      const next = [current.path, ...prev.filter(p => p !== current.path)].slice(0, 10);
+      localStorage.setItem(SIDEBAR_RECENT_KEY, JSON.stringify(next));
+      return next;
+    });
+
+    setUsageCounts(prev => {
+      const next = { ...prev, [current.path]: (prev[current.path] || 0) + 1 };
+      localStorage.setItem(SIDEBAR_USAGE_KEY, JSON.stringify(next));
+      return next;
+    });
   }, [location.pathname]);
   // Build breadcrumbs
   const breadcrumbs: BreadcrumbItem[] = [];
@@ -195,7 +382,7 @@ export default function Layout() {
     breadcrumbs.push({ label: currentSection.title });
     breadcrumbs.push({ label: currentPage.label });
   } else if (location.pathname === '/sales') {
-    breadcrumbs.push({ label: 'العملاء والمبيعات' });
+    breadcrumbs.push({ label: 'المبيعات والتسويق' });
     breadcrumbs.push({ label: 'تحليلات المبيعات' });
   } else {
     breadcrumbs.push({ label: 'لوحة التحكم' });
@@ -237,238 +424,338 @@ export default function Layout() {
       </div>
 
       {/* Gradient divider */}
-      <div className="mx-4 h-px bg-gradient-to-l from-transparent via-white/[0.07] to-transparent" />
+      <div className="mx-4 h-px bg-gradient-to-l from-transparent via-white/[0.05] to-transparent" />
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-2 px-3 space-y-0.5 sidebar-scroll" data-tour="sidebar">
-        {/* Dashboard - standalone link */}
+      <nav className="flex-1 overflow-y-auto py-2.5 px-3 sidebar-scroll" data-tour="sidebar">
+
+        {/* ── Top row: Dashboard only ── */}
         <div className="mb-1">
-          {sidebarOpen ? (
-            <Link
-              to="/"
-              onClick={() => setMobileMenuOpen(false)}
-              data-tour="dashboard"
-              className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 ${
-                location.pathname === '/'
-                  ? 'bg-primary-500/10 text-white shadow-sm'
-                  : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
-              }`}
-            >
-              {location.pathname === '/' && (
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-l-full bg-primary-400 shadow-[0_0_8px_rgba(44,159,143,0.4)]" />
-              )}
-              <LayoutDashboard size={18} strokeWidth={location.pathname === '/' ? 2.2 : 1.7} className={location.pathname === '/' ? 'text-primary-400' : 'text-slate-500 group-hover:text-slate-300'} />
-              <span className="truncate">لوحة التحكم</span>
-            </Link>
-          ) : (
-            <Link
-              to="/"
-              title="لوحة التحكم"
-              className={`group relative flex items-center justify-center px-3 py-2.5 rounded-xl transition-all duration-200 ${
-                location.pathname === '/' ? 'bg-primary-500/10 text-primary-400' : 'text-slate-500 hover:bg-white/[0.04] hover:text-slate-300'
-              }`}
-            >
-              <LayoutDashboard size={18} />
-            </Link>
-          )}
+          <Link
+            to="/"
+            onClick={() => setMobileMenuOpen(false)}
+            data-tour="dashboard"
+            title="لوحة التحكم"
+            className={`group relative flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] font-medium transition-all duration-200 flex-1 ${
+              location.pathname === '/'
+                ? 'bg-white/[0.08] text-slate-100'
+                : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
+            } ${!sidebarOpen ? 'justify-center' : ''}`}
+          >
+            {location.pathname === '/' && (
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[2px] h-3.5 rounded-l-full bg-primary-300/80" />
+            )}
+            <LayoutDashboard size={17} className={location.pathname === '/' ? 'text-primary-300 flex-shrink-0' : 'text-slate-600 group-hover:text-slate-200 flex-shrink-0'} />
+            {sidebarOpen && <span className="truncate">لوحة التحكم</span>}
+          </Link>
         </div>
 
-        {/* Standalone items: Announcements, Chat */}
-        {standaloneItems.filter(item => !item.permission || hasPermission(item.permission)).map(item => {
-          const Icon = item.icon;
-          const isActive = location.pathname === item.path;
-          const badge = item.path === '/announcements' ? announcementUnread
-            : item.path === '/chat' ? chatUnread
-            : 0;
-
-          return sidebarOpen ? (
-            <Link
-              key={item.path}
-              to={item.path}
-              onClick={() => setMobileMenuOpen(false)}
-              className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 ${
-                isActive
-                  ? 'bg-primary-500/10 text-white shadow-sm'
-                  : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
-              }`}
-            >
-              {isActive && (
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-l-full bg-primary-400 shadow-[0_0_8px_rgba(44,159,143,0.4)]" />
-              )}
-              <Icon size={18} strokeWidth={isActive ? 2.2 : 1.7} className={isActive ? 'text-primary-400' : 'text-slate-500 group-hover:text-slate-300'} />
-              <span className="truncate">{item.label}</span>
-              {badge > 0 && (
-                <span className={`${item.path === '/announcements' ? 'bg-red-500' : 'bg-blue-500'} text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 mr-auto`}>
-                  {badge > 99 ? '99+' : badge}
-                </span>
-              )}
-            </Link>
-          ) : (
-            <Link
-              key={item.path}
-              to={item.path}
-              onClick={() => setMobileMenuOpen(false)}
-              title={item.label}
-              className={`group relative flex items-center justify-center px-3 py-2.5 rounded-xl transition-all duration-200 ${
-                isActive ? 'bg-primary-500/10 text-primary-400' : 'text-slate-500 hover:bg-white/[0.04] hover:text-slate-300'
-              }`}
-            >
-              <Icon size={18} />
-              {badge > 0 && (
-                <span className={`absolute top-1 left-1 ${item.path === '/announcements' ? 'bg-red-500' : 'bg-blue-500'} text-white text-[8px] font-bold rounded-full min-w-[14px] h-[14px] flex items-center justify-center px-0.5`}>
-                  {badge > 9 ? '9+' : badge}
-                </span>
-              )}
-            </Link>
-          );
-        })}
-
-        <div className="mx-2 my-2 h-px bg-white/[0.05]" />
-
-        {filteredSections.map((section) => {
-          const isOpen = isSectionOpen(section.title, section.items);
-          const hasActive = section.items.some(i => location.pathname === i.path || location.pathname.startsWith(i.path + '/'));
-          const SectionIcon = section.icon;
-
-          return (
-            <div key={section.title} className="mb-0.5">
-              {sidebarOpen ? (
-                <button
-                  onClick={() => toggleSection(section.title)}
-                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-bold uppercase tracking-[0.08em] transition-all duration-200 ${
-                    hasActive ? 'text-primary-400' : 'text-slate-500/80 hover:text-slate-400'
-                  }`}
-                >
-                  <SectionIcon size={13} className={hasActive ? 'text-primary-400' : 'text-slate-600'} />
-                  <span className="flex-1 text-right">{section.title}</span>
-                  <ChevronDown size={11} className={`transition-transform duration-200 ${!isOpen ? '-rotate-90' : ''}`} />
-                </button>
-              ) : (
-                <div className="flex justify-center py-2">
-                  <div className={`w-5 h-[2px] rounded-full transition-colors ${hasActive ? 'bg-primary-400' : 'bg-slate-700/50'}`} />
-                </div>
-              )}
-
-              {!isOpen && sidebarOpen && hasActive && (
-                <div className="mr-3 mb-1">
-                  {section.items.filter(i => location.pathname === i.path || location.pathname.startsWith(i.path + '/')).map(item => {
-                    const Icon = item.icon;
-                    return (
-                      <Link
-                        key={item.path}
-                        to={item.path}
-                        className="flex items-center gap-2 px-3 py-1.5 text-[12px] text-primary-400 font-medium"
-                      >
-                        <Icon size={14} />
-                        <span className="truncate">{item.label}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-
-              {isOpen && (
-                <div className={`space-y-0.5 ${sidebarOpen ? 'mr-0.5' : ''}`}>
-                  {section.items.map((item) => {
-                    const Icon = item.icon;
-                    const isActive = location.pathname === item.path;
-
-                    return (
-                      <Link
-                        key={item.path}
-                        to={item.path}
-                        onClick={() => setMobileMenuOpen(false)}
-                        title={!sidebarOpen ? item.label : undefined}
-                        className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 ${
-                          isActive
-                            ? 'bg-primary-500/10 text-white shadow-sm'
-                            : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
-                        } ${!sidebarOpen ? 'justify-center' : ''}`}
-                      >
-                        {/* Active indicator */}
-                        {isActive && (
-                          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-l-full bg-primary-400 shadow-[0_0_8px_rgba(44,159,143,0.4)]" />
-                        )}
-                        <div className={`flex-shrink-0 transition-all duration-200 ${
-                          isActive 
-                            ? 'text-primary-400' 
-                            : 'text-slate-500 group-hover:text-slate-300'
-                        }`}>
-                          <Icon size={18} strokeWidth={isActive ? 2.2 : 1.7} />
-                        </div>
-                        {sidebarOpen && (
-                          <span className="truncate">{item.label}</span>
-                        )}
-                        {item.path === '/tasks' && (badges?.new_tasks ?? 0) > 0 && (
-                          <span className="bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 mr-auto">
-                            {badges!.new_tasks > 99 ? '99+' : badges!.new_tasks}
-                          </span>
-                        )}
-                        {item.path === '/projects' && (badges?.new_projects ?? 0) > 0 && (
-                          <span className="bg-orange-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 mr-auto">
-                            {badges!.new_projects > 99 ? '99+' : badges!.new_projects}
-                          </span>
-                        )}
-                        {item.path === '/meetings' && (badges?.upcoming_meetings ?? 0) > 0 && (
-                          <span className="bg-purple-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 mr-auto">
-                            {badges!.upcoming_meetings > 99 ? '99+' : badges!.upcoming_meetings}
-                          </span>
-                        )}
-                        {/* Hover glow on active */}
-                        {isActive && sidebarOpen && (
-                          <div className="absolute inset-0 rounded-xl bg-primary-500/5 pointer-events-none" />
-                        )}
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
+        {/* ── Pinned ── */}
+        {sidebarOpen && pinnedItems.length > 0 && (
+          <div className="mb-1">
+            <div className="px-2 py-1 flex items-center gap-1.5 text-[10.5px] text-slate-500 font-semibold">
+              <Star size={10} className="text-amber-300" />
+              المفضلة
             </div>
-          );
-        })}
+            <div className="space-y-0.5">
+              {pinnedItems.slice(0, 5).map(item => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.path;
+                return (
+                  <Link
+                    key={`pin-${item.path}`}
+                    to={item.path}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`group flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all ${
+                      isActive ? 'bg-white/[0.07] text-slate-100' : 'text-slate-500 hover:bg-white/[0.03] hover:text-slate-200'
+                    }`}
+                  >
+                    <Icon size={14} className={isActive ? 'text-primary-300 flex-shrink-0' : 'text-slate-600 group-hover:text-slate-300 flex-shrink-0'} />
+                    <span className="truncate flex-1">{item.label}</span>
+                    <button
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); togglePin(item.path); }}
+                      className="opacity-100 md:opacity-0 md:group-hover:opacity-100 text-amber-300 hover:text-slate-400 transition-all"
+                      title="إزالة من المفضلة"
+                    >
+                      <PinOff size={11} />
+                    </button>
+                  </Link>
+                );
+              })}
+            </div>
+            <div className="mx-2 mt-1 h-px bg-white/[0.03]" />
+          </div>
+        )}
+        {/* ── Standalone: Announcements ── */}
+        <div className="flex gap-1 mb-1">
+          {standaloneItems.filter(item => !item.permission || hasPermission(item.permission)).map(item => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path;
+            const badge = item.path === '/announcements' ? announcementUnread : item.path === '/chat' ? chatUnread : 0;
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={() => setMobileMenuOpen(false)}
+                title={item.label}
+                className={`group relative flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12.5px] font-medium transition-all flex-1 ${
+                  isActive ? 'bg-white/[0.08] text-slate-100' : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
+                } ${!sidebarOpen ? 'justify-center' : ''}`}
+              >
+                {isActive && <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[2px] h-3.5 rounded-l-full bg-primary-300/80" />}
+                <Icon size={17} className={isActive ? 'text-primary-300 flex-shrink-0' : 'text-slate-600 group-hover:text-slate-300 flex-shrink-0'} />
+                {sidebarOpen && <span className="truncate">{item.label}</span>}
+                {badge > 0 && (
+                  <span className={`${item.path === '/announcements' ? 'bg-rose-500/90' : 'bg-sky-500/90'} text-white text-[9px] font-bold rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-1 ${sidebarOpen ? 'mr-auto' : 'absolute top-1 left-1'}`}>
+                    {badge > 9 ? '9+' : badge}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* ── Divider ── */}
+        <div className="mx-2 mb-2 mt-1 h-px bg-white/[0.04]" />
+
+        {isSuperAdmin && sidebarOpen && (
+          <div className="mb-2 rounded-xl border border-white/[0.06] bg-white/[0.02] p-1">
+            <div className="grid grid-cols-2 gap-1">
+              {superAdminTabs.map((tab) => {
+                const TabIcon = tab.icon;
+                const isActiveTab = tab.id === activeSidebarTab;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveSidebarTab(tab.id)}
+                    className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-semibold transition-all ${
+                      isActiveTab
+                        ? 'bg-primary-500/20 text-primary-200 border border-primary-400/30'
+                        : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200 border border-transparent'
+                    }`}
+                  >
+                    <TabIcon size={13} />
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── Sections ── */}
+        <div className="space-y-1">
+          {visibleSections.map((section) => {
+            const isOpen = isSectionOpen(section.title, section.items);
+            const hasActive = section.items.some(i => location.pathname === i.path || location.pathname.startsWith(i.path + '/'));
+            const SectionIcon = section.icon;
+            const accentColor = section.color || 'text-slate-400';
+
+            // Badge count for section header — sum all badges for items in this section
+            let sectionBadge = 0;
+            section.items.forEach(i => {
+              if (i.path === '/tasks') sectionBadge += (sidebarBadges.new_tasks ?? 0);
+              if (i.path === '/projects') sectionBadge += (sidebarBadges.new_projects ?? 0);
+              if (i.path === '/meetings') sectionBadge += (sidebarBadges.upcoming_meetings ?? 0);
+              if (i.path === '/invoices') sectionBadge += (sidebarBadges.overdue_invoices ?? 0);
+              if (i.path === '/leads') sectionBadge += (sidebarBadges.new_leads ?? 0);
+              if (i.path === '/salaries') sectionBadge += (sidebarBadges.pending_salaries ?? 0);
+              if (i.path === '/tickets') sectionBadge += (sidebarBadges.open_tickets ?? 0);
+            });
+
+            return (
+              <div key={section.title}>
+                {/* Section header */}
+                {sidebarOpen ? (
+                  <div className="flex items-center rounded-lg">
+                    <button
+                      onClick={() => toggleSection(section.title)}
+                      className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[12px] font-semibold tracking-wide transition-all ${
+                        hasActive ? 'text-slate-200' : 'text-slate-500 hover:text-slate-300'
+                      }`}
+                    >
+                      <SectionIcon size={13} className={hasActive ? accentColor : 'text-slate-600'} />
+                      <span className="flex-1 text-right">{section.title}</span>
+                      {sectionBadge > 0 && (
+                        <span className="bg-white/[0.05] text-slate-300 text-[9px] font-semibold rounded-full px-1.5 py-0.5 border border-white/[0.08]">
+                          {sectionBadge}
+                        </span>
+                      )}
+                      <ChevronDown size={13} className={`transition-transform duration-200 ${!isOpen ? '-rotate-90' : ''}`} />
+                    </button>
+                  </div>
+                ) : (
+                  // Collapsed sidebar: icon pill
+                  <div className="flex justify-center py-1.5">
+                    <div
+                      onClick={() => toggleSection(section.title)}
+                      title={section.title}
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer transition-all ${
+                        hasActive ? 'bg-white/[0.05]' : 'hover:bg-white/[0.03]'
+                      }`}
+                    >
+                      <SectionIcon size={16} className={hasActive ? accentColor : 'text-slate-600'} />
+                    </div>
+                  </div>
+                )}
+
+                {isOpen && (
+                  <div className="space-y-0.5 mt-0.5">
+                    {section.items.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = isPathActive(item.path) && item.path !== '/';
+
+                      const itemBadge =
+                        item.path === '/tasks' ? (sidebarBadges.new_tasks ?? 0)
+                        : item.path === '/projects' ? (sidebarBadges.new_projects ?? 0)
+                        : item.path === '/meetings' ? (sidebarBadges.upcoming_meetings ?? 0)
+                        : item.path === '/invoices' ? (sidebarBadges.overdue_invoices ?? 0)
+                        : item.path === '/leads' ? (sidebarBadges.new_leads ?? 0)
+                        : item.path === '/salaries' ? (sidebarBadges.pending_salaries ?? 0)
+                        : item.path === '/tickets' ? (sidebarBadges.open_tickets ?? 0)
+                        : 0;
+
+                      const badgeColor =
+                        item.path === '/invoices' ? 'bg-rose-500/90'
+                        : item.path === '/salaries' ? 'bg-amber-500/90'
+                        : item.path === '/leads' ? 'bg-sky-500/90'
+                        : item.path === '/tickets' ? 'bg-orange-500/90'
+                        : item.path === '/projects' ? 'bg-emerald-500/90'
+                        : item.path === '/meetings' ? 'bg-violet-500/90'
+                        : 'bg-rose-500/90';
+
+                      return (
+                        <Fragment key={item.path}>
+                        {item.dividerBefore && sidebarOpen && (
+                          <div className="mx-4 my-1.5 h-px bg-white/[0.04]" />
+                        )}
+                        <Link
+                          to={item.path}
+                          onClick={() => setMobileMenuOpen(false)}
+                          title={!sidebarOpen ? item.label : undefined}
+                          className={`group relative flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12.5px] font-medium transition-all duration-150 ${
+                            isActive
+                              ? 'bg-white/[0.08] text-slate-100'
+                              : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
+                          } ${!sidebarOpen ? 'justify-center' : ''}`}
+                        >
+                          {isActive && (
+                            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[2.5px] h-4 rounded-l-full bg-primary-400" />
+                          )}
+                          <Icon
+                            size={16}
+                            className={`flex-shrink-0 transition-colors ${isActive ? 'text-primary-300' : 'text-slate-600 group-hover:text-slate-300'}`}
+                          />
+                          {sidebarOpen && (
+                            <>
+                              <span className="truncate flex-1">{item.label}</span>
+                              {itemBadge > 0 ? (
+                                <span className={`${badgeColor} text-white text-[9px] font-semibold rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-1`}>
+                                  {itemBadge > 99 ? '99+' : itemBadge}
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); togglePin(item.path); }}
+                                  className="opacity-0 group-hover:opacity-100 text-slate-600 hover:text-amber-300 transition-all flex-shrink-0"
+                                  title={pinnedPaths.includes(item.path) ? 'إزالة من المفضلة' : 'إضافة للمفضلة'}
+                                >
+                                  {pinnedPaths.includes(item.path) ? <PinOff size={12} /> : <Pin size={12} />}
+                                </button>
+                              )}
+                            </>
+                          )}
+                        </Link>
+                        </Fragment>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </nav>
 
       {/* Gradient divider */}
-      <div className="mx-4 h-px bg-gradient-to-l from-transparent via-white/[0.07] to-transparent" />
+      <div className="mx-4 h-px bg-gradient-to-l from-transparent via-white/[0.05] to-transparent" />
 
       {/* User section */}
       <div className="relative p-3">
         {sidebarOpen ? (
-          <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-white/[0.03] border border-white/[0.05] hover:bg-white/[0.05] transition-all duration-200">
-            {user?.avatar ? (
-              <img src={user.avatar} alt={user.name} className="w-9 h-9 rounded-lg object-cover shadow-md flex-shrink-0" onError={e => (e.currentTarget.style.display = 'none')} />
-            ) : (
-              <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${roleColors[user?.role || 'employee']} flex items-center justify-center text-white font-bold text-sm shadow-md flex-shrink-0`}>
-                {user?.name?.charAt(0) || 'U'}
+          <div className="rounded-xl bg-white/[0.025] border border-white/[0.04] overflow-hidden">
+            {/* User info row */}
+            <div className="flex items-center gap-3 px-3 py-3">
+              {user?.avatar ? (
+                <img src={user.avatar} alt={user.name} className="w-9 h-9 rounded-lg object-cover shadow-md flex-shrink-0" onError={e => (e.currentTarget.style.display = 'none')} />
+              ) : (
+                <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${roleColors[user?.role || 'employee']} flex items-center justify-center text-white font-bold text-sm shadow-md flex-shrink-0`}>
+                  {user?.name?.charAt(0) || 'U'}
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-white truncate">{user?.name}</p>
+                <p className="text-[10px] text-slate-500">{user?.role ? (statusLabels.role as Record<string, string>)[user.role] : ''}</p>
               </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">{user?.name}</p>
-              <p className="text-[10px] text-slate-500">{user?.role ? statusLabels.role[user.role] : ''}</p>
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="text-slate-500 hover:text-slate-200 transition-colors p-1.5 rounded-lg hover:bg-white/[0.04]"
+                title="تصغير القائمة"
+              >
+                <PanelRightOpen size={15} />
+              </button>
             </div>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="text-slate-600 hover:text-slate-300 transition-colors p-1.5 rounded-lg hover:bg-white/[0.05]"
-              title="تصغير القائمة"
-            >
-              <PanelRightOpen size={15} />
-            </button>
+            {/* Quick actions row */}
+            <div className="flex border-t border-white/[0.04]">
+              <Link
+                to="/settings"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 text-slate-500 hover:text-slate-200 hover:bg-white/[0.03] text-[11px] font-medium transition-all"
+              >
+                <Settings size={13} />
+                <span>الإعدادات</span>
+              </Link>
+              <div className="w-px bg-white/[0.04]" />
+              <button
+                onClick={() => logout()}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 text-slate-500 hover:text-rose-300 hover:bg-rose-500/[0.08] text-[11px] font-medium transition-all"
+                title="تسجيل الخروج"
+              >
+                <LogOut size={13} />
+                <span>خروج</span>
+              </button>
+            </div>
           </div>
         ) : (
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="w-full flex justify-center py-2.5 text-slate-600 hover:text-slate-300 transition-colors"
-            title="توسيع القائمة"
-          >
-            <PanelRightClose size={15} />
-          </button>
+          <div className="flex flex-col items-center gap-2">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="p-2 rounded-xl text-slate-500 hover:text-slate-200 hover:bg-white/[0.03] transition-all"
+              title="توسيع القائمة"
+            >
+              <PanelRightClose size={15} />
+            </button>
+            <Link
+              to="/settings"
+              className="p-2 rounded-xl text-slate-500 hover:text-slate-200 hover:bg-white/[0.03] transition-all"
+              title="الإعدادات"
+            >
+              <Settings size={15} />
+            </Link>
+            <button
+              onClick={() => logout()}
+              className="p-2 rounded-xl text-slate-500 hover:text-rose-300 hover:bg-rose-500/[0.08] transition-all"
+              title="تسجيل الخروج"
+            >
+              <LogOut size={15} />
+            </button>
+          </div>
         )}
       </div>
     </>
   );
 
   return (
-    <div className="flex h-screen bg-surface-50">
+    <div className="flex h-screen bg-surface-50 dark:bg-slate-900">
       {/* Mobile overlay */}
       {mobileMenuOpen && (
         <div
@@ -482,19 +769,17 @@ export default function Layout() {
       <aside className={`
         hidden lg:flex
         ${sidebarOpen ? 'w-[272px]' : 'w-[72px]'}
-        bg-gradient-to-b from-secondary-800 via-secondary-900 to-secondary-950
+        bg-gradient-to-b from-[#111c2e] via-[#0f1827] to-[#0c1422]
+        border-l border-white/[0.06]
         text-white transition-all duration-300 ease-in-out flex-col relative z-10
       `}>
-        {/* Decorative gradients */}
-        <div className="absolute top-0 right-0 w-40 h-40 bg-primary-500/[0.07] rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-20 left-0 w-32 h-32 bg-primary-600/[0.04] rounded-full blur-3xl pointer-events-none" />
         {sidebarContent}
       </aside>
 
       {/* Sidebar - Mobile */}
       <aside className={`
         fixed inset-y-0 right-0 z-50 lg:hidden
-        w-[280px] bg-gradient-to-b from-secondary-800 via-secondary-900 to-secondary-950
+        w-[280px] bg-gradient-to-b from-[#111c2e] via-[#0f1827] to-[#0c1422]
         text-white flex flex-col
         transition-transform duration-300 ease-in-out
         ${mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'}
@@ -514,7 +799,7 @@ export default function Layout() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="bg-white/80 backdrop-blur-xl border-b border-gray-200/60 px-4 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-20">
+        <header className="bg-white/80 dark:bg-slate-900/90 backdrop-blur-xl border-b border-gray-200/60 dark:border-slate-700/60 px-4 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-20">
           <div className="flex items-center gap-3">
             {/* Mobile menu button */}
             <button
@@ -529,6 +814,9 @@ export default function Layout() {
           </div>
 
           <div className="flex items-center gap-1.5">
+            {/* Attendance Timer */}
+            <AttendanceTimer />
+
             {/* Switch Company */}
             {user?.role === 'super_admin' && (
               <Link
@@ -545,6 +833,15 @@ export default function Layout() {
             <NotificationBell />
             </div>
 
+            {/* Dark Mode Toggle */}
+            <button
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="p-2 rounded-xl text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-all"
+              title={theme === 'dark' ? 'وضع النهار' : 'الوضع الليلي'}
+            >
+              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+
             {/* Profile Dropdown */}
             <div className="relative" ref={profileRef}>
               <button
@@ -560,26 +857,26 @@ export default function Layout() {
                 )}
                 <div className="text-right hidden sm:block">
                   <p className="text-sm font-semibold text-gray-800 leading-tight">{user?.name}</p>
-                  <p className="text-[11px] text-gray-400 leading-tight">{user?.role ? statusLabels.role[user.role] : ''}</p>
+                  <p className="text-[11px] text-gray-400 leading-tight">{user?.role ? (statusLabels.role as Record<string, string>)[user.role] : ''}</p>
                 </div>
                 <ChevronDown size={14} className={`text-gray-400 transition-transform duration-200 hidden sm:block ${profileOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {profileOpen && (
-                <div className="absolute left-0 top-full mt-2 w-60 bg-white rounded-2xl shadow-2xl border border-gray-200/80 z-50 animate-scale-in origin-top-left overflow-hidden">
-                  <div className="px-4 py-3.5 border-b border-gray-100 bg-gradient-to-l from-primary-50/50 to-transparent">
-                    <p className="text-sm font-bold text-gray-900">{user?.name}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{user?.email}</p>
+                <div className="absolute left-0 top-full mt-2 w-60 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200/80 dark:border-slate-700/80 z-50 animate-scale-in origin-top-left overflow-hidden">
+                  <div className="px-4 py-3.5 border-b border-gray-100 dark:border-slate-700 bg-gradient-to-l from-primary-50/50 dark:from-primary-900/20 to-transparent">
+                    <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{user?.name}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{user?.email}</p>
                     <div className="flex items-center gap-1.5 mt-2">
                       <Shield size={12} className="text-primary-500" />
-                      <span className="text-xs text-primary-600 font-semibold">{user?.role ? statusLabels.role[user.role] : ''}</span>
+                      <span className="text-xs text-primary-600 dark:text-primary-400 font-semibold">{user?.role ? (statusLabels.role as Record<string, string>)[user.role] : ''}</span>
                     </div>
                   </div>
                   <div className="p-1.5">
                     <Link
                       to="/settings"
                       onClick={() => setProfileOpen(false)}
-                      className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
+                      className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700/50 rounded-xl transition-colors"
                     >
                       <User size={16} className="text-gray-400" />
                       الملف الشخصي
@@ -587,15 +884,15 @@ export default function Layout() {
                     <Link
                       to="/settings"
                       onClick={() => setProfileOpen(false)}
-                      className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
+                      className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700/50 rounded-xl transition-colors"
                     >
                       <Settings size={16} className="text-gray-400" />
                       الإعدادات
                     </Link>
-                    <div className="mx-2 my-1 h-px bg-gray-100" />
+                    <div className="mx-2 my-1 h-px bg-gray-100 dark:bg-slate-700" />
                     <button
                       onClick={() => { setProfileOpen(false); logout(); }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
                     >
                       <LogOut size={16} />
                       تسجيل الخروج
@@ -608,7 +905,9 @@ export default function Layout() {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 overflow-y-auto dark:bg-slate-900">
+          <OverdueBanner />
+          <div className="p-4 sm:p-6 lg:p-8">
           <Outlet />
 
           {/* Footer */}
@@ -627,11 +926,9 @@ export default function Layout() {
               </a>
             </div>
           </footer>
+          </div>
         </main>
       </div>
-
-      {/* Global Search */}
-      <GlobalSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
 
       {/* Mobile FAB */}
       <div data-tour="fab">

@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Employee;
 use App\Models\SalaryPayment;
-use App\Models\TreasuryTransaction;
 
 class SalaryService
 {
@@ -39,21 +38,11 @@ class SalaryService
 
     public function markAsPaid(SalaryPayment $salary, float $transferAmount, ?string $paymentDate = null): SalaryPayment
     {
+        // SalaryPayment.booted() updated handler auto-creates treasury transaction
         $salary->update([
             'transfer_amount' => $transferAmount,
             'remaining'       => $salary->total - $transferAmount,
             'payment_date'    => $paymentDate ?? now()->toDateString(),
-        ]);
-
-        // Auto-create treasury transaction
-        TreasuryTransaction::create([
-            'company_id'  => $salary->employee->company_id,
-            'type'        => 'out',
-            'amount'      => $transferAmount,
-            'currency'    => 'EGP',
-            'category'    => 'salaries',
-            'date'        => $paymentDate ?? now()->toDateString(),
-            'description' => "راتب {$salary->employee->name} - شهر {$salary->month}/{$salary->year}",
         ]);
 
         return $salary;

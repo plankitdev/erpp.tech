@@ -6,8 +6,9 @@ import { useUrlFilters } from '../hooks/useUrlFilters';
 import TaskDetailDrawer from '../components/TaskDetailDrawer';
 import { employeesApi } from '../api/employees';
 import { clientsApi } from '../api/clients';
+import { useProjects } from '../hooks/useProjects';
 import type { Employee, Client, Task } from '../types';
-import { formatDate } from '../utils';
+import { formatDate, formatDueDate } from '../utils';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../store/authStore';
 import {
@@ -36,15 +37,22 @@ const statusConfig: Record<string, { label: string; color: string; bg: string; d
 export default function Tasks() {
   useMarkBadgeSeen('tasks');
   const { user } = useAuthStore();
-  const canDeleteRole = user?.role === 'super_admin' || user?.role === 'company_admin' || user?.role === 'manager' || user?.role === 'marketing_manager';
-  const { getParam, setParam } = useUrlFilters({ statusFilter: 'all', priorityFilter: 'all' });
+  const canDeleteRole = user?.role === 'super_admin' || user?.role === 'manager' || user?.role === 'marketing_manager';
+  const { getParam, setParam } = useUrlFilters({ statusFilter: 'all', priorityFilter: 'all', overdueFilter: '0' });
   const statusFilter = getParam('statusFilter') || 'all';
   const priorityFilter = getParam('priorityFilter') || 'all';
+  const overdueFilter = getParam('overdueFilter') === '1';
+  const toggleOverdue = () => {
+    setParam('overdueFilter', overdueFilter ? '0' : '1');
+    if (!overdueFilter) setParam('statusFilter', 'all');
+  };
   const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
+  const { data: projectsData } = useProjects({ per_page: 200, status: 'active' });
+  const activeProjects = projectsData?.data ?? [];
   const [actionMenu, setActionMenu] = useState<number | null>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
@@ -59,7 +67,7 @@ export default function Tasks() {
     return () => document.removeEventListener('mousedown', handler);
   }, [actionMenu]);
 
-  const params = statusFilter !== 'all' ? { status: statusFilter } : {};
+  const params = overdueFilter ? { overdue: 1 } : (statusFilter !== 'all' ? { status: statusFilter } : {});
   const { data, isLoading, isError, refetch } = useTasks(params);
   const createMutation = useCreateTask();
   const updateMutation = useUpdateTask();
@@ -95,7 +103,7 @@ export default function Tasks() {
   }, [allTasks]);
 
   const [form, setForm] = useState({
-    title: '', description: '', assigned_to: '', priority: 'medium', due_date: '', client_id: '', status: 'todo',
+    title: '', description: '', assigned_to: '', priority: 'medium', due_date: '', client_id: '', status: 'todo', project_id: '',
   });
 
   useEffect(() => {
@@ -121,9 +129,10 @@ export default function Tasks() {
         due_date: form.due_date || null,
         client: form.client_id ? ({ id: parseInt(form.client_id) } as any) : null,
         status: form.status as any,
+        project_id: form.project_id ? parseInt(form.project_id) : null,
       });
       setShowModal(false);
-      setForm({ title: '', description: '', assigned_to: '', priority: 'medium', due_date: '', client_id: '', status: 'todo' });
+      setForm({ title: '', description: '', assigned_to: '', priority: 'medium', due_date: '', client_id: '', status: 'todo', project_id: '' });
       toast.success('تم إضافة المهمة بنجاح');
     } catch {
       toast.error('حدث خطأ');
@@ -193,9 +202,15 @@ export default function Tasks() {
           { key: 'done', label: 'مكتمل', value: stats.done, color: 'bg-emerald-50 border-emerald-200 text-emerald-700' },
           { key: 'overdue', label: 'متأخر', value: stats.overdue, color: 'bg-red-50 border-red-200 text-red-700' },
         ].map(stat => (
-          <div key={stat.key} className={`${stat.color} border rounded-xl p-3 text-center transition-transform hover:scale-105`}>
+          <div
+            key={stat.key}
+            onClick={stat.key === 'overdue' ? toggleOverdue : undefined}
+            className={`${stat.color} border rounded-xl p-3 text-center transition-transform hover:scale-105 ${
+              stat.key === 'overdue' ? 'cursor-pointer ' + (overdueFilter ? 'ring-2 ring-red-400 shadow-md' : '') : ''
+            }`}
+          >
             <p className="text-2xl font-bold">{stat.value}</p>
-            <p className="text-xs font-medium mt-0.5">{stat.label}</p>
+            <p className="text-xs font-medium mt-0.5">{stat.label}{stat.key === 'overdue' && overdueFilter ? ' ✓' : ''}</p>
           </div>
         ))}
       </div>
@@ -248,6 +263,19 @@ export default function Tasks() {
               <option value="low">منخفضة</option>
             </select>
           </div>
+
+          {/* Overdue Toggle */}
+          <button
+            onClick={toggleOverdue}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${
+              overdueFilter
+                ? 'bg-red-600 text-white border-red-600 shadow-sm'
+                : 'bg-white text-red-600 border-red-200 hover:bg-red-50'
+            }`}
+          >
+            <AlertCircle size={13} />
+            المتأخرة فقط
+          </button>
         </div>
       </div>
 
@@ -310,12 +338,12 @@ export default function Tasks() {
                           {task.client.name}
                         </span>
                       )}
-                      {task.due_date && (
-                        <span className={`flex items-center gap-1 ${overdue ? 'text-red-500 font-medium' : ''}`}>
+                      {task.due_date && (() => { const d = formatDueDate(task.due_date); return (
+                        <span className={`flex items-center gap-1 ${d.className}`}>
                           <Calendar size={12} />
-                          {formatDate(task.due_date)}
+                          {d.label}
                         </span>
-                      )}
+                      ); })()}
                       {task.comments && task.comments.length > 0 && (
                         <span className="text-gray-400">{task.comments.length} تعليق</span>
                       )}
@@ -434,6 +462,17 @@ export default function Tasks() {
                   </select>
                 </div>
               </div>
+
+              {activeProjects.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">ربط بمشروع (اختياري)</label>
+                  <select value={form.project_id} onChange={e => setForm({ ...form, project_id: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500/20">
+                    <option value="">بدون مشروع</option>
+                    {activeProjects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>

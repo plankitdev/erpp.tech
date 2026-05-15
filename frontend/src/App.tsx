@@ -17,19 +17,12 @@ const ClientProfile = lazy(() => import('./pages/ClientProfile'));
 const ClientsFinancial = lazy(() => import('./pages/ClientsFinancial'));
 const Contracts = lazy(() => import('./pages/Contracts'));
 const ContractForm = lazy(() => import('./pages/ContractForm'));
-const Invoices = lazy(() => import('./pages/Invoices'));
-const InvoiceForm = lazy(() => import('./pages/InvoiceForm'));
-const InvoiceDetail = lazy(() => import('./pages/InvoiceDetail'));
 const Employees = lazy(() => import('./pages/Employees'));
 const EmployeeForm = lazy(() => import('./pages/EmployeeForm'));
 const EmployeeProfile = lazy(() => import('./pages/EmployeeProfile'));
 const Salaries = lazy(() => import('./pages/Salaries'));
-const Treasury = lazy(() => import('./pages/Treasury'));
-const Expenses = lazy(() => import('./pages/Expenses'));
 const Tasks = lazy(() => import('./pages/Tasks'));
 const TaskBoard = lazy(() => import('./pages/TaskBoard'));
-const Partners = lazy(() => import('./pages/Partners'));
-const PartnerStatement = lazy(() => import('./pages/PartnerStatement'));
 const Projects = lazy(() => import('./pages/Projects'));
 const ProjectDetail = lazy(() => import('./pages/ProjectDetail'));
 const EmployeeReports = lazy(() => import('./pages/EmployeeReports'));
@@ -50,7 +43,9 @@ const MeetingForm = lazy(() => import('./pages/MeetingForm'));
 const MediaLibrary = lazy(() => import('./pages/MediaLibrary'));
 const ClientsHub = lazy(() => import('./pages/ClientsHub'));
 const TasksHub = lazy(() => import('./pages/TasksHub'));
-const FinanceHub = lazy(() => import('./pages/FinanceHub'));
+const AccountManagerHub = lazy(() => import('./pages/AccountManagerHub'));
+const WeeklyReport = lazy(() => import('./pages/WeeklyReport'));
+const ClientProgressReport = lazy(() => import('./pages/ClientProgressReport'));
 const HRHub = lazy(() => import('./pages/HRHub'));
 const SalesHub = lazy(() => import('./pages/SalesHub'));
 const TimeTracking = lazy(() => import('./pages/TimeTracking'));
@@ -69,6 +64,23 @@ const FileManagerPage = lazy(() => import('./pages/FileManager'));
 const GoogleDriveCallback = lazy(() => import('./pages/GoogleDriveCallback'));
 const Announcements = lazy(() => import('./pages/Announcements'));
 const PersonalTodos = lazy(() => import('./pages/PersonalTodos'));
+const FinanceHub = lazy(() => import('./pages/FinanceHub'));
+const Invoices = lazy(() => import('./pages/Invoices'));
+const InvoiceForm = lazy(() => import('./pages/InvoiceForm'));
+const InvoiceDetail = lazy(() => import('./pages/InvoiceDetail'));
+const Treasury = lazy(() => import('./pages/Treasury'));
+const Expenses = lazy(() => import('./pages/Expenses'));
+const Partners = lazy(() => import('./pages/Partners'));
+const PartnerStatement = lazy(() => import('./pages/PartnerStatement'));
+const ChartOfAccounts = lazy(() => import('./pages/ChartOfAccounts'));
+const JournalEntries = lazy(() => import('./pages/JournalEntries'));
+const CostCenters = lazy(() => import('./pages/CostCenters'));
+const Budgets = lazy(() => import('./pages/Budgets'));
+const BankAccounts = lazy(() => import('./pages/BankAccounts'));
+const FixedAssets = lazy(() => import('./pages/FixedAssets'));
+const AccountsReceivable = lazy(() => import('./pages/AccountsReceivable'));
+const BalanceSheet = lazy(() => import('./pages/BalanceSheet'));
+const FinancialKPIs = lazy(() => import('./pages/FinancialKPIs'));
 // const TemplateLibrary = lazy(() => import('./pages/TemplateLibrary'));
 // const DocumentEditor = lazy(() => import('./pages/DocumentEditor'));
 // const MyDocuments = lazy(() => import('./pages/MyDocuments'));
@@ -112,10 +124,6 @@ export default function App() {
         <Route path="contracts/create" element={<RoleGuard permission="contracts"><ContractForm /></RoleGuard>} />
         <Route path="contracts/:id/edit" element={<RoleGuard permission="contracts"><ContractForm /></RoleGuard>} />
         <Route path="contracts/:id/installments" element={<RoleGuard permission="contracts"><Installments /></RoleGuard>} />
-        <Route path="invoices" element={<RoleGuard permission="invoices"><Invoices /></RoleGuard>} />
-        <Route path="invoices/create" element={<RoleGuard permission="invoices"><InvoiceForm /></RoleGuard>} />
-        <Route path="invoices/:id" element={<RoleGuard permission="invoices"><InvoiceDetail /></RoleGuard>} />
-        <Route path="invoices/:id/edit" element={<RoleGuard permission="invoices"><InvoiceForm /></RoleGuard>} />
         <Route path="sales-hub" element={<RoleGuard permission="sales"><SalesHub /></RoleGuard>} />
         <Route path="sales" element={<RoleGuard permission="sales"><SalesDashboard /></RoleGuard>} />
         <Route path="leads" element={<RoleGuard permission="sales"><LeadsPage /></RoleGuard>} />
@@ -126,8 +134,11 @@ export default function App() {
 
         {/* المهام والمشاريع */}
         <Route path="tasks-hub" element={<RoleGuard permission="tasks"><TasksHub /></RoleGuard>} />
-        <Route path="projects" element={<RoleGuard permission="tasks"><Projects /></RoleGuard>} />
-        <Route path="projects/:slug" element={<RoleGuard permission="tasks"><ProjectDetail /></RoleGuard>} />
+        <Route path="account-manager" element={<RoleGuard permission="tasks" roles={['super_admin', 'company_admin', 'manager', 'marketing_manager']}><AccountManagerHub /></RoleGuard>} />
+        <Route path="weekly-report" element={<RoleGuard permission="tasks" roles={['super_admin', 'company_admin', 'manager', 'marketing_manager']}><WeeklyReport /></RoleGuard>} />
+        <Route path="client-report" element={<RoleGuard permission="tasks" roles={['super_admin', 'company_admin', 'manager', 'marketing_manager']}><ClientProgressReport /></RoleGuard>} />
+        <Route path="projects" element={<RoleGuard permission="projects"><Projects /></RoleGuard>} />
+        <Route path="projects/:slug" element={<RoleGuard permission="projects"><ProjectDetail /></RoleGuard>} />
         <Route path="tasks" element={<RoleGuard permission="tasks"><Tasks /></RoleGuard>} />
         <Route path="tasks/board" element={<RoleGuard permission="tasks"><TaskBoard /></RoleGuard>} />
         <Route path="tasks/:id" element={<RoleGuard permission="tasks"><TaskDetail /></RoleGuard>} />
@@ -138,13 +149,6 @@ export default function App() {
         <Route path="meetings/:id/edit" element={<RoleGuard permission="tasks"><MeetingForm /></RoleGuard>} />
         <Route path="gantt" element={<RoleGuard permission="tasks"><GanttChart /></RoleGuard>} />
 
-        {/* المالية */}
-        <Route path="finance-hub" element={<RoleGuard permission="treasury"><FinanceHub /></RoleGuard>} />
-        <Route path="treasury" element={<RoleGuard permission="treasury"><Treasury /></RoleGuard>} />
-        <Route path="expenses" element={<RoleGuard permission="expenses"><Expenses /></RoleGuard>} />
-        <Route path="partners" element={<RoleGuard permission="partners"><Partners /></RoleGuard>} />
-        <Route path="partners/:id/statement" element={<RoleGuard permission="partners"><PartnerStatement /></RoleGuard>} />
-
         {/* الموارد البشرية */}
         <Route path="hr-hub" element={<RoleGuard permission="employees"><HRHub /></RoleGuard>} />
         <Route path="employees" element={<RoleGuard permission="employees"><Employees /></RoleGuard>} />
@@ -154,23 +158,47 @@ export default function App() {
         <Route path="salaries" element={<RoleGuard permission="salaries"><Salaries /></RoleGuard>} />
         <Route path="leave-attendance" element={<LeaveAttendance />} />
 
+        {/* المالية */}
+        <Route path="finance-hub" element={<RoleGuard permission="treasury"><FinanceHub /></RoleGuard>} />
+        <Route path="invoices" element={<RoleGuard permission="invoices"><Invoices /></RoleGuard>} />
+        <Route path="invoices/create" element={<RoleGuard permission="invoices"><InvoiceForm /></RoleGuard>} />
+        <Route path="invoices/:id" element={<RoleGuard permission="invoices"><InvoiceDetail /></RoleGuard>} />
+        <Route path="invoices/:id/edit" element={<RoleGuard permission="invoices"><InvoiceForm /></RoleGuard>} />
+        <Route path="treasury" element={<RoleGuard permission="treasury"><Treasury /></RoleGuard>} />
+        <Route path="treasury/create" element={<RoleGuard permission="treasury"><Treasury /></RoleGuard>} />
+        <Route path="expenses" element={<RoleGuard permission="expenses"><Expenses /></RoleGuard>} />
+        <Route path="expenses/create" element={<RoleGuard permission="expenses"><Expenses /></RoleGuard>} />
+        <Route path="partners" element={<RoleGuard permission="treasury"><Partners /></RoleGuard>} />
+        <Route path="partners/:id/statement" element={<RoleGuard permission="treasury"><PartnerStatement /></RoleGuard>} />
+
+        {/* المحاسبة المتقدمة */}
+        <Route path="chart-of-accounts" element={<RoleGuard roles={['super_admin', 'company_admin', 'manager', 'accountant']}><ChartOfAccounts /></RoleGuard>} />
+        <Route path="journal-entries" element={<RoleGuard roles={['super_admin', 'company_admin', 'manager', 'accountant']}><JournalEntries /></RoleGuard>} />
+        <Route path="cost-centers" element={<RoleGuard roles={['super_admin', 'company_admin', 'manager', 'accountant']}><CostCenters /></RoleGuard>} />
+        <Route path="budgets" element={<RoleGuard roles={['super_admin', 'company_admin', 'manager', 'accountant']}><Budgets /></RoleGuard>} />
+        <Route path="bank-accounts" element={<RoleGuard roles={['super_admin', 'company_admin', 'manager', 'accountant']}><BankAccounts /></RoleGuard>} />
+        <Route path="fixed-assets" element={<RoleGuard roles={['super_admin', 'company_admin', 'manager', 'accountant']}><FixedAssets /></RoleGuard>} />
+        <Route path="accounts-receivable" element={<RoleGuard roles={['super_admin', 'company_admin', 'manager', 'accountant']}><AccountsReceivable /></RoleGuard>} />
+        <Route path="balance-sheet" element={<RoleGuard roles={['super_admin', 'company_admin', 'manager', 'accountant']}><BalanceSheet /></RoleGuard>} />
+        <Route path="financial-kpis" element={<RoleGuard roles={['super_admin', 'company_admin', 'manager', 'accountant']}><FinancialKPIs /></RoleGuard>} />
+
         {/* النظام والإدارة */}
         <Route path="reports" element={<RoleGuard permission="reports"><Reports /></RoleGuard>} />
         <Route path="reports/employees" element={<RoleGuard permission="reports"><EmployeeReports /></RoleGuard>} />
-        <Route path="users" element={<RoleGuard permission="users"><Users /></RoleGuard>} />
-        <Route path="activity-logs" element={<RoleGuard permission="activity_logs"><ActivityLogs /></RoleGuard>} />
-        <Route path="media" element={<RoleGuard permission="users"><MediaLibrary /></RoleGuard>} />
+        <Route path="users" element={<RoleGuard permission="users" roles={['super_admin', 'company_admin', 'manager']}><Users /></RoleGuard>} />
+        <Route path="activity-logs" element={<RoleGuard permission="activity_logs" roles={['super_admin', 'company_admin', 'manager']}><ActivityLogs /></RoleGuard>} />
+        <Route path="media" element={<RoleGuard permission="users" roles={['super_admin', 'company_admin', 'manager']}><MediaLibrary /></RoleGuard>} />
         <Route path="file-manager" element={<FileManagerPage />} />
         <Route path="file-manager/folder/:folderId" element={<FileManagerPage />} />
-        <Route path="file-templates" element={<RoleGuard permission="users"><FileTemplates /></RoleGuard>} />
+        <Route path="file-templates" element={<RoleGuard permission="users" roles={['super_admin', 'company_admin', 'manager']}><FileTemplates /></RoleGuard>} />
         {/* <Route path="template-library" element={<TemplateLibrary />} /> */}
         {/* <Route path="my-documents" element={<MyDocuments />} /> */}
         {/* <Route path="documents/:id/edit" element={<DocumentEditor />} /> */}
         <Route path="settings" element={<Settings />} />
-        <Route path="workflows" element={<RoleGuard permission="users"><WorkflowAutomation /></RoleGuard>} />
-        <Route path="tags" element={<RoleGuard permission="users"><TagsManager /></RoleGuard>} />
-        <Route path="api-docs" element={<RoleGuard permission="users"><ApiDocs /></RoleGuard>} />
-        <Route path="system-monitor" element={<RoleGuard permission="users"><SystemMonitor /></RoleGuard>} />
+        <Route path="workflows" element={<RoleGuard permission="users" roles={['super_admin', 'company_admin', 'manager']}><WorkflowAutomation /></RoleGuard>} />
+        <Route path="tags" element={<RoleGuard permission="users" roles={['super_admin', 'company_admin', 'manager']}><TagsManager /></RoleGuard>} />
+        <Route path="api-docs" element={<RoleGuard permission="users" roles={['super_admin', 'company_admin', 'manager']}><ApiDocs /></RoleGuard>} />
+        <Route path="system-monitor" element={<RoleGuard permission="users" roles={['super_admin']}><SystemMonitor /></RoleGuard>} />
 
         {/* صفحة غير موجودة */}
         <Route path="*" element={<NotFound />} />

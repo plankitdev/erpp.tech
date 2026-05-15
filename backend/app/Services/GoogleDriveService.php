@@ -595,42 +595,49 @@ class GoogleDriveService
         $errors += $pullResult['errors'];
 
         // ── Phase 3: Clean up deleted Drive files ──
-        // Bulk-list all non-trashed Drive IDs under root folder tree
+        // Bulk-list all non-trashed Drive IDs under root folder tree.
+        // Returns null when the Drive API fails — skip cleanup in that case.
         $allDriveIds = $this->listDriveIdsUnderFolder($rootFolderId);
 
-        // Safety: if API returned nothing but we have local synced items, skip cleanup
-        $localFiles = ManagedFile::where('company_id', $this->companyId)
-            ->whereNotNull('drive_file_id')
-            ->get();
-        $localFolders = Folder::where('company_id', $this->companyId)
-            ->whereNotNull('drive_folder_id')
-            ->get();
-
-        $totalLocal = $localFiles->count() + $localFolders->count();
-        if ($totalLocal > 0 && count($allDriveIds) === 0) {
-            Log::warning('GoogleDrive: listDriveIds returned empty but local has ' . $totalLocal . ' synced items — skipping cleanup');
+        if ($allDriveIds === null) {
+            // Drive API error during listing — do NOT delete anything locally to avoid false data loss
+            Log::warning('GoogleDrive: skipping cleanup phase for company ' . $this->companyId . ' — Drive ID listing failed');
+            $errors++;
         } else {
-            $driveIdSet = array_flip($allDriveIds);
+            // Safety: if API returned nothing but we have local synced items, skip cleanup
+            $localFiles = ManagedFile::where('company_id', $this->companyId)
+                ->whereNotNull('drive_file_id')
+                ->get();
+            $localFolders = Folder::where('company_id', $this->companyId)
+                ->whereNotNull('drive_folder_id')
+                ->get();
 
-            foreach ($localFiles as $file) {
-                if (!isset($driveIdSet[$file->drive_file_id])) {
-                    if ($file->file_path) {
-                        Storage::disk('public')->delete($file->file_path);
+            $totalLocal = $localFiles->count() + $localFolders->count();
+            if ($totalLocal > 0 && count($allDriveIds) === 0) {
+                Log::warning('GoogleDrive: listDriveIds returned empty but local has ' . $totalLocal . ' synced items — skipping cleanup');
+            } else {
+                $driveIdSet = array_flip($allDriveIds);
+
+                foreach ($localFiles as $file) {
+                    if (!isset($driveIdSet[$file->drive_file_id])) {
+                        if ($file->file_path) {
+                            Storage::disk('public')->delete($file->file_path);
+                        }
+                        $file->delete();
+                        $deleted++;
                     }
-                    $file->delete();
-                    $deleted++;
                 }
-            }
 
-            foreach ($localFolders as $folder) {
-                if (!isset($driveIdSet[$folder->drive_folder_id])) {
-                    $folderFiles = ManagedFile::where('folder_id', $folder->id)->get();
-                    foreach ($folderFiles as $ff) {
-                        if ($ff->file_path) Storage::disk('public')->delete($ff->file_path);
-                        $ff->delete();
+                foreach ($localFolders as $folder) {
+                    if (!isset($driveIdSet[$folder->drive_folder_id])) {
+                        $folderFiles = ManagedFile::where('folder_id', $folder->id)->get();
+                        foreach ($folderFiles as $ff) {
+                            if ($ff->file_path) Storage::disk('public')->delete($ff->file_path);
+                            $ff->delete();
+                        }
+                        $folder->delete();
+                        $deleted++;
                     }
-                    $folder->delete();
-                    $deleted++;
                 }
             }
         }
@@ -647,16 +654,19 @@ class GoogleDriveService
 
     /**
      * List all non-trashed file/folder IDs under a specific Drive folder (recursive).
+     * Returns null if the Drive API fails, so callers can safely skip the cleanup phase.
      */
-    private function listDriveIdsUnderFolder(string $folderId): array
+    private function listDriveIdsUnderFolder(string $folderId): ?array
     {
         $ids = [$folderId]; // include the root folder itself
         try {
             $this->collectDriveIdsRecursive($folderId, $ids);
+            return $ids;
         } catch (\Exception $e) {
-            Log::warning('GoogleDrive: listDriveIdsUnderFolder failed', ['error' => $e->getMessage()]);
+            Log::warning('GoogleDrive: listDriveIdsUnderFolder failed — cleanup skipped', ['error' => $e->getMessage()]);
+            // Return null (not partial array) so callers know to skip cleanup entirely
+            return null;
         }
-        return $ids;
     }
 
     private function collectDriveIdsRecursive(string $parentId, array &$ids): void

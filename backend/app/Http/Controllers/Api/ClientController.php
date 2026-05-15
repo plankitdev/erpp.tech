@@ -21,8 +21,10 @@ class ClientController extends Controller
 
         $clients = Client::with('activeContract')
             ->when($request->search, fn($q) =>
-                $q->where('name', 'like', "%{$request->search}%")
-                  ->orWhere('company_name', 'like', "%{$request->search}%")
+                $q->where(function ($subQ) use ($request) {
+                    $subQ->where('name', 'like', "%{$request->search}%")
+                         ->orWhere('company_name', 'like', "%{$request->search}%");
+                })
             )
             ->when($request->status, fn($q) => $q->where('status', $request->status))
             ->when($request->service, fn($q) => $q->where('service', $request->service))
@@ -93,7 +95,7 @@ class ClientController extends Controller
                 $totalExpenses = $client->expenses()->sum('amount');
                 $totalPaid = $client->invoices()
                     ->where('invoices.status', 'paid')
-                    ->sum('invoices.amount');
+                    ->sum('invoices.total_with_vat');
 
                 return [
                     'id'              => $client->id,

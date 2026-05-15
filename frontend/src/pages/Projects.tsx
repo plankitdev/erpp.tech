@@ -10,7 +10,7 @@ import { useAuthStore } from '../store/authStore';
 import {
   Plus, FolderKanban, AlertCircle, Calendar, Users,
   MoreVertical, Trash2, Eye, CircleDot, X, Sparkles,
-  Globe, Megaphone, Palette, Smartphone, FileText, ArrowLeft,
+  Globe, Megaphone, Palette, Smartphone, FileText,
   DollarSign, Clock, Pen, Share2, Code, ShoppingCart,
   Video, Search, BarChart3, Layout, LayoutGrid, List,
 } from 'lucide-react';
@@ -166,7 +166,7 @@ export default function Projects() {
   useMarkBadgeSeen('projects');
   const { hasPermission, user } = useAuthStore();
   const canViewBudget = hasPermission('treasury.view');
-  const canDelete = user?.role === 'super_admin' || user?.role === 'company_admin' || user?.role === 'manager' || user?.role === 'marketing_manager';
+  const canDelete = user?.role === 'super_admin' || user?.role === 'manager' || user?.role === 'marketing_manager';
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
@@ -197,6 +197,12 @@ export default function Projects() {
   }, [showModal]);
 
   const openModal = () => {
+    setForm({ name: '', description: '', client_id: '', status: 'active', start_date: '', end_date: '', budget: '', currency: 'EGP' });
+    setModalStep('form');
+    setShowModal(true);
+  };
+
+  const openTemplateModal = () => {
     setForm({ name: '', description: '', client_id: '', status: 'active', start_date: '', end_date: '', budget: '', currency: 'EGP' });
     setModalStep('template');
     setShowModal(true);
@@ -254,11 +260,18 @@ export default function Projects() {
           <h1 className="page-title">المشاريع</h1>
           <p className="page-subtitle">{projects.length} مشروع</p>
         </div>
-        <button onClick={openModal}
-          className="btn-primary">
-          <Plus size={18} />
-          مشروع جديد
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={openTemplateModal}
+            className="btn-secondary">
+            <Sparkles size={16} />
+            من قالب
+          </button>
+          <button onClick={openModal}
+            className="btn-primary">
+            <Plus size={18} />
+            مشروع جديد
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -502,16 +515,21 @@ export default function Projects() {
               <>
                 <div className="modal-header">
                   <div className="flex items-center gap-3">
-                    <button onClick={() => setModalStep('template')}
-                      className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 transition-colors">
-                      <ArrowLeft size={16} />
-                    </button>
                     <div>
-                      <h2 className="text-lg font-bold text-gray-800">تفاصيل المشروع</h2>
+                      <h2 className="text-lg font-bold text-gray-800">مشروع جديد</h2>
                       <p className="text-xs text-gray-400">أكمل المعلومات الأساسية</p>
                     </div>
                   </div>
-                  <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 p-1"><X size={20} /></button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setModalStep('template')}
+                      className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-primary-600 bg-gray-50 hover:bg-primary-50 px-3 py-1.5 rounded-lg border border-gray-200 hover:border-primary-200 transition-all"
+                    >
+                      <Sparkles size={12} />
+                      استخدم قالب
+                    </button>
+                    <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 p-1"><X size={20} /></button>
+                  </div>
                 </div>
                 <form id="create-project-form" onSubmit={handleSubmit} className="modal-body space-y-5">
                   {/* Project Name */}

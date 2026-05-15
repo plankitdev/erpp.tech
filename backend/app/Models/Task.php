@@ -10,10 +10,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Task extends Model
 {
-    use HasCompany, HasFactory, HasTags, LogsActivity;
+    use HasCompany, HasFactory, HasTags, LogsActivity, SoftDeletes;
 
     public const STATUS_TODO        = 'todo';
     public const STATUS_IN_PROGRESS = 'in_progress';
@@ -41,7 +42,7 @@ class Task extends Model
     public const RECURRENCE_MONTHLY = 'monthly';
 
     protected $fillable = [
-        'company_id', 'title', 'description', 'assigned_to',
+        'company_id', 'title', 'description', 'rejection_reason', 'assigned_to',
         'created_by', 'status', 'priority', 'due_date', 'start_date', 'client_id',
         'project_id', 'parent_id', 'recurrence', 'next_recurrence_date',
     ];

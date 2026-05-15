@@ -1,5 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useTreasury, useTreasuryBalance, useCreateTransaction } from '../hooks/useTreasury';
+import { useProjects } from '../hooks/useProjects';
+import { useEmployees } from '../hooks/useEmployees';
+import { useClients } from '../hooks/useClients';
 import { formatDate } from '../utils';
 import { exportToCSV } from '../utils/exportCsv';
 import toast from 'react-hot-toast';
@@ -15,9 +18,14 @@ const categoryLabels: Record<string, string> = {
   client_expense: 'مصروفات عملاء',
   partner_payment: 'سحب شريك',
   partner_capital: 'رأس مال شريك',
+  partner_profit: 'أرباح شريك',
   expense: 'مصروفات',
   other: 'أخرى',
 };
+
+// Categories that make sense for each transaction type
+const inCategories = ['revenue', 'partner_capital', 'other'] as const;
+const outCategories = ['expense', 'salaries', 'client_expense', 'partner_payment', 'partner_profit', 'other'] as const;
 
 const categoryIcons: Record<string, string> = {
   revenue: '💰', salaries: '👤', client_expense: '📋',
@@ -44,6 +52,12 @@ export default function Treasury() {
   const { data: txData, isLoading, isError, refetch } = useTreasury(filters);
   const { data: balance } = useTreasuryBalance();
   const createMutation = useCreateTransaction();
+  const { data: projectsData } = useProjects({ per_page: 100 });
+  const { data: employeesData } = useEmployees({ per_page: 100 });
+  const { data: clientsData } = useClients({ per_page: 100 });
+  const projects = projectsData?.data ?? [];
+  const employees = employeesData?.data ?? [];
+  const clients = clientsData?.data ?? [];
   const transactions = txData?.data ?? [];
   const meta = txData?.meta;
 
@@ -55,6 +69,9 @@ export default function Treasury() {
     category: 'revenue',
     description: '',
     date: new Date().toISOString().split('T')[0],
+    project_id: '',
+    employee_id: '',
+    client_id: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -67,9 +84,12 @@ export default function Treasury() {
         category: form.category,
         description: form.description,
         date: form.date,
-      });
+        ...(form.project_id ? { project_id: Number(form.project_id) } : {}),
+        ...(form.employee_id ? { employee_id: Number(form.employee_id) } : {}),
+        ...(form.client_id ? { client_id: Number(form.client_id) } : {}),
+      } as any);
       setShowForm(false);
-      setForm({ type: 'in', amount: '', currency: 'EGP', category: 'revenue', description: '', date: new Date().toISOString().split('T')[0] });
+      setForm({ type: 'in', amount: '', currency: 'EGP', category: 'revenue', description: '', date: new Date().toISOString().split('T')[0], project_id: '', employee_id: '', client_id: '' });
       toast.success('تم تسجيل الحركة بنجاح');
     } catch {
       toast.error('حدث خطأ في تسجيل الحركة');
@@ -171,7 +191,11 @@ export default function Treasury() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="input-label">النوع</label>
-              <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value as 'in' | 'out' })} className="select">
+              <select value={form.type} onChange={e => {
+                const newType = e.target.value as 'in' | 'out';
+                const defaultCat = newType === 'in' ? 'revenue' : 'expense';
+                setForm({ ...form, type: newType, category: defaultCat });
+              }} className="select">
                 <option value="in">⬆ إيداع (وارد)</option>
                 <option value="out">⬇ سحب (صادر)</option>
               </select>
@@ -179,8 +203,8 @@ export default function Treasury() {
             <div>
               <label className="input-label">التصنيف</label>
               <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="select">
-                {Object.entries(categoryLabels).map(([key, label]) => (
-                  <option key={key} value={key}>{label}</option>
+                {(form.type === 'in' ? inCategories : outCategories).map(key => (
+                  <option key={key} value={key}>{categoryLabels[key]}</option>
                 ))}
               </select>
             </div>
@@ -206,6 +230,34 @@ export default function Treasury() {
           <div>
             <label className="input-label">الوصف</label>
             <input type="text" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="input" placeholder="وصف الحركة المالية..." required />
+          </div>
+          {/* Link to Project / Employee / Client */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="input-label">ربط بمشروع <span className="text-gray-400 text-xs">(اختياري)</span></label>
+              <select value={form.project_id} onChange={e => setForm({ ...form, project_id: e.target.value })} className="select">
+                <option value="">— بدون مشروع</option>
+                {projects.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            </div>
+            {form.category === 'salaries' && (
+              <div>
+                <label className="input-label">ربط بموظف <span className="text-gray-400 text-xs">(اختياري)</span></label>
+                <select value={form.employee_id} onChange={e => setForm({ ...form, employee_id: e.target.value })} className="select">
+                  <option value="">— بدون موظف</option>
+                  {employees.map((emp: any) => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
+                </select>
+              </div>
+            )}
+            {['revenue', 'client_expense'].includes(form.category) && (
+              <div>
+                <label className="input-label">ربط بعميل <span className="text-gray-400 text-xs">(اختياري)</span></label>
+                <select value={form.client_id} onChange={e => setForm({ ...form, client_id: e.target.value })} className="select">
+                  <option value="">— بدون عميل</option>
+                  {clients.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+            )}
           </div>
           <div className="flex gap-2 pt-1">
             <button type="submit" disabled={createMutation.isPending} className="btn-primary">

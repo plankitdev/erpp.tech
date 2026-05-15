@@ -35,14 +35,17 @@ document.addEventListener('visibilitychange', () => {
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+    const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+    navigator.serviceWorker.register(`${base}/sw.js`).catch(() => {});
   });
 }
+
+const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || '/';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <BrowserRouter basename={basename} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <App />
         <Toaster
           position="top-left"

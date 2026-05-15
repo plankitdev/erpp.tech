@@ -9,9 +9,9 @@ use App\Http\Requests\RecordPaymentRequest;
 use App\Http\Resources\InvoiceResource;
 use App\Models\Invoice;
 use App\Models\InvoicePayment;
+use App\Models\WorkflowRule;
 use App\Services\NotificationService;
 use App\Services\WorkflowService;
-use App\Models\WorkflowRule;
 use App\Traits\ApiResponse;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\JsonResponse;
@@ -48,6 +48,38 @@ class InvoiceController extends Controller
         $isPaid = !empty($data['is_paid']);
         unset($data['is_paid']);
 
+        // Auto-set issue_date if not provided
+        if (empty($data['issue_date'])) {
+            $data['issue_date'] = now()->toDateString();
+        }
+
+        // Auto-set client_id from contract
+        if (!empty($data['contract_id']) && empty($data['client_id'])) {
+            $contract = \App\Models\Contract::find($data['contract_id']);
+            if ($contract) {
+                $data['client_id'] = $contract->client_id;
+            }
+        }
+
+        // Auto-calculate VAT if vat_rate provided
+        if (!empty($data['vat_rate']) && $data['vat_rate'] > 0) {
+            $data['vat_amount'] = round($data['amount'] * $data['vat_rate'] / 100, 2);
+            $data['total_with_vat'] = round($data['amount'] + $data['vat_amount'], 2);
+        }
+
+        // Auto-set due_date from client.payment_day if not provided
+        if (empty($data['due_date']) && !empty($data['client_id'])) {
+            $client = \App\Models\Client::find($data['client_id']);
+            if ($client && $client->payment_day) {
+                $day = min($client->payment_day, now()->daysInMonth);
+                $dueDate = now()->day($day);
+                if ($dueDate->isPast()) {
+                    $dueDate = $dueDate->addMonth();
+                }
+                $data['due_date'] = $dueDate->toDateString();
+            }
+        }
+
         if ($isPaid) {
             $data['status'] = Invoice::STATUS_PAID;
             $data['paid_date'] = now();
@@ -58,6 +90,7 @@ class InvoiceController extends Controller
         $invoice = Invoice::create($data);
 
         if ($isPaid) {
+            // InvoicePayment.booted() auto-creates TreasuryTransaction
             $invoice->payments()->create([
                 'amount'  => $invoice->amount,
                 'paid_at' => now(),
@@ -112,6 +145,7 @@ class InvoiceController extends Controller
         $this->authorize('recordPayment', $invoice);
 
         return DB::transaction(function () use ($request, $invoice) {
+            // InvoicePayment.booted() auto-creates TreasuryTransaction
             InvoicePayment::create([
                 'invoice_id' => $invoice->id,
                 'amount'     => $request->amount,
@@ -127,7 +161,7 @@ class InvoiceController extends Controller
                 $invoice->update(['status' => Invoice::STATUS_PARTIAL]);
             }
 
-            $clientName = $invoice->contract?->client?->name ?? 'غير محدد';
+            $clientName = $invoice->contract?->client?->name ?? $invoice->client?->name ?? 'غير محدد';
             NotificationService::paymentReceived($invoice->company_id, $clientName, number_format($request->amount));
 
             return $this->successResponse(

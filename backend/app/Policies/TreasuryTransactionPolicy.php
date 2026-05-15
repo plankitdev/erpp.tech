@@ -21,4 +21,9 @@ class TreasuryTransactionPolicy
     {
         return $user->canAccess('treasury');
     }
+
+    public function delete(User $user, TreasuryTransaction $transaction): bool
+    {
+        return $user->canAccess('treasury');
+    }
 }

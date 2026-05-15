@@ -24,13 +24,26 @@ class InvoiceService
                 ->exists();
 
             if (!$existingInvoice) {
+                // Auto-set due_date based on client's payment_day
+                $dueDate = now()->endOfMonth();
+                $client = $contract->client;
+                if ($client && $client->payment_day) {
+                    $day = min($client->payment_day, now()->daysInMonth);
+                    $dueDate = now()->day($day);
+                    if ($dueDate->isPast()) {
+                        $dueDate = $dueDate->addMonth()->day(min($client->payment_day, $dueDate->daysInMonth));
+                    }
+                }
+
                 Invoice::create([
                     'contract_id' => $contract->id,
                     'company_id'  => $contract->company_id,
+                    'client_id'   => $contract->client_id,
                     'amount'      => $contract->installment_amount ?? ($contract->value / 12),
                     'currency'    => $contract->currency,
                     'status'      => 'pending',
-                    'due_date'    => now()->endOfMonth(),
+                    'issue_date'  => now()->toDateString(),
+                    'due_date'    => $dueDate,
                 ]);
                 $count++;
             }

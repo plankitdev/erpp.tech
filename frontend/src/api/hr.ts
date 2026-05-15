@@ -69,6 +69,10 @@ export const attendanceApi = {
     api.get('/attendance/today').then(r => r.data),
   store: (data: Partial<AttendanceRecord> & { user_id: number; date: string; status: string }) =>
     api.post('/attendance', data).then(r => r.data),
+  update: (id: number, data: Partial<AttendanceRecord>) =>
+    api.put(`/attendance/${id}`, data).then(r => r.data),
+  delete: (id: number) =>
+    api.delete(`/attendance/${id}`).then(r => r.data),
   summary: (params?: Record<string, string | number>) =>
     api.get('/attendance/summary', { params }).then(r => r.data),
 };

@@ -41,16 +41,42 @@ class SalaryPayment extends Model
 
     protected static function booted(): void
     {
+        // Create treasury transaction only when salary is actually paid (has payment_date)
         static::created(function (SalaryPayment $salary) {
-            TreasuryTransaction::create([
-                'company_id'  => $salary->company_id,
-                'type'        => TreasuryTransaction::TYPE_OUT,
-                'amount'      => $salary->total,
-                'currency'    => 'EGP',
-                'category'    => TreasuryTransaction::CATEGORY_SALARIES,
-                'date'        => $salary->payment_date ?? now(),
-                'description' => "راتب: {$salary->employee->name} - شهر {$salary->month}/{$salary->year}",
-            ]);
+            if ($salary->payment_date && $salary->transfer_amount > 0) {
+                TreasuryTransaction::create([
+                    'company_id'  => $salary->company_id,
+                    'type'        => TreasuryTransaction::TYPE_OUT,
+                    'amount'      => $salary->transfer_amount,
+                    'currency'    => 'EGP',
+                    'category'    => TreasuryTransaction::CATEGORY_SALARIES,
+                    'date'        => $salary->payment_date ?? now(),
+                    'description' => "راتب: {$salary->employee->name} - شهر {$salary->month}/{$salary->year}",
+                ]);
+            }
+        });
+
+        // Also handle marking as paid via update
+        static::updated(function (SalaryPayment $salary) {
+            if ($salary->isDirty('payment_date') && $salary->payment_date && $salary->transfer_amount > 0) {
+                // Check no treasury entry was already created for this salary
+                $exists = TreasuryTransaction::where('company_id', $salary->company_id)
+                    ->where('category', TreasuryTransaction::CATEGORY_SALARIES)
+                    ->where('description', 'LIKE', "%{$salary->employee->name}%شهر {$salary->month}/{$salary->year}%")
+                    ->exists();
+
+                if (!$exists) {
+                    TreasuryTransaction::create([
+                        'company_id'  => $salary->company_id,
+                        'type'        => TreasuryTransaction::TYPE_OUT,
+                        'amount'      => $salary->transfer_amount,
+                        'currency'    => 'EGP',
+                        'category'    => TreasuryTransaction::CATEGORY_SALARIES,
+                        'date'        => $salary->payment_date,
+                        'description' => "راتب: {$salary->employee->name} - شهر {$salary->month}/{$salary->year}",
+                    ]);
+                }
+            }
         });
     }
 }

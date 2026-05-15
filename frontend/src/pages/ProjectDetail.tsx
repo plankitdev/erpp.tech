@@ -11,12 +11,13 @@ import toast from 'react-hot-toast';
 import ConfirmDialog from '../components/ConfirmDialog';
 import FileDropZone from '../components/FileDropZone';
 import { FilePreviewModal, FileThumbnail, getFileIconComponent, getFileIconColor, resolveFileUrl, isPreviewable } from '../components/FilePreview';
+import ProjectKanbanBoard from '../components/ProjectKanbanBoard';
 import {
   ArrowRight, Plus, X, FolderKanban, CheckSquare, FileText, Users, Upload,
   Calendar, AlertCircle, Trash2, ChevronDown, ChevronUp, CircleDot, Download,
   User, Clock, Loader2, CheckCircle2, Circle, Repeat, BarChart3,
   TrendingUp, DollarSign, Timer, Target, Eye, Image, File,
-  FolderPlus, FolderOpen, ChevronLeft, Home, X,
+  FolderPlus, FolderOpen, ChevronLeft, Home,
 } from 'lucide-react';
 
 // ============ Configs ============
@@ -112,7 +113,7 @@ export default function ProjectDetail() {
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
 
-  const [activeTab, setActiveTab] = useState<'tasks' | 'files' | 'info'>('tasks');
+  const [activeTab, setActiveTab] = useState<'tasks' | 'kanban' | 'files' | 'info'>('kanban');
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [parentTaskId, setParentTaskId] = useState<number | null>(null);
   const [expandedTasks, setExpandedTasks] = useState<Set<number>>(new Set());
@@ -593,9 +594,10 @@ export default function ProjectDetail() {
       {/* ====== Tabs ====== */}
       <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-xl w-fit">
         {[
-          { key: 'tasks' as const, label: `المهام (${project.tasks_count})`, icon: CheckSquare },
+          { key: 'kanban' as const, label: 'لوحة المهام', icon: FolderKanban },
+          { key: 'tasks' as const, label: `القائمة (${project.tasks_count})`, icon: CheckSquare },
           { key: 'files' as const, label: `الملفات (${project.files?.length || 0})`, icon: FileText },
-          { key: 'info' as const, label: 'المعلومات', icon: FolderKanban },
+          { key: 'info' as const, label: 'المعلومات', icon: AlertCircle },
         ].map(tab => (
           <button key={tab.key} onClick={() => setActiveTab(tab.key)}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
@@ -651,6 +653,26 @@ export default function ProjectDetail() {
               {mainTasks.map(task => renderTask(task))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* ====== Kanban Tab ====== */}
+      {activeTab === 'kanban' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-gray-800">لوحة المهام</h2>
+            <button onClick={() => { setParentTaskId(null); setShowTaskModal(true); }}
+              className="flex items-center gap-1.5 bg-primary-600 text-white px-4 py-2 rounded-xl text-sm hover:bg-primary-700 transition-colors shadow-sm">
+              <Plus size={16} /> إضافة مهمة
+            </button>
+          </div>
+          <ProjectKanbanBoard 
+            tasks={project.tasks || []} 
+            onStatusChange={async (taskId, status) => {
+              await updateTask.mutateAsync({ id: taskId, data: { status } as any });
+              refetch();
+            }} 
+          />
         </div>
       )}
 

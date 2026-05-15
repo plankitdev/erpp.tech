@@ -1,10 +1,10 @@
-const CACHE_NAME = 'erpflex-v6';
+const CACHE_NAME = 'erpflex-v7';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
 ];
 
-// Install - cache static assets
+// Install - cache static assets & force activate immediately
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
@@ -12,7 +12,7 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate - clean old caches
+// Activate - clean ALL old caches aggressively
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>

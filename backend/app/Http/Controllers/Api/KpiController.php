@@ -84,7 +84,7 @@ class KpiController extends Controller
                     // For sales: invoices from their converted leads' contracts
                 })
                 ->where('status', 'paid')
-                ->whereBetween('paid_date', [$startDate, $endDate])
+                ->whereBetween('paid_at', [$startDate, $endDate])
                 ->sum('amount');
 
             $kpis['sales'] = [
@@ -99,13 +99,13 @@ class KpiController extends Controller
         // ========== Finance KPIs (accountant/manager) ==========
         if (in_array($user->role, ['super_admin', 'manager', 'accountant'])) {
             $invoicesPaid = Invoice::where('status', 'paid')
-                ->whereBetween('paid_date', [$startDate, $endDate])
+                ->whereBetween('paid_at', [$startDate, $endDate])
                 ->count();
 
             $invoicesOverdue = Invoice::where('status', 'overdue')->count();
 
             $totalCollected = Invoice::where('status', 'paid')
-                ->whereBetween('paid_date', [$startDate, $endDate])
+                ->whereBetween('paid_at', [$startDate, $endDate])
                 ->sum('amount');
 
             $kpis['finance'] = [

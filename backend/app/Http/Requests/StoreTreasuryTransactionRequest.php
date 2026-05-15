@@ -20,6 +20,9 @@ class StoreTreasuryTransactionRequest extends FormRequest
             'category'    => 'required|string|max:255',
             'date'        => 'required|date',
             'description' => 'required|string|max:500',
+            'project_id'  => 'nullable|exists:projects,id',
+            'employee_id' => 'nullable|exists:employees,id',
+            'client_id'   => 'nullable|exists:clients,id',
         ];
     }
 

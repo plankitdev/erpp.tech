@@ -48,8 +48,8 @@ export default function TaskBoard() {
 
   useEffect(() => {
     Promise.all([
-      tasksApi.getAll({ per_page: 1000 }),
-      projectsApi.getAll({ per_page: 1000 }),
+      tasksApi.getAll({ per_page: 200 }),
+      projectsApi.getAll({ per_page: 100 }),
     ]).then(([tasksRes, projectsRes]) => {
       setAllTasks(tasksRes.data.data as Task[]);
       setProjects(projectsRes.data.data as Project[]);

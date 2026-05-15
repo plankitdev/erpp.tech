@@ -115,7 +115,7 @@ class AttendanceController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        if (!in_array($request->user()->role, ['super_admin', 'manager'])) {
+        if (!in_array($request->user()->role, ['super_admin', 'company_admin', 'manager'])) {
             return $this->errorResponse('غير مصرح', 403);
         }
 
@@ -140,6 +140,47 @@ class AttendanceController extends Controller
         );
 
         return $this->successResponse($record->load('user'), 'تم حفظ سجل الحضور');
+    }
+
+    public function update(Request $request, $id): JsonResponse
+    {
+        if (!in_array($request->user()->role, ['super_admin', 'company_admin'])) {
+            return $this->errorResponse('غير مصرح - الأدمن فقط', 403);
+        }
+
+        $record = AttendanceRecord::findOrFail($id);
+
+        $data = $request->validate([
+            'check_in' => 'nullable|date_format:H:i',
+            'check_out' => 'nullable|date_format:H:i',
+            'status' => 'nullable|in:' . implode(',', AttendanceRecord::STATUSES),
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        if (isset($data['check_in']) && (isset($data['check_out']) || $record->check_out)) {
+            $co = $data['check_out'] ?? ($record->check_out instanceof \Carbon\Carbon ? $record->check_out->format('H:i') : $record->check_out);
+            $ci = \Carbon\Carbon::parse($record->date->format('Y-m-d') . ' ' . $data['check_in']);
+            $coTime = \Carbon\Carbon::parse($record->date->format('Y-m-d') . ' ' . $co);
+            $data['hours_worked'] = round($ci->diffInMinutes($coTime) / 60, 2);
+        } elseif (isset($data['check_out']) && $record->check_in) {
+            $ci = \Carbon\Carbon::parse($record->date->format('Y-m-d') . ' ' . $record->check_in);
+            $co = \Carbon\Carbon::parse($record->date->format('Y-m-d') . ' ' . $data['check_out']);
+            $data['hours_worked'] = round($ci->diffInMinutes($co) / 60, 2);
+        }
+
+        $record->update($data);
+        return $this->successResponse($record->load('user'), 'تم تعديل سجل الحضور');
+    }
+
+    public function destroy(Request $request, $id): JsonResponse
+    {
+        if (!in_array($request->user()->role, ['super_admin', 'company_admin'])) {
+            return $this->errorResponse('غير مصرح - الأدمن فقط', 403);
+        }
+
+        $record = AttendanceRecord::findOrFail($id);
+        $record->delete();
+        return $this->successResponse(null, 'تم حذف سجل الحضور');
     }
 
     public function summary(Request $request): JsonResponse

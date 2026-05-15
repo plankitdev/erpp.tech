@@ -103,12 +103,28 @@ class LeadController extends Controller
             'lost_reason' => 'nullable|string|max:500',
         ]);
 
+        $oldStage = $lead->stage;
         $updateData = ['stage' => $request->stage];
         if ($request->stage === Lead::STAGE_LOST && $request->lost_reason) {
             $updateData['lost_reason'] = $request->lost_reason;
         }
 
         $lead->update($updateData);
+
+        // Auto-log stage change activity
+        $stageLabels = [
+            'new' => 'جديد', 'first_contact' => 'أول تواصل',
+            'proposal_sent' => 'تم إرسال العرض', 'negotiation' => 'تفاوض',
+            'contract_signed' => 'تم توقيع العقد', 'lost' => 'خسارة',
+        ];
+        $fromLabel = $stageLabels[$oldStage] ?? $oldStage;
+        $toLabel = $stageLabels[$request->stage] ?? $request->stage;
+        $lead->activities()->create([
+            'user_id' => $request->user()->id,
+            'type'    => \App\Models\LeadActivity::TYPE_STAGE_CHANGE,
+            'notes'   => "تغيير المرحلة من ({$fromLabel}) إلى ({$toLabel})",
+            'outcome' => $request->stage === Lead::STAGE_LOST ? 'negative' : 'positive',
+        ]);
 
         if ($request->stage === Lead::STAGE_CONTRACT_SIGNED) {
             NotificationService::leadWon($lead->company_id, $lead->company_name ?: $lead->name, number_format($lead->value ?? 0));
@@ -141,8 +157,7 @@ class LeadController extends Controller
         $client = \App\Models\Client::create([
             'name'         => $lead->name,
             'phone'        => $lead->phone,
-            'company_name' => null,
-            'sector'       => null,
+            'company_name' => $lead->company,
             'service'      => $lead->service_type,
             'status'       => 'active',
             'notes'        => $lead->notes,
@@ -168,6 +183,14 @@ class LeadController extends Controller
             'stage'              => Lead::STAGE_CONTRACT_SIGNED,
             'converted_client_id' => $client->id,
             'final_amount'       => $request->contract_value,
+        ]);
+
+        // Auto-log conversion activity
+        $lead->activities()->create([
+            'user_id' => $request->user()->id,
+            'type'    => \App\Models\LeadActivity::TYPE_CONVERSION,
+            'notes'   => "تم التحويل إلى عميل: {$client->name} - عقد بقيمة {$request->contract_value} {$request->currency}",
+            'outcome' => 'positive',
         ]);
 
         // Fire workflow automation

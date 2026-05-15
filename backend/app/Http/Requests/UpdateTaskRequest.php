@@ -21,6 +21,7 @@ class UpdateTaskRequest extends FormRequest
             'due_date'             => 'nullable|date',
             'client_id'            => 'nullable|exists:clients,id',
             'status'               => 'sometimes|in:todo,in_progress,review,done',
+            'rejection_reason'     => 'nullable|string|max:1000',
             'project_id'           => 'nullable|exists:projects,id',
             'parent_id'            => 'nullable|exists:tasks,id',
             'recurrence'           => 'sometimes|in:none,daily,weekly,monthly',

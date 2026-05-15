@@ -97,7 +97,7 @@ class Client extends Model
 
     public function getTotalOutstandingAttribute(): float
     {
-        return $this->invoices()->where('invoices.status', '!=', Invoice::STATUS_PAID)->sum('invoices.amount');
+        return $this->invoices()->where('invoices.status', '!=', Invoice::STATUS_PAID)->sum('invoices.total_with_vat');
     }
 
     public function getTotalExpensesAttribute(): float
@@ -109,11 +109,11 @@ class Client extends Model
     {
         $throughContract = $this->invoices()
             ->where('invoices.status', Invoice::STATUS_PAID)
-            ->sum('invoices.amount');
+            ->sum('invoices.total_with_vat');
         $direct = $this->directInvoices()
             ->where('status', Invoice::STATUS_PAID)
             ->whereNull('contract_id')
-            ->sum('amount');
+            ->sum('total_with_vat');
         return $throughContract + $direct;
     }
 }

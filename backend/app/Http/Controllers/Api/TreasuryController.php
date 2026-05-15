@@ -81,4 +81,13 @@ class TreasuryController extends Controller
 
         return $this->successResponse(new TreasuryTransactionResource($transaction), 'تم تسجيل المعاملة بنجاح', 201);
     }
+
+    public function destroy(TreasuryTransaction $treasury): JsonResponse
+    {
+        $this->authorize('delete', $treasury);
+
+        $treasury->delete();
+
+        return $this->successResponse(null, 'تم حذف المعاملة بنجاح');
+    }
 }

@@ -340,7 +340,7 @@ function QuickActionButtons({ role }: { role: string }) {
 function KPIStrip({ stats, role }: { stats: Record<string, any>; role: string }) {
   const kpis: Array<{ label: string; value: string | number; icon: typeof Activity; change?: string; positive?: boolean }> = [];
 
-  if (role === 'super_admin' || role === 'accountant') {
+  if (role === 'super_admin' || role === 'company_admin' || role === 'accountant') {
     const rev = stats.total_revenue || 0;
     const exp = stats.total_expenses || 0;
     const margin = rev > 0 ? Math.round(((rev - exp) / rev) * 100) : 0;
@@ -351,14 +351,12 @@ function KPIStrip({ stats, role }: { stats: Record<string, any>; role: string })
       { label: 'مشاريع قيد التنفيذ', value: stats.active_projects || 0, icon: Zap },
     );
   } else if (role === 'company_admin' || role === 'manager' || role === 'marketing_manager') {
-    const total = stats.total_tasks || 0;
-    const done = (stats.task_status_distribution || []).find((d: any) => d.name === 'مكتمل')?.value || 0;
-    const rate = total > 0 ? Math.round((done / total) * 100) : 0;
+    const margin = stats.profit_margin || 0;
     kpis.push(
-      { label: 'معدل الإنجاز', value: `${rate}%`, icon: BarChart3, positive: rate > 50 },
-      { label: 'مهام متأخرة', value: stats.overdue_tasks || 0, icon: AlertTriangle },
-      { label: 'المشاريع النشطة', value: stats.active_projects || 0, icon: FolderKanban },
-      { label: 'أعضاء الفريق', value: stats.team_count || 0, icon: Users },
+      { label: 'هامش الربح', value: `${margin}%`, icon: TrendingUp, positive: margin > 0 },
+      { label: 'معدل التحصيل', value: `${stats.collection_rate || 0}%`, icon: BarChart3, positive: (stats.collection_rate || 0) > 50 },
+      { label: 'معدل إنجاز المهام', value: `${stats.task_completion_rate || 0}%`, icon: Activity, positive: (stats.task_completion_rate || 0) > 50 },
+      { label: 'فواتير متأخرة', value: stats.overdue_invoices || 0, icon: AlertTriangle },
     );
   } else if (role === 'sales') {
     const total = (stats.total_leads || 0);
@@ -438,18 +436,83 @@ function SuperAdminDashboard({ stats }: { stats: Record<string, any> }) {
 }
 
 function ManagerDashboard({ stats }: { stats: Record<string, any> }) {
+  const profitMargin = stats.profit_margin || 0;
+  const collectionRate = stats.collection_rate || 0;
+  const thisMonthRev = stats.this_month_revenue || 0;
+  const lastMonthRev = stats.last_month_revenue || 0;
+  const revenueGrowth = lastMonthRev > 0 ? Math.round(((thisMonthRev - lastMonthRev) / lastMonthRev) * 100) : 0;
+
   const cards: StatCard[] = [
+    { label: 'إجمالي الإيرادات', value: formatCurrency(stats.total_revenue || 0), icon: TrendingUp, iconBg: 'bg-primary-500' },
+    { label: 'المصروفات', value: formatCurrency(stats.total_expenses || 0), icon: TrendingDown, iconBg: 'bg-rose-500', link: '/expenses' },
+    { label: 'صافي الربح', value: formatCurrency(stats.net_profit || 0), icon: Wallet, iconBg: 'bg-teal-500' },
     { label: 'المشاريع النشطة', value: stats.active_projects || 0, icon: FolderKanban, iconBg: 'bg-violet-500', link: '/projects' },
     { label: 'إجمالي المهام', value: stats.total_tasks || 0, icon: CheckCircle2, iconBg: 'bg-blue-500', link: '/tasks/board' },
     { label: 'مهام متأخرة', value: stats.overdue_tasks || 0, icon: AlertTriangle, iconBg: 'bg-red-500', link: '/tasks' },
+    { label: 'فواتير متأخرة', value: stats.overdue_invoices || 0, icon: Receipt, iconBg: 'bg-amber-500', link: '/invoices' },
     { label: 'أعضاء الفريق', value: stats.team_count || 0, icon: Users, iconBg: 'bg-indigo-500', link: '/employees' },
-    { label: 'الاجتماعات القادمة', value: stats.upcoming_meetings || 0, icon: CalendarDays, iconBg: 'bg-amber-500', link: '/calendar' },
-    { label: 'الوقت المسجل اليوم', value: `${stats.today_hours || 0}h`, icon: Timer, iconBg: 'bg-teal-500' },
   ];
 
   return (
     <>
       <StatCardGrid cards={cards} />
+
+      {/* Financial KPI Gauges */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in-up">
+        <div className="card card-body text-center">
+          <p className="text-xs text-gray-400 mb-1">هامش الربح</p>
+          <p className={`text-2xl font-bold ${profitMargin >= 20 ? 'text-emerald-600' : profitMargin >= 0 ? 'text-amber-600' : 'text-red-600'}`}>{profitMargin}%</p>
+          <div className="h-1.5 bg-gray-100 rounded-full mt-2 overflow-hidden">
+            <div className={`h-full rounded-full ${profitMargin >= 20 ? 'bg-emerald-500' : profitMargin >= 0 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${Math.min(Math.abs(profitMargin), 100)}%` }} />
+          </div>
+        </div>
+        <div className="card card-body text-center">
+          <p className="text-xs text-gray-400 mb-1">معدل التحصيل</p>
+          <p className={`text-2xl font-bold ${collectionRate >= 80 ? 'text-emerald-600' : collectionRate >= 50 ? 'text-amber-600' : 'text-red-600'}`}>{collectionRate}%</p>
+          <div className="h-1.5 bg-gray-100 rounded-full mt-2 overflow-hidden">
+            <div className={`h-full rounded-full ${collectionRate >= 80 ? 'bg-emerald-500' : collectionRate >= 50 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${collectionRate}%` }} />
+          </div>
+        </div>
+        <div className="card card-body text-center">
+          <p className="text-xs text-gray-400 mb-1">معدل إنجاز المهام</p>
+          <p className={`text-2xl font-bold ${(stats.task_completion_rate || 0) >= 70 ? 'text-emerald-600' : 'text-amber-600'}`}>{stats.task_completion_rate || 0}%</p>
+          <div className="h-1.5 bg-gray-100 rounded-full mt-2 overflow-hidden">
+            <div className={`h-full rounded-full ${(stats.task_completion_rate || 0) >= 70 ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${stats.task_completion_rate || 0}%` }} />
+          </div>
+        </div>
+        <div className="card card-body text-center">
+          <p className="text-xs text-gray-400 mb-1">نمو الإيرادات (شهري)</p>
+          <p className={`text-2xl font-bold ${revenueGrowth >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{revenueGrowth > 0 ? '+' : ''}{revenueGrowth}%</p>
+          <p className="text-[10px] text-gray-400 mt-1">{formatCurrency(thisMonthRev)} هذا الشهر</p>
+        </div>
+      </div>
+
+      {/* Monthly Comparison */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 animate-fade-in-up">
+        <div className="bg-primary-50 rounded-xl p-4">
+          <p className="text-xs text-primary-600 font-medium">إيراد هذا الشهر</p>
+          <p className="text-lg font-bold text-primary-800 mt-1">{formatCurrency(thisMonthRev)}</p>
+        </div>
+        <div className="bg-rose-50 rounded-xl p-4">
+          <p className="text-xs text-rose-600 font-medium">مصروفات هذا الشهر</p>
+          <p className="text-lg font-bold text-rose-800 mt-1">{formatCurrency(stats.this_month_expenses || 0)}</p>
+        </div>
+        <div className="bg-teal-50 rounded-xl p-4">
+          <p className="text-xs text-teal-600 font-medium">قيمة العقود النشطة</p>
+          <p className="text-lg font-bold text-teal-800 mt-1">{formatCurrency(stats.total_contracts_value || 0)}</p>
+        </div>
+        <div className="bg-blue-50 rounded-xl p-4">
+          <p className="text-xs text-blue-600 font-medium">معدل تحويل العملاء</p>
+          <p className="text-lg font-bold text-blue-800 mt-1">{stats.leads_conversion_rate || 0}%</p>
+          <p className="text-[10px] text-blue-500 mt-0.5">{stats.leads_won || 0}/{stats.leads_count || 0} عميل</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <RevenueChart data={stats.monthly_revenue || []} />
+        <ExpenseDistChart data={stats.expense_distribution || []} />
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2 animate-fade-in-up card card-body">
           <h3 className="text-lg font-bold text-gray-900 mb-1">تقدم المشاريع</h3>
@@ -475,43 +538,8 @@ function ManagerDashboard({ stats }: { stats: Record<string, any> }) {
         <TaskStatusChart data={stats.task_status_distribution || []} />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <RecentInvoicesList invoices={stats.recent_invoices || []} />
         <RecentTasksList tasks={stats.recent_tasks || []} />
-        <div className="animate-fade-in-up card overflow-hidden">
-          <div className="p-6 pb-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center ring-1 ring-amber-100">
-                <AlertTriangle size={18} className="text-amber-600" />
-              </div>
-              <div>
-                <h3 className="font-bold text-gray-900">مواعيد قريبة</h3>
-                <p className="text-[11px] text-gray-400 mt-0.5">مهام تستحق قريباً</p>
-              </div>
-            </div>
-          </div>
-          <div className="px-6 pb-5">
-            {(stats.upcoming_deadlines || []).length === 0 ? (
-              <div className="empty-state py-10">
-                <CalendarDays size={36} className="text-gray-300 mb-2" />
-                <p className="text-sm text-gray-400">لا توجد مواعيد قريبة</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {(stats.upcoming_deadlines || []).map((t: any, idx: number) => (
-                  <div key={t.id} className={`animate-slide-in-right stagger-${Math.min(idx + 1, 8)} flex items-center justify-between py-3 px-3 -mx-3 rounded-xl hover:bg-surface-50 transition-colors`}>
-                    <div>
-                      <p className="font-semibold text-gray-800 text-[13px]">{t.title}</p>
-                      <p className="text-[11px] text-gray-400 mt-0.5">{t.assigned_to_name || 'غير محدد'}</p>
-                    </div>
-                    <div className="text-left">
-                      <p className="text-xs text-amber-600 font-medium">{formatDate(t.due_date)}</p>
-                      <StatusBadge status={t.priority} size="sm" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
       </div>
     </>
   );
@@ -682,7 +710,7 @@ export default function Dashboard() {
 
   const subtitles: Record<string, string> = {
     super_admin: 'إليك ملخص أداء شركتك اليوم',
-    company_admin: 'تابع تقدم فريقك ومشاريعك',
+    company_admin: 'إليك ملخص أداء شركتك اليوم',
     manager: 'تابع تقدم فريقك ومشاريعك',
     marketing_manager: 'تابع مشاريعك ومهام فريقك',
     accountant: 'ملخص الحالة المالية',
@@ -690,7 +718,7 @@ export default function Dashboard() {
     employee: 'إليك ملخص مهامك اليوم',
   };
 
-  const rightContent = (role === 'super_admin' || role === 'accountant') ? (
+  const rightContent = (role === 'super_admin' || role === 'company_admin' || role === 'accountant') ? (
     <div className="flex items-center gap-3">
       <div className="text-left bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 border border-white/10">
         <p className="text-xs text-primary-200">الإيرادات</p>
@@ -701,7 +729,7 @@ export default function Dashboard() {
         <p className="text-lg font-bold text-emerald-300 mt-0.5">{formatCurrency((stats as any)?.net_profit || 0)}</p>
       </div>
     </div>
-  ) : (role === 'company_admin' || role === 'manager' || role === 'marketing_manager') ? (
+  ) : (role === 'manager' || role === 'marketing_manager') ? (
     <div className="flex items-center gap-3">
       <div className="text-left bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 border border-white/10">
         <p className="text-xs text-primary-200">المشاريع النشطة</p>
@@ -739,12 +767,14 @@ export default function Dashboard() {
   const renderDashboard = () => {
     const s = (stats || {}) as Record<string, any>;
     switch (role) {
-      case 'super_admin': return <SuperAdminDashboard stats={s} />;
-      case 'company_admin': case 'manager': case 'marketing_manager': return <ManagerDashboard stats={s} />;
+      case 'super_admin':
+      case 'company_admin': return <SuperAdminDashboard stats={s} />;
+      case 'manager':
+      case 'marketing_manager': return <ManagerDashboard stats={s} />;
       case 'accountant': return <AccountantDashboard stats={s} />;
       case 'sales': return <SalesDashboard stats={s} />;
       case 'employee': return <EmployeeDashboard stats={s} />;
-      default: return <SuperAdminDashboard stats={s} />;
+      default: return <EmployeeDashboard stats={s} />;
     }
   };
 

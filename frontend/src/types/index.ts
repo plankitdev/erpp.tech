@@ -51,7 +51,7 @@ export interface User {
   created_at: string;
 }
 
-export type UserRole = 'super_admin' | 'manager' | 'accountant' | 'sales' | 'employee' | 'marketing_manager';
+export type UserRole = 'super_admin' | 'company_admin' | 'manager' | 'accountant' | 'sales' | 'employee' | 'marketing_manager';
 
 // ========== Permissions ==========
 export interface PermissionsData {
@@ -304,6 +304,7 @@ export interface Task {
   id: number;
   title: string;
   description: string | null;
+  rejection_reason: string | null;
   status: TaskStatus;
   priority: TaskPriority;
   recurrence: TaskRecurrence;
@@ -910,4 +911,223 @@ export interface UserDocument {
   managed_file?: { id: number; name: string; file_path: string };
   created_at: string;
   updated_at: string;
+}
+
+// ========== Chart of Accounts ==========
+export interface ChartOfAccount {
+  id: number;
+  parent_id: number | null;
+  code: string;
+  name: string;
+  name_en: string | null;
+  type: AccountType;
+  nature: 'debit' | 'credit';
+  is_active: boolean;
+  is_system: boolean;
+  description: string | null;
+  balance?: number;
+  parent?: ChartOfAccount;
+  children?: ChartOfAccount[];
+  created_at: string;
+}
+
+export type AccountType = 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
+
+// ========== Journal Entries ==========
+export interface JournalEntry {
+  id: number;
+  entry_number: string;
+  date: string;
+  description: string;
+  reference_type: string | null;
+  reference_id: number | null;
+  status: JournalEntryStatus;
+  total_debit: number;
+  total_credit: number;
+  currency: Currency;
+  is_balanced: boolean;
+  lines: JournalEntryLine[];
+  creator?: { id: number; name: string };
+  poster?: { id: number; name: string } | null;
+  posted_at: string | null;
+  created_at: string;
+}
+
+export type JournalEntryStatus = 'draft' | 'posted' | 'reversed';
+
+export interface JournalEntryLine {
+  id: number;
+  journal_entry_id: number;
+  account_id: number;
+  debit: number;
+  credit: number;
+  description: string | null;
+  cost_center_id: number | null;
+  account?: ChartOfAccount;
+  cost_center?: CostCenter;
+}
+
+// ========== Cost Centers ==========
+export interface CostCenter {
+  id: number;
+  parent_id: number | null;
+  code: string;
+  name: string;
+  type: 'department' | 'project' | 'branch';
+  is_active: boolean;
+  parent?: CostCenter;
+  children?: CostCenter[];
+  created_at: string;
+}
+
+// ========== Budgets ==========
+export interface Budget {
+  id: number;
+  name: string;
+  year: number;
+  status: BudgetStatus;
+  total_amount: number;
+  notes: string | null;
+  total_planned?: number;
+  total_actual?: number;
+  variance?: number;
+  items?: BudgetItem[];
+  items_count?: number;
+  creator?: { id: number; name: string };
+  approver?: { id: number; name: string } | null;
+  approved_at: string | null;
+  created_at: string;
+}
+
+export type BudgetStatus = 'draft' | 'approved' | 'closed';
+
+export interface BudgetItem {
+  id: number;
+  budget_id: number;
+  account_id: number | null;
+  cost_center_id: number | null;
+  category: string | null;
+  month: number;
+  planned_amount: number;
+  actual_amount: number;
+  variance?: number;
+  variance_percent?: number;
+  notes: string | null;
+  account?: ChartOfAccount;
+  cost_center?: CostCenter;
+}
+
+// ========== Bank Accounts ==========
+export interface BankAccount {
+  id: number;
+  name: string;
+  bank_name: string;
+  account_number: string | null;
+  iban: string | null;
+  currency: Currency;
+  opening_balance: number;
+  current_balance: number;
+  is_active: boolean;
+  notes: string | null;
+  transactions_count?: number;
+  unreconciled_count?: number;
+  transactions?: BankTransaction[];
+  created_at: string;
+}
+
+export interface BankTransaction {
+  id: number;
+  bank_account_id: number;
+  type: 'deposit' | 'withdrawal' | 'transfer';
+  amount: number;
+  date: string;
+  description: string | null;
+  reference: string | null;
+  is_reconciled: boolean;
+  reconciled_at: string | null;
+  treasury_transaction_id: number | null;
+  balance_after: number;
+  created_at: string;
+}
+
+// ========== Fixed Assets ==========
+export interface FixedAsset {
+  id: number;
+  code: string;
+  name: string;
+  category: AssetCategory;
+  purchase_date: string;
+  purchase_cost: number;
+  salvage_value: number;
+  useful_life_months: number;
+  depreciation_method: 'straight_line' | 'declining_balance';
+  accumulated_depreciation: number;
+  current_value: number;
+  location: string | null;
+  serial_number: string | null;
+  status: AssetStatus;
+  disposed_date: string | null;
+  disposal_amount: number | null;
+  cost_center_id: number | null;
+  cost_center?: CostCenter;
+  notes: string | null;
+  monthly_depreciation?: number;
+  remaining_life_months?: number;
+  depreciation_percent?: number;
+  created_at: string;
+}
+
+export type AssetCategory = 'equipment' | 'furniture' | 'vehicles' | 'electronics' | 'property' | 'other';
+export type AssetStatus = 'active' | 'disposed' | 'under_maintenance';
+
+// ========== Financial Report Types ==========
+export interface AgingReport {
+  as_of_date: string;
+  clients: AgingClient[];
+  totals: AgingBuckets;
+  bucket_labels: Record<string, string>;
+}
+
+export interface AgingClient {
+  client_id: number;
+  client_name: string;
+  current: number;
+  '1_30': number;
+  '31_60': number;
+  '61_90': number;
+  over_90: number;
+  total: number;
+}
+
+export interface AgingBuckets {
+  current: number;
+  '1_30': number;
+  '31_60': number;
+  '61_90': number;
+  over_90: number;
+  total: number;
+}
+
+export interface FinancialKpis {
+  profitability: {
+    revenue: number;
+    expenses: number;
+    net_profit: number;
+    profit_margin: number;
+    revenue_growth: number;
+    profit_growth: number;
+  };
+  receivables: {
+    total_receivables: number;
+    overdue_receivables: number;
+    collection_rate: number;
+    avg_collection_days: number;
+  };
+  liquidity: {
+    cash_balance: number;
+    current_ratio: number;
+  };
+  monthly_trend: number[];
+  year: number;
+  currency: Currency;
 }

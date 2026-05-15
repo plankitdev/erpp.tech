@@ -48,6 +48,8 @@ export default function TaskDetail() {
   const [elapsed, setElapsed] = useState(0);
   const [showEditModal, setShowEditModal] = useState(false);
   const [previewFile, setPreviewFile] = useState<number | null>(null);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
   const [editForm, setEditForm] = useState({
     title: '', description: '', priority: 'medium' as string,
     start_date: '', due_date: '', assignee_ids: [] as number[],
@@ -99,9 +101,28 @@ export default function TaskDetail() {
   }
 
   const handleStatusChange = async (status: string) => {
+    // لو الأكونت مانجر بيرجع المهمة من review، اعرض موديل سبب الرفض
+    if (task.status === 'review' && (status === 'todo' || status === 'in_progress')) {
+      setRejectionReason('');
+      setShowRejectModal(true);
+      return;
+    }
     try {
       await updateTask.mutateAsync({ id: task.id, data: { status } as Partial<Task> });
       toast.success('تم تحديث الحالة');
+    } catch {
+      toast.error('حدث خطأ');
+    }
+  };
+
+  const handleRejectConfirm = async () => {
+    try {
+      await updateTask.mutateAsync({
+        id: task.id,
+        data: { status: 'in_progress', rejection_reason: rejectionReason || null } as Partial<Task>,
+      });
+      setShowRejectModal(false);
+      toast.success('تم إرجاع المهمة للتعديل');
     } catch {
       toast.error('حدث خطأ');
     }
@@ -267,6 +288,15 @@ export default function TaskDetail() {
                 </div>
                 {task.description && (
                   <p className="text-gray-600 text-sm leading-relaxed">{task.description}</p>
+                )}
+                {task.rejection_reason && task.status !== 'review' && task.status !== 'done' && (
+                  <div className="mt-3 flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+                    <span className="text-red-500 mt-0.5 flex-shrink-0">⚠️</span>
+                    <div>
+                      <p className="text-xs font-semibold text-red-700">سبب الإرجاع</p>
+                      <p className="text-sm text-red-700 mt-0.5">{task.rejection_reason}</p>
+                    </div>
+                  </div>
                 )}
               </div>
               <button onClick={openEditModal}
@@ -790,6 +820,38 @@ export default function TaskDetail() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Rejection Reason Modal */}
+      {showRejectModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+            <div className="px-6 py-5 border-b">
+              <h3 className="font-bold text-gray-900 text-lg">إرجاع المهمة للتعديل</h3>
+              <p className="text-sm text-gray-500 mt-1">اكتب سبب الإرجاع حتى يعرف الموظف ماذا يعدّل (اختياري)</p>
+            </div>
+            <div className="px-6 py-5">
+              <textarea
+                value={rejectionReason}
+                onChange={e => setRejectionReason(e.target.value)}
+                rows={4}
+                placeholder="مثال: الصور المستخدمة لا تتوافق مع هوية العلامة التجارية، يرجى المراجعة..."
+                className="input w-full resize-none"
+                autoFocus
+              />
+            </div>
+            <div className="px-6 py-4 border-t flex justify-end gap-3">
+              <button onClick={() => setShowRejectModal(false)} className="btn-secondary">إلغاء</button>
+              <button
+                onClick={handleRejectConfirm}
+                disabled={updateTask.isPending}
+                className="btn-danger"
+              >
+                {updateTask.isPending ? 'جاري...' : 'إرجاع للتعديل'}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -23,21 +23,21 @@ class EmployeePolicy
             return true;
         }
 
-        return $user->hasRole(['manager']);
+        return $user->hasRole(['company_admin', 'manager']);
     }
 
     public function create(User $user): bool
     {
-        return $user->hasRole(['super_admin', 'manager']);
+        return $user->hasRole(['super_admin', 'company_admin', 'manager']);
     }
 
     public function update(User $user, Employee $employee): bool
     {
-        return $user->hasRole(['super_admin', 'manager']);
+        return $user->hasRole(['super_admin', 'company_admin', 'manager']);
     }
 
     public function delete(User $user, Employee $employee): bool
     {
-        return $user->hasRole(['super_admin', 'manager']);
+        return $user->hasRole(['super_admin', 'company_admin', 'manager']);
     }
 }

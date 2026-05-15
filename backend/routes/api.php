@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\NotificationStreamController;
 use App\Http\Controllers\Api\InstallmentController;
 use App\Http\Controllers\Api\ActivityLogController;
 use App\Http\Controllers\Api\FileTemplateController;
@@ -44,9 +45,17 @@ use App\Http\Controllers\Api\PushController;
 use App\Http\Controllers\Api\PersonalTodoController;
 use App\Http\Controllers\Api\FileManagerController;
 use App\Http\Controllers\Api\GoogleDriveController;
+use App\Http\Controllers\Api\ChartOfAccountController;
+use App\Http\Controllers\Api\JournalEntryController;
+use App\Http\Controllers\Api\CostCenterController;
+use App\Http\Controllers\Api\BudgetController;
+use App\Http\Controllers\Api\BankAccountController;
+use App\Http\Controllers\Api\FixedAssetController;
 // use App\Http\Controllers\Api\TemplateCategoryController;
 // use App\Http\Controllers\Api\TemplateLibraryController;
 // use App\Http\Controllers\Api\UserDocumentController;
+use App\Http\Controllers\Api\AccountManagerController;
+use App\Http\Controllers\Api\FollowUpController;
 use Illuminate\Support\Facades\Route;
 
 // ========== Health Check (public) ==========
@@ -86,16 +95,18 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     });
 
     // ========== Clients & Contracts ==========
+    Route::middleware('role:super_admin,company_admin,manager,sales,clients')->group(function () {
+        Route::get('clients/financial-summary', [ClientController::class, 'financialSummary']);
+        Route::post('clients/batch-delete', [ClientController::class, 'batchDelete']);
+    });
     Route::middleware('role:super_admin,company_admin,manager,sales,accountant,employee,marketing_manager,clients')->group(function () {
         Route::get('clients', [ClientController::class, 'index']);
         Route::get('clients/{client}', [ClientController::class, 'show']);
     });
     Route::middleware('role:super_admin,company_admin,manager,sales,clients')->group(function () {
-        Route::get('clients/financial-summary', [ClientController::class, 'financialSummary']);
         Route::post('clients', [ClientController::class, 'store']);
         Route::put('clients/{client}', [ClientController::class, 'update']);
         Route::delete('clients/{client}', [ClientController::class, 'destroy']);
-        Route::post('clients/batch-delete', [ClientController::class, 'batchDelete']);
         Route::apiResource('clients.contracts', ContractController::class);
     });
 
@@ -114,16 +125,8 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::post('/installments/{installment}/pay', [InstallmentController::class, 'markPaid']);
     });
 
-    // ========== Invoices & Payments ==========
-    Route::middleware('role:super_admin,company_admin,manager,accountant,invoices')->group(function () {
-        Route::apiResource('invoices', InvoiceController::class);
-        Route::post('invoices/batch-delete', [InvoiceController::class, 'batchDelete']);
-        Route::post('/invoices/{invoice}/payments', [InvoiceController::class, 'recordPayment']);
-        Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'downloadPdf']);
-    });
-
     // ========== Quotations ==========
-    Route::middleware('role:super_admin,company_admin,manager,sales,accountant,sales')->group(function () {
+    Route::middleware('role:super_admin,company_admin,manager,sales,accountant')->group(function () {
         Route::apiResource('quotations', QuotationController::class);
         Route::get('/quotations/{quotation}/pdf', [QuotationController::class, 'downloadPdf']);
     });
@@ -143,13 +146,15 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     // ========== Attendance ==========
     Route::get('/attendance', [AttendanceController::class, 'index']);
     Route::post('/attendance', [AttendanceController::class, 'store']);
+    Route::put('/attendance/{id}', [AttendanceController::class, 'update']);
+    Route::delete('/attendance/{id}', [AttendanceController::class, 'destroy']);
     Route::post('/attendance/check-in', [AttendanceController::class, 'checkIn']);
     Route::post('/attendance/check-out', [AttendanceController::class, 'checkOut']);
     Route::get('/attendance/today', [AttendanceController::class, 'today']);
     Route::get('/attendance/summary', [AttendanceController::class, 'summary']);
 
     // ========== Email ==========
-    Route::middleware('role:super_admin,company_admin,manager,sales,accountant,sales')->group(function () {
+    Route::middleware('role:super_admin,company_admin,manager,sales,accountant')->group(function () {
         Route::post('/email/send', [EmailController::class, 'send']);
         Route::post('/email/invoice/{invoice}', [EmailController::class, 'sendInvoice']);
         Route::post('/email/quotation/{quotation}', [EmailController::class, 'sendQuotation']);
@@ -181,19 +186,82 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::apiResource('salary-payments', SalaryPaymentController::class)->except(['destroy']);
     });
 
-    // ========== Treasury ==========
-    Route::middleware('role:super_admin,manager,accountant,treasury')->group(function () {
-        Route::get('/treasury/balance', [TreasuryController::class, 'balance']);
-        Route::apiResource('treasury', TreasuryController::class)->except(['update', 'destroy']);
+    // ========== Account Manager Hub ==========
+    Route::middleware('role:super_admin,company_admin,manager,marketing_manager')->group(function () {
+        Route::get('/account-manager/overview', [AccountManagerController::class, 'overview']);
+        Route::get('/account-manager/member/{userId}/tasks', [AccountManagerController::class, 'memberTasks']);
+        Route::get('/account-manager/weekly-report', [AccountManagerController::class, 'weeklyReport']);
+        Route::get('/account-manager/client-report/{clientId}', [AccountManagerController::class, 'clientReport']);
     });
+
+    // ========== Invoices ==========
+    Route::middleware('role:super_admin,company_admin,manager,accountant,sales,invoices')->group(function () {
+        Route::apiResource('invoices', InvoiceController::class);
+        Route::post('/invoices/batch-delete', [InvoiceController::class, 'batchDelete']);
+        Route::post('/invoices/{invoice}/payments', [InvoiceController::class, 'recordPayment']);
+        Route::get('/invoices/{invoice}/pdf', [InvoiceController::class, 'downloadPdf']);
+    });
+
+    // ========== Treasury ==========
+    Route::middleware('role:super_admin,company_admin,manager,accountant,treasury')->group(function () {
+        Route::apiResource('treasury', TreasuryController::class)->except(['update']);
+        Route::get('/treasury/balance', [TreasuryController::class, 'balance']);
+    });
+
+    // ========== Expenses ==========
     Route::middleware('role:super_admin,company_admin,manager,accountant,expenses')->group(function () {
         Route::apiResource('expenses', ExpenseController::class);
+    });
+
+    // ========== Partners ==========
+    Route::middleware('role:super_admin,company_admin,manager,accountant,treasury')->group(function () {
+        Route::apiResource('partners', PartnerController::class)->except(['show']);
+        Route::get('/partners/profits', [PartnerController::class, 'profits']);
+        Route::get('/partners/monthly-profit', [PartnerController::class, 'monthlyProfit']);
+        Route::get('/partners/{partner}/statement', [PartnerController::class, 'statement']);
+        Route::get('/partners/{partner}/payments', [PartnerController::class, 'payments']);
+        Route::post('/partners/{partner}/payments', [PartnerController::class, 'recordPayment']);
+        Route::delete('/partners/{partner}/payments/{payment}', [PartnerController::class, 'deletePayment']);
+    });
+
+    // ========== Advanced Accounting ==========
+    Route::middleware('role:super_admin,company_admin,manager,accountant,treasury')->group(function () {
+        Route::apiResource('chart-of-accounts', ChartOfAccountController::class);
+        Route::get('/chart-of-accounts/tree', [ChartOfAccountController::class, 'tree']);
+        Route::post('/chart-of-accounts/seed', [ChartOfAccountController::class, 'seed']);
+
+        Route::apiResource('journal-entries', JournalEntryController::class);
+        Route::post('/journal-entries/{journalEntry}/post', [JournalEntryController::class, 'post']);
+        Route::post('/journal-entries/{journalEntry}/reverse', [JournalEntryController::class, 'reverse']);
+
+        Route::apiResource('cost-centers', CostCenterController::class);
+
+        Route::apiResource('budgets', BudgetController::class);
+        Route::post('/budgets/{budget}/approve', [BudgetController::class, 'approve']);
+        Route::get('/reports/budget-comparison', [BudgetController::class, 'comparison']);
+
+        Route::apiResource('bank-accounts', BankAccountController::class);
+        Route::get('/bank-accounts/{bankAccount}/transactions', [BankAccountController::class, 'transactions']);
+        Route::post('/bank-accounts/{bankAccount}/transactions', [BankAccountController::class, 'addTransaction']);
+        Route::post('/bank-accounts/{bankAccount}/reconcile', [BankAccountController::class, 'reconcile']);
+
+        Route::post('/fixed-assets/depreciate', [FixedAssetController::class, 'depreciate']);
+        Route::get('/fixed-assets/summary', [FixedAssetController::class, 'summary']);
+        Route::apiResource('fixed-assets', FixedAssetController::class);
+    });
+
+    // ========== Financial Reports ==========
+    Route::middleware('role:super_admin,company_admin,manager,accountant,treasury,reports')->group(function () {
+        Route::get('/reports/receivable-aging', [ReportController::class, 'receivableAging']);
+        Route::get('/reports/balance-sheet', [ReportController::class, 'balanceSheet']);
+        Route::get('/reports/financial-kpis', [ReportController::class, 'financialKpis']);
     });
 
     // ========== Tasks (all authenticated) ==========
     Route::apiResource('tasks', TaskController::class);
     Route::post('tasks/batch-delete', [TaskController::class, 'batchDelete']);
     Route::post('/tasks/{task}/comments', [TaskController::class, 'addComment']);
+    Route::post('/tasks/{task}/quick-action', [TaskController::class, 'quickAction']);
 
     // Task Checklists
     Route::get('/tasks/{task}/checklists', [TaskChecklistController::class, 'index']);
@@ -205,6 +273,18 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     // ========== Task Files ==========
     Route::post('/tasks/{task}/files', [TaskController::class, 'uploadFile']);
     Route::delete('/tasks/{task}/files/{file}', [TaskController::class, 'deleteFile']);
+
+    // ========== Follow-ups (Smart Follow-up System) ==========
+    Route::get('/follow-ups', [FollowUpController::class, 'index']);
+    Route::get('/follow-ups/summary', [FollowUpController::class, 'summary']);
+    Route::post('/follow-ups', [FollowUpController::class, 'store']);
+    Route::put('/follow-ups/{followUp}', [FollowUpController::class, 'update']);
+    Route::post('/follow-ups/{followUp}/resolve', [FollowUpController::class, 'resolve']);
+    Route::post('/follow-ups/{followUp}/dismiss', [FollowUpController::class, 'dismiss']);
+    Route::delete('/follow-ups/{followUp}', [FollowUpController::class, 'destroy']);
+    Route::middleware('role:super_admin,company_admin,manager')->group(function () {
+        Route::post('/follow-ups/generate', [FollowUpController::class, 'generate']);
+    });
 
     // ========== Time Tracking ==========
     Route::get('/time-entries', [TimeEntryController::class, 'index']);
@@ -246,17 +326,6 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     // ========== Employee Reports ==========
     Route::get('/reports/employees', [ProjectController::class, 'employeeReport']);
 
-    // ========== Partners ==========
-    Route::middleware('role:super_admin,manager,partners')->group(function () {
-        Route::get('/partners/profits', [PartnerController::class, 'profits']);
-        Route::get('/partners/monthly-profit', [PartnerController::class, 'monthlyProfit']);
-        Route::get('/partners/{partner}/statement', [PartnerController::class, 'statement']);
-        Route::get('/partners/{partner}/payments', [PartnerController::class, 'payments']);
-        Route::post('/partners/{partner}/payments', [PartnerController::class, 'recordPayment']);
-        Route::delete('/partners/{partner}/payments/{payment}', [PartnerController::class, 'deletePayment']);
-        Route::apiResource('partners', PartnerController::class)->only(['index', 'store', 'update', 'destroy']);
-    });
-
     // ========== Users ==========
     // Lightweight user list for dropdowns (all authenticated users)
     Route::get('/users/list', [UserController::class, 'list']);
@@ -273,13 +342,9 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::get('/reports/monthly', [ReportController::class, 'monthly']);
         Route::get('/reports/yearly', [ReportController::class, 'yearly']);
         Route::get('/reports/clients', [ReportController::class, 'clients']);
-        Route::get('/reports/salaries', [ReportController::class, 'salaries']);
-        Route::get('/reports/treasury', [ReportController::class, 'treasury']);
-        Route::get('/reports/partners', [ReportController::class, 'partners']);
-        Route::get('/reports/profit-loss', [ReportController::class, 'profitLoss']);
-        Route::get('/reports/cash-flow', [ReportController::class, 'cashFlow']);
         Route::get('/reports/export-pdf', [ReportController::class, 'exportPdf']);
         Route::get('/reports/kpi', [ReportController::class, 'kpiReport']);
+        Route::get('/reports/client-statement', [ReportController::class, 'clientStatement']);
     });
 
     // ========== Notifications ==========
@@ -321,7 +386,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     // });
 
     // ========== Sales Pipeline ==========
-    Route::middleware('role:super_admin,company_admin,manager,sales,sales')->group(function () {
+    Route::middleware('role:super_admin,company_admin,manager,sales')->group(function () {
         Route::get('/sales/dashboard', [SalesController::class, 'dashboard']);
         Route::get('/sales/report', [SalesController::class, 'report']);
         Route::post('/leads/import', [LeadController::class, 'import']);
@@ -412,3 +477,9 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::delete('/personal-todos/{personalTodo}', [PersonalTodoController::class, 'destroy']);
     Route::post('/personal-todos/reorder', [PersonalTodoController::class, 'reorder']);
 });
+
+// ========== SSE Notification Stream ==========
+// Outside the auth:sanctum group — EventSource cannot send custom headers,
+// so the token is passed via ?token= and extracted by the TokenFromQueryString middleware.
+Route::middleware(['throttle:api', 'token.query', 'auth:sanctum'])
+    ->get('/notifications/stream', [NotificationStreamController::class, 'stream']);
