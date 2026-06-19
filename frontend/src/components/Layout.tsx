@@ -542,9 +542,30 @@ export default function Layout() {
             <div className="mx-2 mt-1 h-px bg-white/[0.03]" />
           </div>
         )}
-        {/* ── Standalone: Announcements ── */}
+        {/* ── Standalone: My Day (full width) ── */}
+        {standaloneItems.filter(item => item.path === '/my-day' && (!item.permission || hasPermission(item.permission))).map(item => {
+          const Icon = item.icon;
+          const isActive = location.pathname === item.path;
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              onClick={() => setMobileMenuOpen(false)}
+              title={item.label}
+              className={`group relative flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12.5px] font-medium transition-all mb-1 ${
+                isActive ? 'bg-white/[0.08] text-slate-100' : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
+              } ${!sidebarOpen ? 'justify-center' : ''}`}
+            >
+              {isActive && <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[2px] h-3.5 rounded-l-full bg-primary-300/80" />}
+              <Icon size={17} className={`flex-shrink-0 ${isActive ? 'text-primary-300' : 'text-slate-600 group-hover:text-slate-300'}`} />
+              {sidebarOpen && <span className="truncate">{item.label}</span>}
+            </Link>
+          );
+        })}
+
+        {/* ── Standalone: Announcements + Chat (compact row) ── */}
         <div className="flex gap-1 mb-1">
-          {standaloneItems.filter(item => !item.permission || hasPermission(item.permission)).map(item => {
+          {standaloneItems.filter(item => item.path !== '/my-day' && (!item.permission || hasPermission(item.permission))).map(item => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
             const badge = item.path === '/announcements' ? announcementUnread : item.path === '/chat' ? chatUnread : 0;
@@ -554,12 +575,12 @@ export default function Layout() {
                 to={item.path}
                 onClick={() => setMobileMenuOpen(false)}
                 title={item.label}
-                className={`group relative flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12.5px] font-medium transition-all flex-1 ${
+                className={`group relative flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12.5px] font-medium transition-all flex-1 min-w-0 ${
                   isActive ? 'bg-white/[0.08] text-slate-100' : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
                 } ${!sidebarOpen ? 'justify-center' : ''}`}
               >
                 {isActive && <div className="absolute right-0 top-1/2 -translate-y-1/2 w-[2px] h-3.5 rounded-l-full bg-primary-300/80" />}
-                <Icon size={17} className={isActive ? 'text-primary-300 flex-shrink-0' : 'text-slate-600 group-hover:text-slate-300 flex-shrink-0'} />
+                <Icon size={17} className={`flex-shrink-0 ${isActive ? 'text-primary-300' : 'text-slate-600 group-hover:text-slate-300'}`} />
                 {sidebarOpen && <span className="truncate">{item.label}</span>}
                 {badge > 0 && (
                   <span className={`${item.path === '/announcements' ? 'bg-rose-500/90' : 'bg-sky-500/90'} text-white text-[9px] font-bold rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-1 ${sidebarOpen ? 'mr-auto' : 'absolute top-1 left-1'}`}>
