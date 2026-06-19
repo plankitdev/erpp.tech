@@ -483,7 +483,7 @@ export default function Layout() {
       <div className="mx-4 h-px bg-gradient-to-l from-transparent via-primary-400/20 to-transparent" />
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-2.5 px-3 sidebar-scroll" data-tour="sidebar">
+      <nav className="flex-1 overflow-y-auto overflow-x-hidden py-2.5 px-3 sidebar-scroll" data-tour="sidebar">
 
         {/* ── Top row: Dashboard only ── */}
         <div className="mb-1">
