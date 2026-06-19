@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
-import { MessageCircle, X, Send, ArrowRight, Search, Paperclip, Plus, Hash, Users } from 'lucide-react';
+import { MessageCircle, X, Send, ArrowRight, Search, Paperclip, Plus, Hash, Users, ListPlus } from 'lucide-react';
 import {
   useChatChannels,
   useChatMessages,
@@ -10,6 +10,7 @@ import {
   useCreateChannel,
 } from '../hooks/useChat';
 import { useAuthStore } from '../store/authStore';
+import { useQuickTaskStore } from '../store/quickTaskStore';
 import { resolveFileUrl } from './FilePreview';
 import type { ChatChannel, ChatMessage } from '../types';
 
@@ -38,6 +39,7 @@ function Avatar({ name, size = 40 }: { name: string; size?: number }) {
 export default function FloatingChat({ unreadCount = 0 }: { unreadCount?: number }) {
   const { user } = useAuthStore();
   const location = useLocation();
+  const openTask = useQuickTaskStore((s) => s.openTask);
 
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>('list');
@@ -91,8 +93,8 @@ export default function FloatingChat({ unreadCount = 0 }: { unreadCount?: number
   }, [open, view, activeChannelId]);
 
   if (!user) return null;
-  // Avoid duplication with the full chat page
-  if (location.pathname.startsWith('/chat')) return null;
+  // On the full chat page, hide the chat bubble but keep the quick-task button.
+  const onChatPage = location.pathname.startsWith('/chat');
 
   const openChannel = (id: number) => {
     setActiveChannelId(id);
@@ -129,11 +131,15 @@ export default function FloatingChat({ unreadCount = 0 }: { unreadCount?: number
     setAttachment(null);
   };
 
+  const messageToTask = (m: ChatMessage) => {
+    openTask({ title: (m.body || m.attachment_name || '').slice(0, 255), assignedTo: m.user_id });
+  };
+
   return (
-    <div dir="rtl" className="fixed left-6 bottom-24 lg:bottom-6 z-[60] print:hidden">
+    <div dir="rtl" className="fixed left-6 bottom-6 z-[60] print:hidden">
       {/* Panel */}
-      {open && (
-        <div className="absolute bottom-16 left-0 w-[92vw] max-w-[380px] h-[70vh] max-h-[560px] bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 flex flex-col overflow-hidden animate-fade-in-up">
+      {open && !onChatPage && (
+        <div className="absolute bottom-full left-0 mb-3 w-[92vw] max-w-[380px] h-[70vh] max-h-[560px] bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-slate-700 flex flex-col overflow-hidden animate-fade-in-up">
           {/* Header */}
           <div className="flex items-center gap-2 px-4 py-3 bg-gradient-to-l from-primary-600 to-teal-600 text-white shrink-0">
             {view !== 'list' && (
@@ -257,7 +263,7 @@ export default function FloatingChat({ unreadCount = 0 }: { unreadCount?: number
                   return (
                     <div key={m.id} className={`flex ${isMe ? 'justify-start' : 'justify-end'}`}>
                       <div
-                        className={`max-w-[78%] rounded-2xl px-3 py-2 shadow-sm ${
+                        className={`group max-w-[78%] rounded-2xl px-3 py-2 shadow-sm ${
                           isMe ? 'bg-primary-600 text-white rounded-tr-sm' : 'bg-white dark:bg-slate-700 text-gray-800 dark:text-gray-100 rounded-tl-sm'
                         }`}
                       >
@@ -275,7 +281,18 @@ export default function FloatingChat({ unreadCount = 0 }: { unreadCount?: number
                             <Paperclip size={12} /> {m.attachment_name || 'مرفق'}
                           </a>
                         )}
-                        <p className={`text-[10px] mt-0.5 ${isMe ? 'text-blue-100/80' : 'text-gray-400'}`}>{formatTime(m.created_at)}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <p className={`text-[10px] ${isMe ? 'text-blue-100/80' : 'text-gray-400'}`}>{formatTime(m.created_at)}</p>
+                          {(m.body || m.attachment_name) && (
+                            <button
+                              onClick={() => messageToTask(m)}
+                              title="حوّل إلى مهمة"
+                              className={`inline-flex items-center gap-0.5 text-[10px] opacity-60 hover:opacity-100 transition ${isMe ? 'text-blue-50' : 'text-violet-600'}`}
+                            >
+                              <ListPlus size={12} /> مهمة
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
@@ -340,19 +357,34 @@ export default function FloatingChat({ unreadCount = 0 }: { unreadCount?: number
         </div>
       )}
 
-      {/* Floating button */}
-      <button
-        onClick={() => setOpen((o) => !o)}
-        className="relative w-14 h-14 rounded-full bg-gradient-to-br from-primary-600 to-teal-600 hover:scale-105 active:scale-95 text-white shadow-xl shadow-primary-600/30 flex items-center justify-center transition-transform"
-        aria-label="المحادثات"
-      >
-        {open ? <X size={24} /> : <MessageCircle size={24} />}
-        {!open && unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-red-500 text-white text-[11px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
-            {unreadCount > 99 ? '99+' : unreadCount}
-          </span>
+      {/* Floating button cluster: quick-task (top) + chat (bottom) */}
+      <div className="flex flex-col items-center gap-3">
+        {/* Quick add task */}
+        <button
+          onClick={() => openTask()}
+          className="w-12 h-12 rounded-full bg-violet-600 hover:bg-violet-700 hover:scale-105 active:scale-95 text-white shadow-lg shadow-violet-600/30 flex items-center justify-center transition-transform"
+          title="مهمة سريعة"
+          aria-label="مهمة سريعة"
+        >
+          <ListPlus size={22} />
+        </button>
+
+        {/* Chat (hidden on the full /chat page) */}
+        {!onChatPage && (
+          <button
+            onClick={() => setOpen((o) => !o)}
+            className="relative w-14 h-14 rounded-full bg-gradient-to-br from-primary-600 to-teal-600 hover:scale-105 active:scale-95 text-white shadow-xl shadow-primary-600/30 flex items-center justify-center transition-transform"
+            aria-label="المحادثات"
+          >
+            {open ? <X size={24} /> : <MessageCircle size={24} />}
+            {!open && unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-red-500 text-white text-[11px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </button>
         )}
-      </button>
+      </div>
     </div>
   );
 }

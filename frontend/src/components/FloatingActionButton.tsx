@@ -13,12 +13,12 @@ export default function FloatingActionButton() {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="fixed bottom-6 left-6 z-50 lg:hidden">
+    <div className="fixed bottom-6 right-6 z-50 lg:hidden">
       {/* Menu Items */}
       {open && (
         <>
           <div className="fixed inset-0 bg-black/20" onClick={() => setOpen(false)} />
-          <div className="absolute bottom-16 left-0 space-y-2 animate-fade-in-up">
+          <div className="absolute bottom-16 right-0 space-y-2 animate-fade-in-up">
             {actions.map((action, i) => {
               const Icon = action.icon;
               return (
