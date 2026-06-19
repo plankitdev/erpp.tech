@@ -54,6 +54,7 @@ interface SidebarTab {
 
 // Standalone items — only items with badges or always-visible nav
 const standaloneItems: MenuItem[] = [
+  { path: '/my-day', label: 'متابعاتي اليوم', icon: Sun, permission: null },
   { path: '/announcements', label: 'الإعلانات', icon: Megaphone, permission: null },
   { path: '/chat', label: 'المحادثات', icon: MessageSquare, permission: null },
 ];
