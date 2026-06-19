@@ -65,6 +65,7 @@ const GoogleDriveCallback = lazy(() => import('./pages/GoogleDriveCallback'));
 const Announcements = lazy(() => import('./pages/Announcements'));
 const PersonalTodos = lazy(() => import('./pages/PersonalTodos'));
 const MyDay = lazy(() => import('./pages/MyDay'));
+const AgencyModules = lazy(() => import('./pages/AgencyModules'));
 const FinanceHub = lazy(() => import('./pages/FinanceHub'));
 const Invoices = lazy(() => import('./pages/Invoices'));
 const InvoiceForm = lazy(() => import('./pages/InvoiceForm'));
@@ -109,6 +110,7 @@ export default function App() {
       <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
         <Route index element={<Dashboard />} />
         <Route path="my-day" element={<MyDay />} />
+        <Route path="agency-modules" element={<RoleGuard roles={['super_admin']}><AgencyModules /></RoleGuard>} />
         <Route path="announcements" element={<Announcements />} />
         <Route path="chat" element={<Chat />} />
         <Route path="personal-todos" element={<PersonalTodos />} />

@@ -166,9 +166,17 @@ const menuSections: MenuSection[] = [
       { path: '/tags', label: 'العلامات', icon: Tag, permission: 'users', roles: ['super_admin', 'company_admin', 'manager'] },
       { path: '/api-docs', label: 'توثيق الواجهة البرمجية', icon: BookOpen, permission: 'users', roles: ['super_admin', 'company_admin', 'manager'] },
       { path: '/system-monitor', label: 'مراقبة النظام', icon: Monitor, permission: 'users', roles: ['super_admin'] },
+      { path: '/agency-modules', label: 'تبسيط القائمة', icon: PanelRightClose, permission: 'users', roles: ['super_admin'] },
     ],
   },
 ];
+
+// Modules an admin can hide per company (agency mode). System-management items are never hideable.
+export const HIDEABLE_MODULES: { path: string; label: string; section: string }[] = menuSections
+  .filter(s => s.title !== 'إدارة النظام')
+  .flatMap(s => s.items.map(i => ({ path: i.path, label: i.label, section: s.title })));
+
+const HIDEABLE_PATHS = new Set(HIDEABLE_MODULES.map(m => m.path));
 
 // Hub pages need to be in allMenuItems for recent/pinned to work
 const hubItems: MenuItem[] = menuSections
@@ -291,10 +299,16 @@ export default function Layout() {
 
   useClickOutside(profileRef, useCallback(() => setProfileOpen(false), []));
 
+  // Agency mode: modules an admin hid for the active company (only hideable paths count).
+  const hiddenModules = new Set(
+    (user?.company?.settings?.hidden_modules ?? []).filter(p => HIDEABLE_PATHS.has(p))
+  );
+
   const filteredSections = menuSections
     .map(section => ({
       ...section,
       items: section.items.filter(item => {
+        if (hiddenModules.has(item.path)) return false;
         if (item.roles && item.roles.length > 0 && !item.roles.includes(user?.role || '')) return false;
         if (!item.permission) return true;
         return hasPermission(item.permission);
@@ -322,6 +336,7 @@ export default function Layout() {
     : orderedSections;
 
   const accessibleMenuItems = allMenuItems.filter(item => {
+    if (hiddenModules.has(item.path)) return false;
     if (item.roles && item.roles.length > 0 && !item.roles.includes(user?.role || '')) return false;
     if (!item.permission) return true;
     return hasPermission(item.permission);

@@ -15,6 +15,7 @@ interface AuthState {
   hydrate: () => void;
   hasPermission: (permission: string) => boolean;
   clearForcePasswordChange: () => void;
+  setCompanySettings: (settings: import('../types').CompanySettings) => void;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -105,5 +106,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   clearForcePasswordChange: () => {
     set({ forcePasswordChange: false });
+  },
+
+  setCompanySettings: (settings) => {
+    const u = get().user;
+    if (!u || !u.company) return;
+    const updated = { ...u, company: { ...u.company, settings } };
+    localStorage.setItem('user', JSON.stringify(updated));
+    set({ user: updated });
   },
 }));

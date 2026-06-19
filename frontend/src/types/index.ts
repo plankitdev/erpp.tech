@@ -69,8 +69,15 @@ export interface Company {
   icon: string | null;
   primary_color: string | null;
   is_active: boolean;
+  settings?: CompanySettings | null;
   users_count?: number;
   created_at: string;
+}
+
+export interface CompanySettings {
+  /** Nav item paths hidden from the sidebar for this company (agency mode). */
+  hidden_modules?: string[];
+  [key: string]: unknown;
 }
 
 // ========== Client ==========
