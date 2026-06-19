@@ -16,6 +16,7 @@ import NotificationBell from './NotificationBell';
 import Breadcrumbs, { type BreadcrumbItem } from './Breadcrumbs';
 import FloatingActionButton from './FloatingActionButton';
 import OnboardingTour from './OnboardingTour';
+import FloatingChat from './FloatingChat';
 import AttendanceTimer from './AttendanceTimer';
 import OverdueBanner from './OverdueBanner';
 import { useAnnouncementUnreadCount } from '../hooks/useAnnouncements';
@@ -971,6 +972,9 @@ export default function Layout() {
 
       {/* Onboarding Tour */}
       <OnboardingTour />
+
+      {/* Floating Messenger-style chat */}
+      <FloatingChat unreadCount={chatUnread} />
     </div>
   );
 }
