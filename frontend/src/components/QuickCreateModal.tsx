@@ -9,9 +9,13 @@ import { Zap, X, Calendar, User, Flag, FolderKanban } from 'lucide-react';
 interface Props {
   open: boolean;
   onClose: () => void;
+  /** Pre-fill the task title (e.g. when converting a chat message into a task). */
+  initialTitle?: string;
+  /** Pre-select the assignee by user id. */
+  initialAssignedTo?: number | null;
 }
 
-export default function QuickCreateModal({ open, onClose }: Props) {
+export default function QuickCreateModal({ open, onClose, initialTitle = '', initialAssignedTo = null }: Props) {
   const createTask = useCreateTask();
   const { data: projectsData } = useProjects({ per_page: 100, status: 'active' });
   const projects = projectsData?.data ?? [];
@@ -29,10 +33,16 @@ export default function QuickCreateModal({ open, onClose }: Props) {
   useEffect(() => {
     if (open) {
       employeesApi.getAll({ per_page: 100 }).then(r => setEmployees(r.data.data || [])).catch(() => {});
-      setForm({ title: '', priority: 'medium', due_date: '', assigned_to: '', project_id: '' });
+      setForm({
+        title: initialTitle,
+        priority: 'medium',
+        due_date: '',
+        assigned_to: initialAssignedTo ? String(initialAssignedTo) : '',
+        project_id: '',
+      });
       setTimeout(() => titleRef.current?.focus(), 50);
     }
-  }, [open]);
+  }, [open, initialTitle, initialAssignedTo]);
 
   // Keyboard shortcut Ctrl+N
   useEffect(() => {

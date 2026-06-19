@@ -8,7 +8,7 @@ import {
   CheckSquare, Kanban, Handshake, BarChart3, KeyRound, ChevronRight, ChevronLeft,
   LogOut, CreditCard, Settings, Activity, ChevronDown, Building2, User, Shield, FolderKanban, FolderOpen,
   PanelRightOpen, PanelRightClose, Target, UserPlus, Menu, X,
-  CalendarDays, ImageIcon, Video, Heart, Timer, ClipboardList, Ticket, GanttChartSquare, Mail, Zap, BookOpen, Tag, Monitor, Megaphone, HardDrive,
+  CalendarDays, ImageIcon, Video, Heart, ClipboardList, Ticket, GanttChartSquare, Mail, Zap, BookOpen, Tag, Monitor, Megaphone, HardDrive,
   Star, Pin, PinOff, Sun, Moon,
   FolderTree, BookOpenCheck, GitBranch, Calculator, Box, Clock, Scale, TrendingUp, LayoutList, MessageSquare,
 } from 'lucide-react';
@@ -17,6 +17,8 @@ import Breadcrumbs, { type BreadcrumbItem } from './Breadcrumbs';
 import FloatingActionButton from './FloatingActionButton';
 import OnboardingTour from './OnboardingTour';
 import FloatingChat from './FloatingChat';
+import QuickCreateModal from './QuickCreateModal';
+import { useQuickTaskStore } from '../store/quickTaskStore';
 import AttendanceTimer from './AttendanceTimer';
 import OverdueBanner from './OverdueBanner';
 import { useAnnouncementUnreadCount } from '../hooks/useAnnouncements';
@@ -96,8 +98,7 @@ const menuSections: MenuSection[] = [
       { path: '/tasks/board', label: 'لوحة كانبان', icon: Kanban, permission: 'tasks' },
       { path: '/calendar', label: 'التقويم', icon: CalendarDays, permission: 'tasks', dividerBefore: true },
       { path: '/meetings', label: 'الاجتماعات', icon: Video, permission: 'tasks' },
-      { path: '/time-tracking', label: 'تتبع الوقت', icon: Timer, permission: 'tasks', dividerBefore: true },
-      { path: '/gantt', label: 'مخطط جانت', icon: GanttChartSquare, permission: 'projects' },
+      { path: '/gantt', label: 'مخطط جانت', icon: GanttChartSquare, permission: 'projects', dividerBefore: true },
       { path: '/kpi', label: 'لوحة الأداء', icon: Target, permission: null },
     ],
   },
@@ -262,6 +263,7 @@ export default function Layout() {
   const location = useLocation();
   const { data: announcementUnread = 0 } = useAnnouncementUnreadCount();
   const { data: chatUnread = 0 } = useChatUnreadCount();
+  const quickTask = useQuickTaskStore();
   const { data: badges } = useSidebarBadges();
   const sidebarBadges = (badges || {}) as Record<string, number>;
   const { theme, setTheme } = useThemeStore();
@@ -973,8 +975,16 @@ export default function Layout() {
       {/* Onboarding Tour */}
       <OnboardingTour />
 
-      {/* Floating Messenger-style chat */}
+      {/* Floating Messenger-style chat + quick-task button */}
       <FloatingChat unreadCount={chatUnread} />
+
+      {/* Quick task modal (opened from the floating button or from a chat message) */}
+      <QuickCreateModal
+        open={quickTask.open}
+        onClose={quickTask.close}
+        initialTitle={quickTask.initialTitle}
+        initialAssignedTo={quickTask.initialAssignedTo}
+      />
     </div>
   );
 }
