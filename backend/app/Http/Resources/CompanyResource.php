@@ -17,6 +17,7 @@ class CompanyResource extends JsonResource
             'icon'          => $this->icon ? url($this->icon) : null,
             'primary_color' => $this->primary_color,
             'is_active'     => $this->is_active,
+            'settings'      => $this->settings ?? [],
             'users_count'   => $this->whenCounted('users'),
             'created_at'    => $this->created_at->format('Y-m-d'),
         ];
