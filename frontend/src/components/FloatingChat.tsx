@@ -114,7 +114,7 @@ export default function FloatingChat({ unreadCount = 0 }: { unreadCount?: number
       return;
     }
     try {
-      const ch = await createChannel.mutateAsync({ name: '', type: 'direct', member_ids: [userId] });
+      const ch = await createChannel.mutateAsync({ name: `DM-${userId}`, type: 'direct', member_ids: [userId] });
       openChannel(ch.id);
     } catch {
       /* handled by hook toast */

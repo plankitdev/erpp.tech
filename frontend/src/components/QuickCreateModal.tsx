@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useCreateTask } from '../hooks/useTasks';
 import { useProjects } from '../hooks/useProjects';
-import { employeesApi } from '../api/employees';
-import type { Employee } from '../types';
+import { usersApi } from '../api/users';
 import toast from 'react-hot-toast';
 import { Zap, X, Calendar, User, Flag, FolderKanban } from 'lucide-react';
 
@@ -19,7 +18,7 @@ export default function QuickCreateModal({ open, onClose, initialTitle = '', ini
   const createTask = useCreateTask();
   const { data: projectsData } = useProjects({ per_page: 100, status: 'active' });
   const projects = projectsData?.data ?? [];
-  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [users, setUsers] = useState<{ id: number; name: string }[]>([]);
   const titleRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
@@ -32,7 +31,7 @@ export default function QuickCreateModal({ open, onClose, initialTitle = '', ini
 
   useEffect(() => {
     if (open) {
-      employeesApi.getAll({ per_page: 100 }).then(r => setEmployees(r.data.data || [])).catch(() => {});
+      usersApi.getList().then(r => setUsers(r.data.data || [])).catch(() => {});
       setForm({
         title: initialTitle,
         priority: 'medium',
@@ -147,8 +146,8 @@ export default function QuickCreateModal({ open, onClose, initialTitle = '', ini
                 className="input w-full pr-8 text-sm"
               >
                 <option value="">— بدون تعيين —</option>
-                {employees.map(emp => (
-                  <option key={emp.user_id} value={emp.user_id}>{emp.name}</option>
+                {users.map(u => (
+                  <option key={u.id} value={u.id}>{u.name}</option>
                 ))}
               </select>
             </div>
