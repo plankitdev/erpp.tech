@@ -36,7 +36,7 @@ function Avatar({ name, size = 40 }: { name: string; size?: number }) {
   );
 }
 
-export default function FloatingChat({ unreadCount = 0 }: { unreadCount?: number }) {
+export default function FloatingChat({ unreadCount = 0, suppressed = false }: { unreadCount?: number; suppressed?: boolean }) {
   const { user } = useAuthStore();
   const location = useLocation();
   const openTask = useQuickTaskStore((s) => s.openTask);
@@ -93,6 +93,8 @@ export default function FloatingChat({ unreadCount = 0 }: { unreadCount?: number
   }, [open, view, activeChannelId]);
 
   if (!user) return null;
+  // Hidden while the mobile slide-over menu is open (avoids overlapping it).
+  if (suppressed) return null;
   // On the full chat page, hide the chat bubble but keep the quick-task button.
   const onChatPage = location.pathname.startsWith('/chat');
 

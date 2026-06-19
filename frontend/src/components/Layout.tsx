@@ -280,7 +280,9 @@ export default function Layout() {
   // Real-time notification stream (SSE) — falls back to 60s polling in NotificationBell
   const isAuthenticated = !!useAuthStore.getState().token;
   useNotificationStream(isAuthenticated);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    try { return localStorage.getItem('erpp_sidebar_open') !== '0'; } catch { return true; }
+  });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const [profileOpen, setProfileOpen] = useState(false);
@@ -296,6 +298,20 @@ export default function Layout() {
     setRecentPaths(readStoredPaths(SIDEBAR_RECENT_KEY));
     setUsageCounts(readStoredUsageMap());
   }, []);
+
+  // Persist the desktop collapse state across sessions.
+  useEffect(() => {
+    try { localStorage.setItem('erpp_sidebar_open', sidebarOpen ? '1' : '0'); } catch { /* ignore */ }
+  }, [sidebarOpen]);
+
+  // The mobile slide-over must always render expanded (with labels), even if the
+  // desktop sidebar was collapsed — otherwise it shows a broken icon-only column.
+  useEffect(() => {
+    if (mobileMenuOpen && typeof window !== 'undefined' && window.innerWidth < 1024 && !sidebarOpen) {
+      setSidebarOpen(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mobileMenuOpen]);
 
   useClickOutside(profileRef, useCallback(() => setProfileOpen(false), []));
 
@@ -747,7 +763,7 @@ export default function Layout() {
               </div>
               <button
                 onClick={() => setSidebarOpen(false)}
-                className="text-slate-500 hover:text-slate-200 transition-all p-1.5 rounded-lg hover:bg-white/[0.06]"
+                className="hidden lg:flex text-slate-500 hover:text-slate-200 transition-all p-1.5 rounded-lg hover:bg-white/[0.06]"
                 title="تصغير القائمة"
               >
                 <PanelRightOpen size={15} />
@@ -983,16 +999,18 @@ export default function Layout() {
         </main>
       </div>
 
-      {/* Mobile FAB */}
-      <div data-tour="fab">
-      <FloatingActionButton />
-      </div>
+      {/* Mobile FAB (hidden while the mobile menu is open) */}
+      {!mobileMenuOpen && (
+        <div data-tour="fab">
+          <FloatingActionButton />
+        </div>
+      )}
 
       {/* Onboarding Tour */}
       <OnboardingTour />
 
       {/* Floating Messenger-style chat + quick-task button */}
-      <FloatingChat unreadCount={chatUnread} />
+      <FloatingChat unreadCount={chatUnread} suppressed={mobileMenuOpen} />
 
       {/* Quick task modal (opened from the floating button or from a chat message) */}
       <QuickCreateModal
