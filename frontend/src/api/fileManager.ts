@@ -24,6 +24,7 @@ export interface FMFile {
   approved_by?: { id: number; name: string } | null;
   approved_at?: string | null;
   notes?: string | null;
+  drive_web_view_link?: string | null;
   created_at: string;
 }
 

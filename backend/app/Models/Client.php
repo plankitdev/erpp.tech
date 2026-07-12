@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class Client extends Model
 {
@@ -25,7 +27,7 @@ class Client extends Model
     ];
 
     protected $fillable = [
-        'company_id', 'name', 'slug', 'phone', 'company_name',
+        'company_id', 'name', 'slug', 'phone', 'email', 'company_name',
         'sector', 'service', 'monthly_payment', 'payment_day',
         'status', 'notes', 'last_contact_date', 'follow_up_days',
     ];
@@ -95,25 +97,57 @@ class Client extends Model
         return $this->hasMany(Expense::class);
     }
 
+    /**
+     * All invoice IDs belonging to this client, de-duplicated across the two
+     * linkage paths: via a contract (hasManyThrough) and direct (client_id with
+     * no contract). Contract-linked invoices also carry client_id, so we union
+     * on the contract path and only add purely-direct invoices to avoid
+     * double-counting.
+     */
+    protected function invoiceIds(): Collection
+    {
+        $viaContract = $this->invoices()->pluck('invoices.id');
+        $direct = $this->directInvoices()->whereNull('contract_id')->pluck('id');
+        return $viaContract->merge($direct)->unique()->values();
+    }
+
+    /**
+     * Total invoiced amount. Uses total_with_vat when present, otherwise falls
+     * back to the base amount (older invoices left total_with_vat null).
+     */
+    public function getTotalInvoicedAttribute(): float
+    {
+        $ids = $this->invoiceIds();
+        if ($ids->isEmpty()) {
+            return 0.0;
+        }
+        return (float) Invoice::whereIn('id', $ids)
+            ->sum(DB::raw('COALESCE(total_with_vat, amount)'));
+    }
+
+    /**
+     * Sum of actual payments recorded against this client's invoices.
+     */
+    public function getTotalPaidAttribute(): float
+    {
+        $ids = $this->invoiceIds();
+        if ($ids->isEmpty()) {
+            return 0.0;
+        }
+        return (float) InvoicePayment::whereIn('invoice_id', $ids)->sum('amount');
+    }
+
+    /**
+     * Outstanding balance = Σ invoices − Σ payments. Correctly reflects partial
+     * payments (unlike a status-based sum).
+     */
     public function getTotalOutstandingAttribute(): float
     {
-        return $this->invoices()->where('invoices.status', '!=', Invoice::STATUS_PAID)->sum('invoices.total_with_vat');
+        return round($this->total_invoiced - $this->total_paid, 2);
     }
 
     public function getTotalExpensesAttribute(): float
     {
         return $this->expenses()->sum('amount');
-    }
-
-    public function getTotalPaidAttribute(): float
-    {
-        $throughContract = $this->invoices()
-            ->where('invoices.status', Invoice::STATUS_PAID)
-            ->sum('invoices.total_with_vat');
-        $direct = $this->directInvoices()
-            ->where('status', Invoice::STATUS_PAID)
-            ->whereNull('contract_id')
-            ->sum('total_with_vat');
-        return $throughContract + $direct;
     }
 }

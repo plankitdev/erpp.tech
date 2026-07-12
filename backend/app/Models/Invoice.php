@@ -13,11 +13,15 @@ class Invoice extends Model
 {
     use HasCompany, HasFactory, LogsActivity;
 
+    public const STATUS_DRAFT    = 'draft';
+    public const STATUS_SENT     = 'sent';
     public const STATUS_PENDING  = 'pending';
     public const STATUS_PAID     = 'paid';
     public const STATUS_OVERDUE  = 'overdue';
     public const STATUS_PARTIAL  = 'partial';
     public const STATUSES = [
+        self::STATUS_DRAFT,
+        self::STATUS_SENT,
         self::STATUS_PENDING,
         self::STATUS_PAID,
         self::STATUS_OVERDUE,
@@ -25,12 +29,13 @@ class Invoice extends Model
     ];
 
     protected $fillable = [
-        'contract_id', 'company_id', 'client_id', 'amount', 'vat_rate', 'vat_amount', 'total_with_vat', 'currency',
+        'contract_id', 'company_id', 'client_id', 'amount', 'items', 'vat_rate', 'vat_amount', 'total_with_vat', 'currency',
         'status', 'due_date', 'paid_date', 'issue_date',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
+        'items' => 'array',
         'vat_rate' => 'decimal:2',
         'vat_amount' => 'decimal:2',
         'total_with_vat' => 'decimal:2',

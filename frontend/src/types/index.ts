@@ -86,6 +86,7 @@ export interface Client {
   slug: string;
   name: string;
   phone: string | null;
+  email: string | null;
   company_name: string | null;
   sector: string | null;
   service: string | null;
@@ -140,11 +141,22 @@ export type PaymentType = 'monthly' | 'installments' | 'one_time';
 export type Currency = 'EGP' | 'USD' | 'SAR';
 
 // ========== Invoice ==========
+export interface InvoiceItem {
+  description: string;
+  quantity: number;
+  unit_price: number;
+  line_total?: number;
+}
+
 export interface Invoice {
   id: number;
   contract_id: number | null;
   client_id?: number | null;
   amount: number;
+  items?: InvoiceItem[];
+  vat_rate?: number;
+  vat_amount?: number;
+  total_with_vat?: number | null;
   currency: Currency;
   status: InvoiceStatus;
   due_date: string;
@@ -158,7 +170,7 @@ export interface Invoice {
   created_at: string;
 }
 
-export type InvoiceStatus = 'pending' | 'paid' | 'overdue' | 'partial';
+export type InvoiceStatus = 'draft' | 'sent' | 'pending' | 'paid' | 'overdue' | 'partial';
 
 export interface InvoicePayment {
   id: number;

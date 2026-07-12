@@ -155,9 +155,9 @@ class GoogleDriveService
     // ─── File Operations ───────────────────────────────────
 
     /**
-     * Upload a file to Drive. Returns the Drive file ID.
+     * Upload a file to Drive. Returns ['id' => ..., 'web_view_link' => ...] or null on failure.
      */
-    public function uploadFile(string $localPath, string $name, string $mimeType, ?string $parentDriveFolderId = null): ?string
+    public function uploadFile(string $localPath, string $name, string $mimeType, ?string $parentDriveFolderId = null): ?array
     {
         try {
             $parentId = $parentDriveFolderId ?: $this->getRootFolderId();
@@ -178,10 +178,13 @@ class GoogleDriveService
                 'data' => $content,
                 'mimeType' => $mimeType,
                 'uploadType' => 'multipart',
-                'fields' => 'id',
+                'fields' => 'id, webViewLink',
             ]);
 
-            return $created->id;
+            return [
+                'id' => $created->id,
+                'web_view_link' => $created->webViewLink,
+            ];
         } catch (\Exception $e) {
             Log::warning('GoogleDrive: uploadFile failed', ['name' => $name, 'error' => $e->getMessage()]);
             return null;
@@ -332,10 +335,13 @@ class GoogleDriveService
                     ? $folderMap[$file->folder_id]
                     : $rootFolderId;
 
-                $driveFileId = $this->uploadFile($file->file_path, $file->name, $file->mime_type ?? 'application/octet-stream', $parentId);
+                $uploadResult = $this->uploadFile($file->file_path, $file->name, $file->mime_type ?? 'application/octet-stream', $parentId);
 
-                if ($driveFileId) {
-                    $file->update(['drive_file_id' => $driveFileId]);
+                if ($uploadResult) {
+                    $file->update([
+                        'drive_file_id' => $uploadResult['id'],
+                        'drive_web_view_link' => $uploadResult['web_view_link'],
+                    ]);
                     $syncedFiles++;
                 } else {
                     $errors++;

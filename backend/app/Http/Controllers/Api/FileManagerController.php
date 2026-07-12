@@ -54,6 +54,7 @@ class FileManagerController extends Controller
                 'approved_by' => $f->approver,
                 'approved_at' => $f->approved_at?->format('Y-m-d H:i'),
                 'notes' => $f->notes,
+                'drive_web_view_link' => $f->drive_web_view_link,
                 'created_at' => $f->created_at?->format('Y-m-d H:i'),
             ]);
 
@@ -227,9 +228,12 @@ class FileManagerController extends Controller
         $driveService = $companyId ? GoogleDriveService::forCompany($companyId) : null;
         if ($driveService) {
             $parentDriveId = $driveService->resolveParentDriveFolderId($request->folder_id);
-            $driveFileId = $driveService->uploadFile($path, $fileName, $uploaded->getClientMimeType(), $parentDriveId);
-            if ($driveFileId) {
-                $managedFile->update(['drive_file_id' => $driveFileId]);
+            $uploadResult = $driveService->uploadFile($path, $fileName, $uploaded->getClientMimeType(), $parentDriveId);
+            if ($uploadResult) {
+                $managedFile->update([
+                    'drive_file_id' => $uploadResult['id'],
+                    'drive_web_view_link' => $uploadResult['web_view_link'],
+                ]);
             }
         }
 
@@ -242,6 +246,8 @@ class FileManagerController extends Controller
             'mime_type' => $managedFile->mime_type,
             'file_size' => $managedFile->file_size,
             'status' => $managedFile->status,
+            'drive_file_id' => $managedFile->drive_file_id,
+            'drive_web_view_link' => $managedFile->drive_web_view_link,
             'uploaded_by' => $managedFile->uploader,
             'created_at' => $managedFile->created_at?->format('Y-m-d H:i'),
         ], 'تم رفع الملف', 201);

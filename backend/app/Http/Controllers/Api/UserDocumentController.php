@@ -121,9 +121,12 @@ class UserDocumentController extends Controller
         $driveService = GoogleDriveService::forCompany($document->company_id);
         if ($driveService) {
             $driveFolderId = $driveService->resolveParentDriveFolderId($folder->id);
-            $driveFileId = $driveService->uploadFile($filePath, $fileName, 'application/json', $driveFolderId);
-            if ($driveFileId) {
-                $managedFile->update(['drive_file_id' => $driveFileId]);
+            $uploadResult = $driveService->uploadFile($filePath, $fileName, 'application/json', $driveFolderId);
+            if ($uploadResult) {
+                $managedFile->update([
+                    'drive_file_id' => $uploadResult['id'],
+                    'drive_web_view_link' => $uploadResult['web_view_link'],
+                ]);
             }
         }
 

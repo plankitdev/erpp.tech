@@ -17,6 +17,7 @@ class UpdateClientRequest extends FormRequest
             'name'            => 'sometimes|string|max:255',
             'slug'            => 'nullable|string|max:255|unique:clients,slug,' . $this->route('client')?->id,
             'phone'           => 'nullable|string|max:20',
+            'email'           => 'nullable|email|max:255',
             'company_name'    => 'nullable|string|max:255',
             'sector'          => 'nullable|string|max:100',
             'service'         => 'nullable|string|max:100',

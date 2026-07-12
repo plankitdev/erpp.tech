@@ -11,6 +11,7 @@ const clientSchema = z.object({
   name: z.string().min(1, 'اسم العميل مطلوب'),
   slug: z.string().optional().or(z.literal('')),
   phone: z.string().optional().or(z.literal('')),
+  email: z.string().email('بريد إلكتروني غير صالح').optional().or(z.literal('')),
   company_name: z.string().optional().or(z.literal('')),
   sector: z.string().optional().or(z.literal('')),
   service: z.string().optional().or(z.literal('')),
@@ -51,6 +52,7 @@ export default function ClientForm() {
         name: client.name,
         slug: client.slug || '',
         phone: client.phone || '',
+        email: client.email || '',
         company_name: client.company_name || '',
         sector: client.sector || '',
         service: client.service || '',
@@ -99,9 +101,14 @@ export default function ClientForm() {
             <input type="text" {...register('phone')} className="input" />
           </div>
           <div>
-            <label className="input-label">اسم الشركة</label>
-            <input type="text" {...register('company_name')} className="input" />
+            <label className="input-label">البريد الإلكتروني</label>
+            <input type="email" dir="ltr" {...register('email')} className="input" />
+            {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
           </div>
+        </div>
+        <div>
+          <label className="input-label">اسم الشركة</label>
+          <input type="text" {...register('company_name')} className="input" />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>

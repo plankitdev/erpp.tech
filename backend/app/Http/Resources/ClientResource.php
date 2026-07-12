@@ -17,6 +17,7 @@ class ClientResource extends JsonResource
             'name'              => $this->name,
             'slug'              => $this->slug,
             'phone'             => $this->phone,
+            'email'             => $this->email,
             'company_name'      => $this->company_name,
             'sector'            => $this->sector,
             'service'           => $this->service,
@@ -34,6 +35,7 @@ class ClientResource extends JsonResource
         if (!$isEmployee) {
             $data['monthly_payment']  = $this->monthly_payment ? (float) $this->monthly_payment : null;
             $data['payment_day']      = $this->payment_day;
+            $data['total_invoiced']   = $this->total_invoiced;
             $data['total_outstanding'] = $this->total_outstanding;
             $data['total_expenses']   = $this->total_expenses;
             $data['total_paid']       = $this->total_paid;

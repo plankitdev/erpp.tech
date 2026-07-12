@@ -1008,6 +1008,11 @@ function FileCard({ file, isRenaming, renameValue, onPreview, onStartRename, onR
             <button onClick={e => { e.stopPropagation(); onDownload(); }} className="p-2 bg-white rounded-full shadow hover:bg-gray-100">
               <Download className="w-4 h-4 text-gray-700" />
             </button>
+            {file.drive_web_view_link && (
+              <a href={file.drive_web_view_link} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} title="افتح في Google Drive" className="p-2 bg-white rounded-full shadow hover:bg-gray-100">
+                <ExternalLink className="w-4 h-4 text-green-600" />
+              </a>
+            )}
           </div>
         </div>
         {/* Status badge */}
@@ -1122,6 +1127,11 @@ function FileRow({ file, isRenaming, renameValue, onPreview, onStartRename, onRe
         <button onClick={e => { e.stopPropagation(); onDownload(); }} className="p-1.5 rounded-lg hover:bg-gray-200">
           <Download className="w-4 h-4 text-gray-500" />
         </button>
+        {file.drive_web_view_link && (
+          <a href={file.drive_web_view_link} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} title="افتح في Google Drive" className="p-1.5 rounded-lg hover:bg-green-100">
+            <ExternalLink className="w-4 h-4 text-green-600" />
+          </a>
+        )}
         <button onClick={e => { e.stopPropagation(); onStartRename(); }} className="p-1.5 rounded-lg hover:bg-gray-200">
           <Edit3 className="w-4 h-4 text-gray-500" />
         </button>

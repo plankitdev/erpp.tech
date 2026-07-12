@@ -6,7 +6,7 @@ import { useAuthStore } from '../store/authStore';
 import { formatCurrency, formatDate, statusLabels, statusColors } from '../utils';
 import type { InvoiceStatus, ContractStatus } from '../types';
 import {
-  ArrowRight, Pencil, Phone, Building2, Briefcase, Calendar,
+  ArrowRight, Pencil, Phone, Mail, Building2, Briefcase, Calendar,
   FileText, FolderKanban, CheckSquare, DollarSign, TrendingUp,
   AlertCircle, User, Clock, CircleDot,
 } from 'lucide-react';
@@ -70,6 +70,9 @@ export default function ClientProfile() {
             <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
               {client.phone && (
                 <span className="flex items-center gap-1.5"><Phone size={14} />{client.phone}</span>
+              )}
+              {client.email && (
+                <span className="flex items-center gap-1.5" dir="ltr"><Mail size={14} />{client.email}</span>
               )}
               {client.company_name && (
                 <span className="flex items-center gap-1.5"><Building2 size={14} />{client.company_name}</span>
@@ -158,6 +161,7 @@ export default function ClientProfile() {
                 {[
                   { label: 'الاسم', value: client.name },
                   { label: 'الموبايل', value: client.phone },
+                  { label: 'البريد الإلكتروني', value: client.email },
                   { label: 'الشركة', value: client.company_name },
                   { label: 'القطاع', value: client.sector },
                   { label: 'الخدمة', value: client.service },

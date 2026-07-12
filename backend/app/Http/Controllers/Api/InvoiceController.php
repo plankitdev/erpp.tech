@@ -48,6 +48,14 @@ class InvoiceController extends Controller
         $isPaid = !empty($data['is_paid']);
         unset($data['is_paid']);
 
+        // Normalize line items and derive amount from them when provided
+        if (!empty($data['items'])) {
+            [$data['items'], $itemsTotal] = $this->normalizeItems($data['items']);
+            $data['amount'] = $itemsTotal;
+        } else {
+            $data['items'] = null;
+        }
+
         // Auto-set issue_date if not provided
         if (empty($data['issue_date'])) {
             $data['issue_date'] = now()->toDateString();
@@ -84,7 +92,8 @@ class InvoiceController extends Controller
             $data['status'] = Invoice::STATUS_PAID;
             $data['paid_date'] = now();
         } else {
-            $data['status'] = Invoice::STATUS_PENDING;
+            // Respect an explicitly chosen workflow status (draft/sent), default pending
+            $data['status'] = $data['status'] ?? Invoice::STATUS_PENDING;
         }
 
         $invoice = Invoice::create($data);
@@ -117,8 +126,20 @@ class InvoiceController extends Controller
     {
         $this->authorize('update', $invoice);
 
-        $invoice->update($request->validated());
-        return $this->successResponse(new InvoiceResource($invoice), 'تم تحديث الفاتورة');
+        $data = $request->validated();
+
+        // Recalculate amount from line items when they are supplied
+        if (array_key_exists('items', $data)) {
+            if (!empty($data['items'])) {
+                [$data['items'], $itemsTotal] = $this->normalizeItems($data['items']);
+                $data['amount'] = $itemsTotal;
+            } else {
+                $data['items'] = null;
+            }
+        }
+
+        $invoice->update($data);
+        return $this->successResponse(new InvoiceResource($invoice->fresh()->load(['contract.client', 'client', 'payments'])), 'تم تحديث الفاتورة');
     }
 
     public function destroy(Invoice $invoice): JsonResponse
@@ -214,6 +235,32 @@ class InvoiceController extends Controller
 
         $filename = 'invoice-' . str_pad($invoice->id, 5, '0', STR_PAD_LEFT) . '.pdf';
         return $pdf->download($filename);
+    }
+
+    /**
+     * Normalize invoice line items (compute line_total per row) and return
+     * [normalizedItems, grandTotal].
+     */
+    private function normalizeItems(array $items): array
+    {
+        $normalized = [];
+        $total = 0.0;
+
+        foreach ($items as $item) {
+            $qty = (float) ($item['quantity'] ?? 0);
+            $price = (float) ($item['unit_price'] ?? 0);
+            $lineTotal = round($qty * $price, 2);
+
+            $normalized[] = [
+                'description' => (string) ($item['description'] ?? ''),
+                'quantity'    => $qty,
+                'unit_price'  => $price,
+                'line_total'  => $lineTotal,
+            ];
+            $total += $lineTotal;
+        }
+
+        return [$normalized, round($total, 2)];
     }
 
     private function numberToArabicWords(float $number): string
