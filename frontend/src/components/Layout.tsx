@@ -45,12 +45,6 @@ interface MenuSection {
   color?: string;          // accent color class for the section icon
 }
 
-interface SidebarTab {
-  id: 'team' | 'finance' | 'clients' | 'system';
-  label: string;
-  icon: typeof LayoutDashboard;
-  sectionTitles: string[];
-}
 
 // Standalone items — only items with badges or always-visible nav
 // Personal / self-service items — shown to everyone (null permission). These are
@@ -198,33 +192,6 @@ const allMenuItems = [
   ...menuSections.flatMap(s => s.items),
 ];
 
-const superAdminTabs: SidebarTab[] = [
-  {
-    id: 'team',
-    label: 'العمل',
-    icon: CheckSquare,
-    sectionTitles: ['العمل', 'الموارد البشرية'],
-  },
-  {
-    id: 'finance',
-    label: 'الحسابات',
-    icon: Landmark,
-    sectionTitles: ['الحسابات'],
-  },
-  {
-    id: 'clients',
-    label: 'العملاء',
-    icon: Users,
-    sectionTitles: ['العملاء'],
-  },
-  {
-    id: 'system',
-    label: 'الإدارة',
-    icon: Settings,
-    sectionTitles: ['الإدارة والنظام'],
-  },
-];
-
 // Role-based section ordering — each role sees their most relevant domains first
 const roleSectionOrder: Record<string, string[]> = {
   super_admin:       ['العمل', 'العملاء', 'الحسابات', 'الموارد البشرية', 'الإدارة والنظام'],
@@ -288,7 +255,6 @@ export default function Layout() {
   const [pinnedPaths, setPinnedPaths] = useState<string[]>([]);
   const [recentPaths, setRecentPaths] = useState<string[]>([]);
   const [usageCounts, setUsageCounts] = useState<Record<string, number>>({});
-  const [activeSidebarTab, setActiveSidebarTab] = useState<SidebarTab['id']>('team');
   const profileRef = useRef<HTMLDivElement>(null);
   const mobileOverlayRef = useRef<HTMLDivElement>(null);
 
@@ -331,8 +297,6 @@ export default function Layout() {
     }))
     .filter(section => section.items.length > 0);
 
-  const isSuperAdmin = user?.role === 'super_admin';
-
   // Apply role-based ordering
   const orderedSections = (() => {
     const order = roleSectionOrder[user?.role || 'employee'] || roleSectionOrder.employee;
@@ -343,12 +307,10 @@ export default function Layout() {
     });
   })();
 
-  const visibleSections = isSuperAdmin
-    ? orderedSections.filter(section => {
-        const activeTab = superAdminTabs.find(tab => tab.id === activeSidebarTab);
-        return activeTab ? activeTab.sectionTitles.includes(section.title) : true;
-      })
-    : orderedSections;
+  // All roles (including super_admin) see every accessible section expanded.
+  // The old super_admin tab system hid the clients/finance/admin groups behind
+  // tabs — confusing, and completely inaccessible when the sidebar was collapsed.
+  const visibleSections = orderedSections;
 
   const accessibleMenuItems = allMenuItems.filter(item => {
     if (hiddenModules.has(item.path)) return false;
@@ -401,14 +363,6 @@ export default function Layout() {
 
   const currentPage = allMenuItems.find(m => m.path === location.pathname);
   const currentSection = menuSections.find(s => s.items.some(i => i.path === location.pathname));
-
-  useEffect(() => {
-    if (!isSuperAdmin || !currentSection) return;
-    const matchingTab = superAdminTabs.find(tab => tab.sectionTitles.includes(currentSection.title));
-    if (matchingTab && matchingTab.id !== activeSidebarTab) {
-      setActiveSidebarTab(matchingTab.id);
-    }
-  }, [isSuperAdmin, currentSection?.title, activeSidebarTab]);
 
   // Reset manual collapse state on navigation so auto-collapse takes over
   useEffect(() => {
@@ -593,31 +547,6 @@ export default function Layout() {
 
         {/* ── Divider ── */}
         <div className="mx-2 mb-2 mt-1 h-px bg-white/[0.04]" />
-
-        {isSuperAdmin && sidebarOpen && (
-          <div className="mb-2 rounded-xl border border-white/[0.06] bg-white/[0.02] p-1">
-            <div className="grid grid-cols-2 gap-1">
-              {superAdminTabs.map((tab) => {
-                const TabIcon = tab.icon;
-                const isActiveTab = tab.id === activeSidebarTab;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveSidebarTab(tab.id)}
-                    className={`flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-semibold transition-all ${
-                      isActiveTab
-                        ? 'bg-primary-500/20 text-primary-200 border border-primary-400/30'
-                        : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200 border border-transparent'
-                    }`}
-                  >
-                    <TabIcon size={13} />
-                    <span>{tab.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
 
         {/* ── Sections ── */}
         <div className="space-y-1">
