@@ -350,13 +350,13 @@ function KPIStrip({ stats, role }: { stats: Record<string, any>; role: string })
       { label: 'عملاء نشطين', value: stats.clients_count || 0, icon: Users },
       { label: 'مشاريع قيد التنفيذ', value: stats.active_projects || 0, icon: Zap },
     );
-  } else if (role === 'company_admin' || role === 'manager' || role === 'marketing_manager') {
-    const margin = stats.profit_margin || 0;
+  } else if (role === 'manager' || role === 'marketing_manager') {
+    // Operations KPIs only — no money for managers / account managers.
     kpis.push(
-      { label: 'هامش الربح', value: `${margin}%`, icon: TrendingUp, positive: margin > 0 },
-      { label: 'معدل التحصيل', value: `${stats.collection_rate || 0}%`, icon: BarChart3, positive: (stats.collection_rate || 0) > 50 },
       { label: 'معدل إنجاز المهام', value: `${stats.task_completion_rate || 0}%`, icon: Activity, positive: (stats.task_completion_rate || 0) > 50 },
-      { label: 'فواتير متأخرة', value: stats.overdue_invoices || 0, icon: AlertTriangle },
+      { label: 'مشاريع نشطة', value: stats.active_projects || 0, icon: Zap },
+      { label: 'مهام متأخرة', value: stats.overdue_tasks || 0, icon: AlertTriangle },
+      { label: 'أعضاء الفريق', value: stats.team_count || 0, icon: Users },
     );
   } else if (role === 'sales') {
     const total = (stats.total_leads || 0);
@@ -541,6 +541,78 @@ function ManagerDashboard({ stats }: { stats: Record<string, any> }) {
         <RecentInvoicesList invoices={stats.recent_invoices || []} />
         <RecentTasksList tasks={stats.recent_tasks || []} />
       </div>
+    </>
+  );
+}
+
+// Operations dashboard for managers / account managers — projects & tasks, no money.
+function ManagerOpsDashboard({ stats }: { stats: Record<string, any> }) {
+  const tbs = stats.tasks_by_status || {};
+  const cards: StatCard[] = [
+    { label: 'المشاريع النشطة', value: stats.active_projects || 0, icon: FolderKanban, iconBg: 'bg-violet-500', link: '/projects' },
+    { label: 'إجمالي المهام', value: stats.total_tasks || 0, icon: CheckCircle2, iconBg: 'bg-blue-500', link: '/tasks/board' },
+    { label: 'مهام متأخرة', value: stats.overdue_tasks || 0, icon: AlertTriangle, iconBg: 'bg-red-500', link: '/tasks' },
+    { label: 'مهام مكتملة', value: stats.completed_tasks || 0, icon: CheckCircle2, iconBg: 'bg-emerald-500' },
+    { label: 'العملاء', value: stats.clients_count || 0, icon: Users, iconBg: 'bg-blue-500', link: '/clients' },
+    { label: 'أعضاء الفريق', value: stats.team_count || 0, icon: UserCheck, iconBg: 'bg-indigo-500' },
+  ];
+
+  return (
+    <>
+      <StatCardGrid cards={cards} />
+
+      {/* Operations gauges (no money) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in-up">
+        <div className="card card-body text-center">
+          <p className="text-xs text-gray-400 mb-1">معدل إنجاز المهام</p>
+          <p className={`text-2xl font-bold ${(stats.task_completion_rate || 0) >= 70 ? 'text-emerald-600' : 'text-amber-600'}`}>{stats.task_completion_rate || 0}%</p>
+          <div className="h-1.5 bg-gray-100 rounded-full mt-2 overflow-hidden">
+            <div className={`h-full rounded-full ${(stats.task_completion_rate || 0) >= 70 ? 'bg-emerald-500' : 'bg-amber-500'}`} style={{ width: `${stats.task_completion_rate || 0}%` }} />
+          </div>
+        </div>
+        <div className="bg-violet-50 rounded-xl p-4 text-center">
+          <p className="text-2xl font-bold text-violet-700">{stats.active_projects || 0}</p>
+          <p className="text-xs text-violet-600 mt-1">مشاريع نشطة</p>
+        </div>
+        <div className="bg-emerald-50 rounded-xl p-4 text-center">
+          <p className="text-2xl font-bold text-emerald-700">{stats.completed_projects || 0}</p>
+          <p className="text-xs text-emerald-600 mt-1">مشاريع مكتملة</p>
+        </div>
+        <div className="bg-blue-50 rounded-xl p-4 text-center">
+          <p className="text-2xl font-bold text-blue-700">{tbs.in_progress || 0}</p>
+          <p className="text-xs text-blue-600 mt-1">مهام قيد التنفيذ</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div className="lg:col-span-2 animate-fade-in-up card card-body">
+          <h3 className="text-lg font-bold text-gray-900 mb-1">تقدم المشاريع</h3>
+          <p className="text-xs text-gray-400 mb-4">المشاريع النشطة وتقدمها</p>
+          <div className="space-y-4">
+            {(stats.project_progress || []).slice(0, 6).map((p: any) => (
+              <div key={p.id}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <Link to={`/projects/${p.slug || p.id}`} className="text-sm font-semibold text-gray-800 hover:text-primary-600">{p.name}</Link>
+                  <span className="text-xs text-gray-500">{p.progress}%</span>
+                </div>
+                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-l from-primary-500 to-primary-600 rounded-full transition-all duration-500" style={{ width: `${p.progress}%` }} />
+                </div>
+                <div className="flex items-center gap-3 mt-1 text-[11px] text-gray-400">
+                  <span>{p.completed_tasks}/{p.total_tasks} مهمة</span>
+                  {p.end_date && <span>ينتهي: {formatDate(p.end_date)}</span>}
+                </div>
+              </div>
+            ))}
+            {(stats.project_progress || []).length === 0 && (
+              <p className="text-sm text-gray-400 text-center py-6">لا توجد مشاريع نشطة بعد</p>
+            )}
+          </div>
+        </div>
+        <TaskStatusChart data={stats.task_status_distribution || []} />
+      </div>
+
+      <RecentTasksList tasks={stats.recent_tasks || []} />
     </>
   );
 }
@@ -798,7 +870,7 @@ export default function Dashboard() {
       case 'super_admin':
       case 'company_admin': return <SuperAdminDashboard stats={s} />;
       case 'manager':
-      case 'marketing_manager': return <ManagerDashboard stats={s} />;
+      case 'marketing_manager': return <ManagerOpsDashboard stats={s} />;
       case 'accountant': return <AccountantDashboard stats={s} />;
       case 'sales': return <SalesDashboard stats={s} />;
       case 'employee': return <EmployeeDashboard stats={s} />;

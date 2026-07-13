@@ -35,13 +35,16 @@ class DashboardController extends Controller
 
         $common = $this->getCommonData();
 
+        // Financial figures (revenue / profit / collection) are exposed ONLY to the
+        // top roles. Managers & account managers get an operations-only dataset with
+        // no money in it — the numbers never leave the server for these roles.
         $roleData = match ($role) {
             'super_admin', 'company_admin' => $this->getSuperAdminData($year, $dateFrom, $dateTo),
-            'manager', 'marketing_manager' => $this->getManagerData($year, $dateFrom, $dateTo),
+            'manager', 'marketing_manager' => $this->getManagerOpsData(),
             'accountant' => $this->getAccountantData($year, $dateFrom, $dateTo),
             'sales' => $this->getSalesData($dateFrom, $dateTo),
             'employee' => $this->getEmployeeData($user->id),
-            default => [],
+            default => $this->getEmployeeData($user->id),
         };
 
         return $this->successResponse(array_merge($common, $roleData, ['role' => $role]));
@@ -366,6 +369,73 @@ class DashboardController extends Controller
             'last_month_expenses' => (float) ($lastMonthTreasury->expenses ?? 0),
             'pending_salaries' => (int) ($salaryStats->pending ?? 0),
             'total_salaries_month' => (float) ($salaryStats->total_amount ?? 0),
+        ];
+    }
+
+    /**
+     * Operations dashboard for managers / account managers — projects, tasks and
+     * team only. Deliberately contains NO revenue, profit, expenses or invoice
+     * amounts, so financial data is never sent to these roles.
+     */
+    private function getManagerOpsData(): array
+    {
+        $taskStats = Task::selectRaw("
+            COUNT(*) as total,
+            SUM(CASE WHEN status = 'done' THEN 1 ELSE 0 END) as completed,
+            SUM(CASE WHEN status = 'todo' THEN 1 ELSE 0 END) as todo,
+            SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as in_progress,
+            SUM(CASE WHEN status = 'review' THEN 1 ELSE 0 END) as review,
+            SUM(CASE WHEN due_date < NOW() AND status != 'done' THEN 1 ELSE 0 END) as overdue
+        ")->first();
+
+        $totalTasks     = (int) $taskStats->total;
+        $completedTasks = (int) $taskStats->completed;
+
+        $tasksByStatus = [
+            'todo'        => (int) $taskStats->todo,
+            'in_progress' => (int) $taskStats->in_progress,
+            'review'      => (int) $taskStats->review,
+            'done'        => $completedTasks,
+        ];
+
+        $projectStats = Project::selectRaw("
+            COUNT(*) as total,
+            SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
+            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed
+        ")->first();
+
+        $projectProgress = Project::where('status', Project::STATUS_ACTIVE)
+            ->withCount(['tasks', 'tasks as completed_tasks_count' => fn($q) => $q->where('status', Task::STATUS_DONE)])
+            ->limit(10)->get()
+            ->map(fn($p) => [
+                'id'              => $p->id,
+                'slug'            => $p->slug,
+                'name'            => $p->name,
+                'total_tasks'     => $p->tasks_count,
+                'completed_tasks' => $p->completed_tasks_count,
+                'progress'        => $p->tasks_count > 0 ? round(($p->completed_tasks_count / $p->tasks_count) * 100) : 0,
+                'end_date'        => $p->end_date,
+            ]);
+
+        return [
+            'total_tasks'          => $totalTasks,
+            'completed_tasks'      => $completedTasks,
+            'overdue_tasks'        => (int) $taskStats->overdue,
+            'task_completion_rate' => $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100, 1) : 0,
+            'tasks_by_status'      => $tasksByStatus,
+            'task_status_distribution' => [
+                ['name' => 'جديد',        'value' => $tasksByStatus['todo']],
+                ['name' => 'قيد التنفيذ', 'value' => $tasksByStatus['in_progress']],
+                ['name' => 'مراجعة',      'value' => $tasksByStatus['review']],
+                ['name' => 'مكتمل',       'value' => $completedTasks],
+            ],
+            'total_projects'     => (int) $projectStats->total,
+            'active_projects'    => (int) $projectStats->active,
+            'completed_projects' => (int) $projectStats->completed,
+            'project_progress'   => $projectProgress,
+            'clients_count'      => Client::count(),
+            'active_contracts'   => Contract::where('status', Contract::STATUS_ACTIVE)->count(),
+            'team_count'         => User::where('role', '!=', 'super_admin')->count(),
         ];
     }
 
