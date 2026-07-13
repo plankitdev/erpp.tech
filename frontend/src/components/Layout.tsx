@@ -5,7 +5,7 @@ import { statusLabels } from '../utils';
 import { useClickOutside } from '../hooks/useClickOutside';
 import {
   LayoutDashboard, Users, FileText, Receipt, UserCog, Wallet, Landmark,
-  CheckSquare, Kanban, Handshake, BarChart3, KeyRound, ChevronRight, ChevronLeft,
+  CheckSquare, Handshake, BarChart3, KeyRound, ChevronRight, ChevronLeft,
   LogOut, CreditCard, Settings, Activity, ChevronDown, Building2, User, Shield, FolderKanban, FolderOpen,
   PanelRightOpen, PanelRightClose, Target, UserPlus, Menu, X,
   CalendarDays, ImageIcon, Video, Heart, ClipboardList, Ticket, GanttChartSquare, Mail, Zap, BookOpen, Tag, Monitor, Megaphone, HardDrive,
@@ -55,6 +55,7 @@ interface SidebarTab {
 // Standalone items — only items with badges or always-visible nav
 const standaloneItems: MenuItem[] = [
   { path: '/my-day', label: 'متابعاتي اليوم', icon: Sun, permission: null },
+  { path: '/personal-todos', label: 'مهامي الشخصية', icon: ClipboardList, permission: null },
   { path: '/announcements', label: 'الإعلانات', icon: Megaphone, permission: null },
   { path: '/chat', label: 'المحادثات', icon: MessageSquare, permission: null },
 ];
@@ -74,11 +75,9 @@ const menuSections: MenuSection[] = [
     hubPermission: 'tasks',
     color: 'text-teal-400',
     items: [
-      { path: '/personal-todos', label: 'مهامي الشخصية', icon: ClipboardList, permission: null },
       { path: '/my-tasks', label: 'مهامي', icon: UserCheck, permission: 'tasks' },
       { path: '/projects', label: 'المشاريع', icon: FolderKanban, permission: 'projects' },
       { path: '/tasks', label: 'المهام', icon: CheckSquare, permission: 'tasks' },
-      { path: '/tasks/board', label: 'لوحة كانبان', icon: Kanban, permission: 'tasks' },
       { path: '/gantt', label: 'مخطط جانت', icon: GanttChartSquare, permission: 'projects' },
       { path: '/calendar', label: 'التقويم', icon: CalendarDays, permission: 'tasks', dividerBefore: true },
       { path: '/meetings', label: 'الاجتماعات', icon: Video, permission: 'tasks' },

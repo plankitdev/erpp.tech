@@ -652,9 +652,35 @@ function EmployeeDashboard({ stats }: { stats: Record<string, any> }) {
     { label: 'ساعات هذا الأسبوع', value: `${stats.week_hours || 0}h`, icon: Clock, iconBg: 'bg-indigo-500' },
   ];
 
+  const myProjects = stats.my_projects_list || [];
+
   return (
     <>
       <StatCardGrid cards={cards} />
+
+      {/* My projects — the concrete, per-person part: the projects THIS employee works on */}
+      {myProjects.length > 0 && (
+        <div className="animate-fade-in-up card card-body">
+          <h3 className="text-lg font-bold text-gray-900 mb-1">مشاريعي</h3>
+          <p className="text-xs text-gray-400 mb-4">المشاريع اللي ليك فيها مهام</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {myProjects.map((p: any) => (
+              <Link key={p.id} to={`/projects/${p.slug || p.id}`}
+                className="border border-gray-100 rounded-xl p-4 hover:shadow-sm hover:border-primary-200 transition-all">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-semibold text-gray-800 truncate">{p.name}</span>
+                  <span className="text-xs text-gray-400">{p.progress}%</span>
+                </div>
+                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-l from-primary-500 to-primary-600 rounded-full" style={{ width: `${p.progress}%` }} />
+                </div>
+                <p className="text-[11px] text-gray-400 mt-1.5">{p.done}/{p.total} من مهامي</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div className="lg:col-span-2">
           <RecentTasksList tasks={stats.recent_tasks || []} />
@@ -708,6 +734,7 @@ export default function Dashboard() {
 
   if (isLoading) return <SkeletonDashboard />;
 
+  const s0 = (stats || {}) as Record<string, any>;
   const subtitles: Record<string, string> = {
     super_admin: 'إليك ملخص أداء شركتك اليوم',
     company_admin: 'إليك ملخص أداء شركتك اليوم',
@@ -715,7 +742,8 @@ export default function Dashboard() {
     marketing_manager: 'تابع مشاريعك ومهام فريقك',
     accountant: 'ملخص الحالة المالية',
     sales: 'تابع فرص المبيعات وأهدافك',
-    employee: 'إليك ملخص مهامك اليوم',
+    // Employees get a job-title-aware line so each function sees a personalised header.
+    employee: s0.position ? `${s0.position} · إليك ملخص شغلك اليوم` : 'إليك ملخص مهامك اليوم',
   };
 
   const rightContent = (role === 'super_admin' || role === 'company_admin' || role === 'accountant') ? (

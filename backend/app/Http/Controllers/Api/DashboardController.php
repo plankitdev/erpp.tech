@@ -338,6 +338,12 @@ class DashboardController extends Controller
             'invoice_payment_rate' => $invoicePaymentRate,
             'weekly_hours' => round($weeklyHours / 60, 1),
             'tasks_by_status' => $tasksByStatus,
+            'task_status_distribution' => [
+                ['name' => 'جديد',        'value' => $tasksByStatus['todo']],
+                ['name' => 'قيد التنفيذ', 'value' => $tasksByStatus['in_progress']],
+                ['name' => 'مراجعة',      'value' => $tasksByStatus['review']],
+                ['name' => 'مكتمل',       'value' => $tasksByStatus['done']],
+            ],
             'monthly_revenue' => $monthlyRevenueData,
             'expense_distribution' => $expDist,
             'recent_invoices' => $recentInvoices,
@@ -458,60 +464,114 @@ class DashboardController extends Controller
 
     private function getEmployeeData(int $userId): array
     {
-        $myTasks = Task::where(function ($q) use ($userId) {
-            $q->where('assigned_to', $userId)
-              ->orWhereHas('assignees', fn($q2) => $q2->where('user_id', $userId));
-        });
+        // Reusable "assigned to me" constraint (direct assignee OR multi-assignee pivot).
+        $mine = fn($q) => $q->where('assigned_to', $userId)
+            ->orWhereHas('assignees', fn($q2) => $q2->where('user_id', $userId));
 
-        $totalTasks = (clone $myTasks)->count();
-        $completedTasks = (clone $myTasks)->where('status', Task::STATUS_DONE)->count();
-        $overdueTasks = (clone $myTasks)->where('due_date', '<', now())->whereNot('status', Task::STATUS_DONE)->count();
+        $myTasks = Task::where($mine);
+
+        $totalTasks      = (clone $myTasks)->count();
+        $completedTasks  = (clone $myTasks)->where('status', Task::STATUS_DONE)->count();
+        $overdueTasks    = (clone $myTasks)->where('due_date', '<', now())->whereNot('status', Task::STATUS_DONE)->count();
         $inProgressTasks = (clone $myTasks)->where('status', Task::STATUS_IN_PROGRESS)->count();
+        $todoTasks       = (clone $myTasks)->where('status', Task::STATUS_TODO)->count();
+        $reviewTasks     = (clone $myTasks)->where('status', Task::STATUS_REVIEW)->count();
+        $dueTodayTasks   = (clone $myTasks)->whereDate('due_date', today())->whereNot('status', Task::STATUS_DONE)->count();
 
         $tasksByStatus = [
-            'todo' => (clone $myTasks)->where('status', Task::STATUS_TODO)->count(),
+            'todo'        => $todoTasks,
             'in_progress' => $inProgressTasks,
-            'review' => (clone $myTasks)->where('status', Task::STATUS_REVIEW)->count(),
-            'done' => $completedTasks,
+            'review'      => $reviewTasks,
+            'done'        => $completedTasks,
         ];
 
-        $weeklyHours = TimeEntry::where('user_id', $userId)
+        // Chart-ready distribution (frontend expects [{name, value}]).
+        $taskStatusDistribution = [
+            ['name' => 'جديد',        'value' => $todoTasks],
+            ['name' => 'قيد التنفيذ', 'value' => $inProgressTasks],
+            ['name' => 'مراجعة',      'value' => $reviewTasks],
+            ['name' => 'مكتمل',       'value' => $completedTasks],
+        ];
+
+        $weeklyMinutes = TimeEntry::where('user_id', $userId)
             ->whereBetween('started_at', [now()->startOfWeek(), now()->endOfWeek()])
             ->sum('duration_minutes');
+        $todayMinutes = TimeEntry::where('user_id', $userId)
+            ->whereDate('started_at', today())
+            ->sum('duration_minutes');
 
-        $myProjects = Project::whereHas('tasks', function ($q) use ($userId) {
-            $q->where('assigned_to', $userId)
-              ->orWhereHas('assignees', fn($q2) => $q2->where('user_id', $userId));
-        })->count();
+        // The person's own projects with their personal task counts — this is what
+        // makes each employee's dashboard concretely different (their real work).
+        $myProjectsList = Project::whereHas('tasks', $mine)
+            ->withCount([
+                'tasks as my_total' => $mine,
+                'tasks as my_done'  => fn($q) => $q->where($mine)->where('status', Task::STATUS_DONE),
+            ])
+            ->orderByDesc('updated_at')
+            ->limit(6)
+            ->get()
+            ->map(fn($p) => [
+                'id'       => $p->id,
+                'slug'     => $p->slug,
+                'name'     => $p->name,
+                'total'    => $p->my_total,
+                'done'     => $p->my_done,
+                'progress' => $p->my_total > 0 ? round(($p->my_done / $p->my_total) * 100) : 0,
+            ]);
+
+        // The person's own recent tasks (overrides the company-wide list from common).
+        $myRecentTasks = Task::with('assignedUser')
+            ->where($mine)
+            ->orderByDesc('updated_at')
+            ->limit(6)
+            ->get()
+            ->map(fn($t) => [
+                'id'               => $t->id,
+                'title'            => $t->title,
+                'assigned_to_name' => $t->assignedUser?->name,
+                'status'           => $t->status,
+                'priority'         => $t->priority,
+                'due_date'         => $t->due_date?->format('Y-m-d'),
+            ]);
 
         $upcomingTasks = Task::with('project')
-            ->where(function ($q) use ($userId) {
-                $q->where('assigned_to', $userId)
-                  ->orWhereHas('assignees', fn($q2) => $q2->where('user_id', $userId));
-            })
+            ->where($mine)
             ->where('due_date', '>=', now())
             ->whereNot('status', Task::STATUS_DONE)
             ->orderBy('due_date')
-            ->limit(10)
+            ->limit(9)
             ->get()
             ->map(fn($t) => [
-                'id' => $t->id,
-                'title' => $t->title,
-                'status' => $t->status,
+                'id'       => $t->id,
+                'title'    => $t->title,
+                'status'   => $t->status,
                 'priority' => $t->priority,
                 'due_date' => $t->due_date?->format('Y-m-d'),
-                'project' => $t->project?->name,
+                'project'  => $t->project?->name,
             ]);
 
+        // Job title (position) → drives the personalised header per function.
+        $position = Employee::where('user_id', $userId)->value('position');
+
         return [
-            'total_tasks' => $totalTasks,
-            'completed_tasks' => $completedTasks,
-            'overdue_tasks' => $overdueTasks,
-            'in_progress_tasks' => $inProgressTasks,
-            'tasks_by_status' => $tasksByStatus,
-            'weekly_hours' => round($weeklyHours / 60, 1),
-            'my_projects' => $myProjects,
-            'upcoming_tasks' => $upcomingTasks,
+            'position'                 => $position,
+            'my_tasks'                 => $totalTasks,
+            'total_tasks'              => $totalTasks,
+            'completed_tasks'          => $completedTasks,
+            'overdue_tasks'            => $overdueTasks,
+            'in_progress_tasks'        => $inProgressTasks,
+            'review_tasks'             => $reviewTasks,
+            'due_today_tasks'          => $dueTodayTasks,
+            'tasks_by_status'          => $tasksByStatus,
+            'task_status_distribution' => $taskStatusDistribution,
+            'today_hours'              => round($todayMinutes / 60, 1),
+            'week_hours'               => round($weeklyMinutes / 60, 1),
+            'weekly_hours'             => round($weeklyMinutes / 60, 1),
+            'my_projects'              => $myProjectsList->count(),
+            'my_projects_list'         => $myProjectsList,
+            'recent_tasks'             => $myRecentTasks,
+            'upcoming_deadlines'       => $upcomingTasks,
+            'upcoming_tasks'           => $upcomingTasks,
         ];
     }
 }
