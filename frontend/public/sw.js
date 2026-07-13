@@ -1,4 +1,4 @@
-const CACHE_NAME = 'erpflex-v7';
+const CACHE_NAME = 'erpflex-v8';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -39,7 +39,13 @@ self.addEventListener('fetch', (event) => {
         }
         return response;
       })
-      .catch(() => caches.match(request).then((cached) => cached || caches.match('/')))
+      .catch(() => caches.match(request).then((cached) => {
+        if (cached) return cached;
+        // Only fall back to the app shell for page navigations — never return
+        // HTML for a failed script/style request (that causes a MIME error).
+        if (request.mode === 'navigate') return caches.match('/');
+        return Response.error();
+      }))
   );
 });
 

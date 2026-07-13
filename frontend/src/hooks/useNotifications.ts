@@ -29,7 +29,7 @@ export function useUnreadCount() {
       prevCount.current = count;
       return count;
     },
-    refetchInterval: 60000, // 60s fallback poll — SSE handles real-time updates
+    refetchInterval: 30000, // 30s poll — the sole notification transport (SSE disabled on php-fpm)
   });
 }
 

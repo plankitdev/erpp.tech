@@ -32,6 +32,18 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
+// Recover from stale lazy-chunk imports after a new deploy: when a dynamic
+// import 404s (content-hashed filenames changed on the server), reload once to
+// fetch the fresh index + chunks. Guarded so it can never hard-loop.
+window.addEventListener('vite:preloadError', () => {
+  const key = 'vite:preloadReloadAt';
+  const last = Number(sessionStorage.getItem(key) || 0);
+  if (Date.now() - last > 10_000) {
+    sessionStorage.setItem(key, String(Date.now()));
+    window.location.reload();
+  }
+});
+
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
