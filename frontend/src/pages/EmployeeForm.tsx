@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -30,6 +31,7 @@ type EmployeeFormData = z.infer<typeof employeeSchema>;
 export default function EmployeeForm() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const editId = id ? parseInt(id) : 0;
   const { data: employee } = useEmployee(editId);
   const { data: usersListData } = useUsersList();
@@ -85,6 +87,8 @@ export default function EmployeeForm() {
         await employeesApi.create(formData as unknown as Partial<import('../types').Employee>);
         toast.success('تم إضافة الموظف');
       }
+      // Refresh the employees list/detail so the change shows without a manual reload.
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
       navigate('/employees');
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'حدث خطأ');

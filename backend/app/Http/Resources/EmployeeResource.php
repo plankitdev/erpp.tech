@@ -19,7 +19,7 @@ class EmployeeResource extends JsonResource
             'address'        => $this->address,
             'bank_name'      => $this->bank_name,
             'bank_account'   => $this->bank_account,
-            'base_salary'    => $this->base_salary,
+            'base_salary'    => (float) $this->base_salary,
             'join_date'      => $this->join_date?->format('Y-m-d'),
             'contract_start' => $this->contract_start?->format('Y-m-d'),
             'contract_end'   => $this->contract_end?->format('Y-m-d'),

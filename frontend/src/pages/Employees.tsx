@@ -30,7 +30,7 @@ export default function Employees() {
 
   const { hasPermission } = useAuthStore();
   const canViewSalaries = hasPermission('salaries.view');
-  const totalSalaries = employees.reduce((sum, emp) => sum + (emp.base_salary || 0), 0);
+  const totalSalaries = employees.reduce((sum, emp) => sum + (Number(emp.base_salary) || 0), 0);
   const filtered = search
     ? employees.filter(e => e.name?.toLowerCase().includes(search.toLowerCase()) || e.position?.toLowerCase().includes(search.toLowerCase()))
     : employees;
