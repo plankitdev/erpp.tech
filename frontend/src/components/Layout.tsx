@@ -53,9 +53,14 @@ interface SidebarTab {
 }
 
 // Standalone items — only items with badges or always-visible nav
+// Personal / self-service items — shown to everyone (null permission). These are
+// kept OUT of the management domains on purpose, so a regular employee never sees
+// an "HR" or "Admin" section just because of a single self-service tool.
 const standaloneItems: MenuItem[] = [
   { path: '/my-day', label: 'متابعاتي اليوم', icon: Sun, permission: null },
   { path: '/personal-todos', label: 'مهامي الشخصية', icon: ClipboardList, permission: null },
+  { path: '/leave-attendance', label: 'إجازاتي وحضوري', icon: CalendarDays, permission: null },
+  { path: '/file-manager', label: 'ملفاتي', icon: HardDrive, permission: null },
   { path: '/announcements', label: 'الإعلانات', icon: Megaphone, permission: null },
   { path: '/chat', label: 'المحادثات', icon: MessageSquare, permission: null },
 ];
@@ -136,7 +141,6 @@ const menuSections: MenuSection[] = [
     items: [
       { path: '/employees', label: 'الموظفين', icon: UserCog, permission: 'employees' },
       { path: '/salaries', label: 'الرواتب', icon: Wallet, permission: 'salaries' },
-      { path: '/leave-attendance', label: 'الإجازات والحضور', icon: CalendarDays, permission: null },
     ],
   },
   {
@@ -147,7 +151,6 @@ const menuSections: MenuSection[] = [
     items: [
       { path: '/reports', label: 'التقارير', icon: BarChart3, permission: 'reports' },
       { path: '/reports/employees', label: 'تقارير الموظفين', icon: Users, permission: 'reports' },
-      { path: '/file-manager', label: 'مدير الملفات', icon: HardDrive, permission: null },
       { path: '/media', label: 'مكتبة الوسائط', icon: ImageIcon, permission: 'users', roles: ADMIN_ROLES },
       { path: '/file-templates', label: 'قوالب الملفات', icon: FolderOpen, permission: 'users', roles: ADMIN_ROLES },
       { path: '/users', label: 'المستخدمين', icon: KeyRound, permission: 'users', roles: ADMIN_ROLES, dividerBefore: true },
