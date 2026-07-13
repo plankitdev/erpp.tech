@@ -265,6 +265,7 @@ export interface TreasuryTransaction {
 export interface Project {
   id: number;
   slug: string;
+  key?: string | null;
   name: string;
   description: string | null;
   status: ProjectStatus;
@@ -284,6 +285,35 @@ export interface Project {
 }
 
 export type ProjectStatus = 'active' | 'completed' | 'on_hold' | 'cancelled';
+
+// ========== Epic (Jira-style task grouping) ==========
+export interface Epic {
+  id: number;
+  project_id: number;
+  title: string;
+  description: string | null;
+  color: string;
+  status: EpicStatus;
+  sort_order: number;
+  created_by?: User | null;
+  tasks_count: number;
+  completed_tasks_count: number;
+  progress: number;
+  created_at?: string;
+}
+
+export type EpicStatus = 'open' | 'in_progress' | 'done';
+
+// ========== Saved Filter (task board/list presets) ==========
+export interface SavedFilter {
+  id: number;
+  user_id: number;
+  name: string;
+  scope: string;
+  criteria: Record<string, unknown>;
+  is_shared: boolean;
+  created_at?: string;
+}
 
 export interface ProjectFile {
   id: number;
@@ -336,6 +366,11 @@ export interface Task {
   client: Client | null;
   project_id?: number | null;
   project: Project | null;
+  epic_id?: number | null;
+  epic?: Epic | null;
+  number?: number | null;
+  task_key?: string | null;
+  board_order?: number;
   parent_id: number | null;
   parent: Task | null;
   subtasks: Task[];

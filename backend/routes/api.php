@@ -10,6 +10,8 @@ use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\SalaryPaymentController;
 use App\Http\Controllers\Api\TreasuryController;
 use App\Http\Controllers\Api\TaskController;
+use App\Http\Controllers\Api\EpicController;
+use App\Http\Controllers\Api\SavedFilterController;
 use App\Http\Controllers\Api\PartnerController;
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\UserController;
@@ -258,10 +260,23 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     });
 
     // ========== Tasks (all authenticated) ==========
-    Route::apiResource('tasks', TaskController::class);
     Route::post('tasks/batch-delete', [TaskController::class, 'batchDelete']);
+    Route::post('/tasks/reorder', [TaskController::class, 'reorder']);
+    Route::apiResource('tasks', TaskController::class);
     Route::post('/tasks/{task}/comments', [TaskController::class, 'addComment']);
     Route::post('/tasks/{task}/quick-action', [TaskController::class, 'quickAction']);
+
+    // ========== Epics (Jira-style task grouping) ==========
+    Route::get('/epics', [EpicController::class, 'index']);
+    Route::get('/epics/{epic}', [EpicController::class, 'show']);
+    Route::middleware('role:super_admin,company_admin,manager,marketing_manager')->group(function () {
+        Route::post('/epics', [EpicController::class, 'store']);
+        Route::put('/epics/{epic}', [EpicController::class, 'update']);
+        Route::delete('/epics/{epic}', [EpicController::class, 'destroy']);
+    });
+
+    // ========== Saved Filters (per-user view presets) ==========
+    Route::apiResource('saved-filters', SavedFilterController::class)->only(['index', 'store', 'update', 'destroy']);
 
     // Task Checklists
     Route::get('/tasks/{task}/checklists', [TaskChecklistController::class, 'index']);
@@ -322,6 +337,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::post('/projects/{project}/folders', [ProjectController::class, 'createFolder']);
     Route::delete('/projects/{project}/files/{file}', [ProjectController::class, 'deleteFile']);
     Route::get('/projects/{project}/client-profile', [ProjectController::class, 'clientProfile']);
+    Route::get('/projects/{project}/channel', [ChatController::class, 'projectChannel']);
 
     // ========== Employee Reports ==========
     Route::get('/reports/employees', [ProjectController::class, 'employeeReport']);

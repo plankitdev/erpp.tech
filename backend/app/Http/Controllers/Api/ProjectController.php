@@ -66,6 +66,7 @@ class ProjectController extends Controller
         }
         $channel = ChatChannel::create([
             'company_id'  => $project->company_id,
+            'project_id'  => $project->id,
             'name'        => $channelName,
             'type'        => ChatChannel::TYPE_PUBLIC,
             'description' => "قناة مشروع: {$project->name}",

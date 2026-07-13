@@ -15,6 +15,7 @@ class StoreProjectRequest extends FormRequest
     {
         return [
             'name'           => 'required|string|max:255',
+            'key'            => 'nullable|string|max:12',
             'description'    => 'nullable|string',
             'client_id'      => 'nullable|exists:clients,id',
             'status'         => 'sometimes|in:active,completed,on_hold,cancelled',

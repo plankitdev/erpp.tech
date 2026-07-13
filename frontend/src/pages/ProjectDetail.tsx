@@ -12,6 +12,7 @@ import ConfirmDialog from '../components/ConfirmDialog';
 import FileDropZone from '../components/FileDropZone';
 import { FilePreviewModal, FileThumbnail, getFileIconComponent, getFileIconColor, resolveFileUrl, isPreviewable } from '../components/FilePreview';
 import ProjectKanbanBoard from '../components/ProjectKanbanBoard';
+import ProjectTabs from '../components/ProjectTabs';
 import {
   ArrowRight, Plus, X, FolderKanban, CheckSquare, FileText, Users, Upload,
   Calendar, AlertCircle, Trash2, ChevronDown, ChevronUp, CircleDot, Download,
@@ -480,6 +481,9 @@ export default function ProjectDetail() {
         <span className="text-gray-300">/</span>
         <span className="text-gray-800 font-medium">{project.name}</span>
       </div>
+
+      {/* ====== Project workspace tabs ====== */}
+      <ProjectTabs slug={slug || ''} />
 
       {/* ====== Project Hero Card ====== */}
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">

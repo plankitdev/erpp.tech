@@ -4,6 +4,7 @@ import { useTask, useUpdateTask, useAddComment } from '../hooks/useTasks';
 import { useChecklists, useCreateChecklist, useUpdateChecklist, useDeleteChecklist } from '../hooks/useChecklists';
 import { useRunningTimer, useStartTimer, useStopTimer } from '../hooks/useTimeEntries';
 import { useUsersList } from '../hooks/useUsers';
+import { useEpics } from '../hooks/useEpics';
 import { tasksApi } from '../api/tasks';
 import { formatDate, formatDateTime } from '../utils';
 import type { Task, TaskStatus, TaskPriority, TaskChecklist } from '../types';
@@ -14,7 +15,7 @@ import toast from 'react-hot-toast';
 import {
   ArrowRight, Paperclip, Send, Download, Clock, Calendar, User, FolderKanban,
   CheckSquare, Plus, Trash2, Timer, Play, Square, GripVertical, Pencil, X,
-  Users as UsersIcon, Upload, Eye, Image, ZoomIn,
+  Users as UsersIcon, Upload, Eye, Image, ZoomIn, Layers,
 } from 'lucide-react';
 
 const statusOptions: { value: TaskStatus; label: string }[] = [
@@ -33,6 +34,7 @@ export default function TaskDetail() {
   const { data: checklists = [] } = useChecklists(taskId);
   const { data: usersListData } = useUsersList();
   const allUsers = usersListData?.data || [];
+  const { data: projectEpics = [] } = useEpics(task?.project_id ? { project_id: task.project_id } : undefined);
   const updateTask = useUpdateTask();
   const addComment = useAddComment();
   const createChecklist = useCreateChecklist();
@@ -123,6 +125,15 @@ export default function TaskDetail() {
       });
       setShowRejectModal(false);
       toast.success('تم إرجاع المهمة للتعديل');
+    } catch {
+      toast.error('حدث خطأ');
+    }
+  };
+
+  const handleEpicChange = async (epicId: number | null) => {
+    try {
+      await updateTask.mutateAsync({ id: task.id, data: { epic_id: epicId } as Partial<Task> });
+      toast.success('تم تحديث الملحمة');
     } catch {
       toast.error('حدث خطأ');
     }
@@ -282,7 +293,10 @@ export default function TaskDetail() {
           <div className="card card-body">
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
+                <div className="flex items-center gap-3 mb-2 flex-wrap">
+                  {task.task_key && (
+                    <span className="text-xs font-mono font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded">{task.task_key}</span>
+                  )}
                   <h1 className="text-xl font-bold text-gray-900">{task.title}</h1>
                   <StatusBadge status={task.priority} size="md" />
                 </div>
@@ -679,6 +693,24 @@ export default function TaskDetail() {
                     <Link to={`/projects/${task.project.slug || task.project.id}`} className="text-sm font-medium text-primary-600 hover:text-primary-700">
                       {task.project.name}
                     </Link>
+                  </div>
+                </div>
+              )}
+              {task.project_id && (
+                <div className="flex items-center gap-3">
+                  <Layers size={16} className="text-gray-400 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-[11px] text-gray-400">الملحمة</p>
+                    <select
+                      value={task.epic_id ?? ''}
+                      onChange={e => handleEpicChange(e.target.value ? Number(e.target.value) : null)}
+                      className="text-sm font-medium text-gray-800 bg-transparent border-0 p-0 focus:ring-0 cursor-pointer"
+                    >
+                      <option value="">بدون ملحمة</option>
+                      {projectEpics.map(ep => (
+                        <option key={ep.id} value={ep.id}>{ep.title}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               )}

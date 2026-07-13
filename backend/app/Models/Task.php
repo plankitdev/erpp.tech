@@ -44,7 +44,7 @@ class Task extends Model
     protected $fillable = [
         'company_id', 'title', 'description', 'rejection_reason', 'assigned_to',
         'created_by', 'status', 'priority', 'due_date', 'start_date', 'client_id',
-        'project_id', 'parent_id', 'recurrence', 'next_recurrence_date',
+        'project_id', 'epic_id', 'number', 'board_order', 'parent_id', 'recurrence', 'next_recurrence_date',
     ];
 
     protected $casts = [
@@ -76,6 +76,22 @@ class Task extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function epic(): BelongsTo
+    {
+        return $this->belongsTo(Epic::class);
+    }
+
+    /**
+     * Jira-style issue key ("{project.key}-{number}"), e.g. MADAR-123.
+     * Only resolvable when the project relation is loaded to avoid N+1 queries.
+     */
+    public function getTaskKeyAttribute(): ?string
+    {
+        if (!$this->number) return null;
+        $projectKey = ($this->relationLoaded('project') && $this->project) ? $this->project->key : null;
+        return $projectKey ? "{$projectKey}-{$this->number}" : null;
     }
 
     public function parent(): BelongsTo

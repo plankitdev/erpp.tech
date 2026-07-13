@@ -9,6 +9,8 @@ class TaskResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $projectKey = ($this->relationLoaded('project') && $this->project) ? $this->project->key : null;
+
         return [
             'id'                    => $this->id,
             'title'                 => $this->title,
@@ -16,6 +18,11 @@ class TaskResource extends JsonResource
             'rejection_reason'      => $this->rejection_reason,
             'status'                => $this->status,
             'priority'              => $this->priority,
+            'number'                => $this->number,
+            'task_key'              => ($this->number && $projectKey) ? "{$projectKey}-{$this->number}" : null,
+            'board_order'           => $this->board_order,
+            'epic_id'               => $this->epic_id,
+            'epic'                  => new EpicResource($this->whenLoaded('epic')),
             'recurrence'            => $this->recurrence ?? 'none',
             'next_recurrence_date'  => $this->next_recurrence_date?->format('Y-m-d'),
             'due_date'              => $this->due_date?->format('Y-m-d'),

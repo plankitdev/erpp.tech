@@ -25,6 +25,10 @@ const Tasks = lazy(() => import('./pages/Tasks'));
 const TaskBoard = lazy(() => import('./pages/TaskBoard'));
 const Projects = lazy(() => import('./pages/Projects'));
 const ProjectDetail = lazy(() => import('./pages/ProjectDetail'));
+const ProjectChat = lazy(() => import('./pages/ProjectChat'));
+const ProjectClient = lazy(() => import('./pages/ProjectClient'));
+const Backlog = lazy(() => import('./pages/Backlog'));
+const MyTasks = lazy(() => import('./pages/MyTasks'));
 const EmployeeReports = lazy(() => import('./pages/EmployeeReports'));
 const FileTemplates = lazy(() => import('./pages/FileTemplates'));
 const Reports = lazy(() => import('./pages/Reports'));
@@ -143,8 +147,12 @@ export default function App() {
         <Route path="client-report" element={<RoleGuard permission="tasks" roles={['super_admin', 'company_admin', 'manager', 'marketing_manager']}><ClientProgressReport /></RoleGuard>} />
         <Route path="projects" element={<RoleGuard permission="projects"><Projects /></RoleGuard>} />
         <Route path="projects/:slug" element={<RoleGuard permission="projects"><ProjectDetail /></RoleGuard>} />
+        <Route path="projects/:slug/chat" element={<RoleGuard permission="projects"><ProjectChat /></RoleGuard>} />
+        <Route path="projects/:slug/client" element={<RoleGuard permission="projects"><ProjectClient /></RoleGuard>} />
+        <Route path="projects/:slug/backlog" element={<RoleGuard permission="projects"><Backlog /></RoleGuard>} />
         <Route path="tasks" element={<RoleGuard permission="tasks"><Tasks /></RoleGuard>} />
         <Route path="tasks/board" element={<RoleGuard permission="tasks"><TaskBoard /></RoleGuard>} />
+        <Route path="my-tasks" element={<RoleGuard permission="tasks"><MyTasks /></RoleGuard>} />
         <Route path="tasks/:id" element={<RoleGuard permission="tasks"><TaskDetail /></RoleGuard>} />
         <Route path="calendar" element={<RoleGuard permission="tasks"><CalendarPage /></RoleGuard>} />
         <Route path="time-tracking" element={<RoleGuard permission="tasks"><TimeTracking /></RoleGuard>} />

@@ -19,6 +19,7 @@ class ChatChannel extends Model
 
     protected $fillable = [
         'company_id',
+        'project_id',
         'name',
         'type',
         'description',
@@ -28,6 +29,11 @@ class ChatChannel extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
     }
 
     public function company(): BelongsTo

@@ -6,6 +6,7 @@ use App\Models\ChatChannel;
 use App\Models\ChatMessage;
 use App\Models\ChatMessageReaction;
 use App\Models\ChatMessageRead;
+use App\Models\Project;
 use App\Models\User;
 use App\Services\NotificationService;
 use App\Traits\ApiResponse;
@@ -56,6 +57,45 @@ class ChatController extends Controller
             ->get();
 
         return $this->successResponse($channels);
+    }
+
+    /**
+     * Get (or lazily create) the chat channel bound to a project. Membership is
+     * kept in sync with the project's task assignees + its creator + the caller.
+     */
+    public function projectChannel(Project $project): JsonResponse
+    {
+        $user = Auth::user();
+
+        $channel = ChatChannel::withoutGlobalScopes()
+            ->where('project_id', $project->id)
+            ->where('company_id', $project->company_id)
+            ->first();
+
+        if (!$channel) {
+            $channel = ChatChannel::create([
+                'company_id'  => $project->company_id,
+                'project_id'  => $project->id,
+                'name'        => 'مشروع: ' . $project->name,
+                'type'        => ChatChannel::TYPE_PRIVATE,
+                'description' => 'قناة خاصة بمشروع ' . $project->name,
+                'created_by'  => $user->id,
+            ]);
+        }
+
+        // Keep membership in sync: task assignees + project creator + current user
+        $memberIds = $project->tasks()->whereNotNull('assigned_to')->pluck('assigned_to')->all();
+        if ($project->created_by) {
+            $memberIds[] = $project->created_by;
+        }
+        $memberIds[] = $user->id;
+        $memberIds = array_values(array_unique(array_filter($memberIds)));
+
+        $channel->members()->syncWithoutDetaching($memberIds);
+
+        $channel->load(['members:id,name,avatar', 'latestMessage.user:id,name']);
+
+        return $this->successResponse($channel);
     }
 
     public function createChannel(Request $request): JsonResponse

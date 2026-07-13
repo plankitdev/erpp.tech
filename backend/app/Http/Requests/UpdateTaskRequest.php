@@ -23,6 +23,8 @@ class UpdateTaskRequest extends FormRequest
             'status'               => 'sometimes|in:todo,in_progress,review,done',
             'rejection_reason'     => 'nullable|string|max:1000',
             'project_id'           => 'nullable|exists:projects,id',
+            'epic_id'              => 'nullable|exists:epics,id',
+            'board_order'          => 'nullable|integer',
             'parent_id'            => 'nullable|exists:tasks,id',
             'recurrence'           => 'sometimes|in:none,daily,weekly,monthly',
             'next_recurrence_date' => 'nullable|date',

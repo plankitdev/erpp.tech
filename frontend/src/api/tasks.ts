@@ -20,6 +20,9 @@ export const tasksApi = {
   batchDelete: (ids: number[]) =>
     api.post<ApiResponse<null>>('/tasks/batch-delete', { ids }),
 
+  reorder: (ids: number[]) =>
+    api.post<ApiResponse<null>>('/tasks/reorder', { ids }),
+
   addComment: (taskId: number, data: { comment: string; attachment?: File }) => {
     const formData = new FormData();
     formData.append('comment', data.comment);

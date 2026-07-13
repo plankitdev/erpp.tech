@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateTaskRequest;
 use App\Http\Resources\TaskCommentResource;
 use App\Http\Resources\TaskResource;
 use App\Http\Resources\TaskFileResource;
+use App\Models\Project;
 use App\Models\Task;
 use App\Models\TaskFile;
 use App\Services\NotificationService;
@@ -26,7 +27,7 @@ class TaskController extends Controller
     {
         $this->authorize('viewAny', Task::class);
 
-        $query = Task::with(['assignedUser', 'client', 'creator', 'project', 'assignees', 'subtasks']);
+        $query = Task::with(['assignedUser', 'client', 'creator', 'project', 'epic', 'assignees', 'subtasks']);
 
         if ($status = $request->input('status')) {
             $query->where('status', $status);
@@ -45,6 +46,9 @@ class TaskController extends Controller
         }
         if ($projectId = $request->input('project_id')) {
             $query->where('project_id', $projectId);
+        }
+        if ($epicId = $request->input('epic_id')) {
+            $query->where('epic_id', $epicId);
         }
         if ($request->input('parent_only')) {
             $query->whereNull('parent_id');
@@ -87,6 +91,14 @@ class TaskController extends Controller
             unset($data['assignee_ids']);
         }
 
+        // Mint a stable per-project issue number (MADAR-123 style).
+        if (!empty($data['project_id'])) {
+            $project = Project::withoutGlobalScopes()->find($data['project_id']);
+            if ($project) {
+                $data['number'] = $project->nextTaskNumber();
+            }
+        }
+
         $task = Task::create($data);
 
         // Sync multi-assignees
@@ -105,7 +117,7 @@ class TaskController extends Controller
         }
 
         return $this->successResponse(
-            new TaskResource($task->load(['assignedUser', 'client', 'project', 'assignees', 'subtasks'])),
+            new TaskResource($task->load(['assignedUser', 'client', 'project', 'epic', 'assignees', 'subtasks'])),
             'تم إضافة المهمة بنجاح',
             201
         );
@@ -116,7 +128,7 @@ class TaskController extends Controller
         $this->authorize('view', $task);
 
         $task->load([
-            'assignedUser', 'client', 'creator', 'project',
+            'assignedUser', 'client', 'creator', 'project', 'epic',
             'assignees', 'comments.user', 'files.uploader',
             'subtasks.assignedUser', 'subtasks.assignees',
             'parent',
@@ -142,6 +154,14 @@ class TaskController extends Controller
         $isRejecting = $previousStatus === Task::STATUS_REVIEW
             && isset($data['status'])
             && in_array($data['status'], [Task::STATUS_TODO, Task::STATUS_IN_PROGRESS]);
+
+        // A projectless task that gets moved into a project earns its issue number.
+        if (array_key_exists('project_id', $data) && $data['project_id'] && !$task->number) {
+            $project = Project::withoutGlobalScopes()->find($data['project_id']);
+            if ($project) {
+                $data['number'] = $project->nextTaskNumber();
+            }
+        }
 
         $task->update($data);
 
@@ -189,7 +209,7 @@ class TaskController extends Controller
         }
 
         return $this->successResponse(
-            new TaskResource($task->load(['assignedUser', 'client', 'project', 'assignees', 'subtasks'])),
+            new TaskResource($task->load(['assignedUser', 'client', 'project', 'epic', 'assignees', 'subtasks'])),
             'تم تحديث المهمة'
         );
     }
@@ -209,6 +229,27 @@ class TaskController extends Controller
         $request->validate(['ids' => 'required|array|min:1', 'ids.*' => 'integer|exists:tasks,id']);
         Task::whereIn('id', $request->ids)->delete();
         return $this->successResponse(null, 'تم حذف المهام المحددة');
+    }
+
+    /**
+     * Persist a manual ordering for the backlog / board.
+     * The incoming `ids` array is the desired order; index becomes board_order.
+     * The query is company-scoped, so only tasks in the caller's company move.
+     */
+    public function reorder(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', Task::class);
+
+        $request->validate([
+            'ids'   => 'required|array',
+            'ids.*' => 'integer',
+        ]);
+
+        foreach ($request->ids as $index => $id) {
+            Task::where('id', $id)->update(['board_order' => $index]);
+        }
+
+        return $this->successResponse(null, 'تم تحديث الترتيب');
     }
 
     public function addComment(Request $request, Task $task): JsonResponse
@@ -370,7 +411,7 @@ class TaskController extends Controller
         }
 
         return $this->successResponse(
-            new TaskResource($task->fresh()->load(['assignedUser', 'client', 'project', 'assignees', 'subtasks'])),
+            new TaskResource($task->fresh()->load(['assignedUser', 'client', 'project', 'epic', 'assignees', 'subtasks'])),
             $message
         );
     }

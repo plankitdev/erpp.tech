@@ -15,6 +15,7 @@ class ProjectResource extends JsonResource
         $data = [
             'id'                    => $this->id,
             'slug'                  => $this->slug,
+            'key'                   => $this->key,
             'name'                  => $this->name,
             'description'           => $this->description,
             'status'                => $this->status,

@@ -10,7 +10,7 @@ import {
   PanelRightOpen, PanelRightClose, Target, UserPlus, Menu, X,
   CalendarDays, ImageIcon, Video, Heart, ClipboardList, Ticket, GanttChartSquare, Mail, Zap, BookOpen, Tag, Monitor, Megaphone, HardDrive,
   Star, Pin, PinOff, Sun, Moon,
-  FolderTree, BookOpenCheck, GitBranch, Calculator, Box, Clock, Scale, TrendingUp, LayoutList, MessageSquare,
+  FolderTree, BookOpenCheck, GitBranch, Calculator, Box, Clock, Scale, TrendingUp, LayoutList, MessageSquare, UserCheck,
 } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import Breadcrumbs, { type BreadcrumbItem } from './Breadcrumbs';
@@ -59,9 +59,38 @@ const standaloneItems: MenuItem[] = [
   { path: '/chat', label: 'المحادثات', icon: MessageSquare, permission: null },
 ];
 
+// Roles that see advanced accounting / system-management items.
+const ACCOUNTING_ROLES = ['super_admin', 'company_admin', 'manager', 'accountant'];
+const ADMIN_ROLES = ['super_admin', 'company_admin', 'manager'];
+
+// ── Information architecture: 5 generic domains that fit any company ──
+// Rendering, agency-mode, permissions and role-ordering are all driven off this array.
 const menuSections: MenuSection[] = [
   {
-    title: 'إدارة العملاء',
+    // ── العمل (Jira-style project & task management) ──
+    title: 'العمل',
+    icon: CheckSquare,
+    hubPath: '/tasks-hub',
+    hubPermission: 'tasks',
+    color: 'text-teal-400',
+    items: [
+      { path: '/personal-todos', label: 'مهامي الشخصية', icon: ClipboardList, permission: null },
+      { path: '/my-tasks', label: 'مهامي', icon: UserCheck, permission: 'tasks' },
+      { path: '/projects', label: 'المشاريع', icon: FolderKanban, permission: 'projects' },
+      { path: '/tasks', label: 'المهام', icon: CheckSquare, permission: 'tasks' },
+      { path: '/tasks/board', label: 'لوحة كانبان', icon: Kanban, permission: 'tasks' },
+      { path: '/gantt', label: 'مخطط جانت', icon: GanttChartSquare, permission: 'projects' },
+      { path: '/calendar', label: 'التقويم', icon: CalendarDays, permission: 'tasks', dividerBefore: true },
+      { path: '/meetings', label: 'الاجتماعات', icon: Video, permission: 'tasks' },
+      { path: '/kpi', label: 'لوحة الأداء', icon: Target, permission: null },
+      { path: '/account-manager', label: 'لوحة مدير الحساب', icon: LayoutList, permission: 'tasks', roles: ['super_admin', 'company_admin', 'manager', 'marketing_manager'], dividerBefore: true },
+      { path: '/weekly-report', label: 'التقرير الأسبوعي', icon: BarChart3, permission: 'tasks', roles: ['super_admin', 'company_admin', 'manager', 'marketing_manager'] },
+      { path: '/client-report', label: 'تقرير العميل', icon: Users, permission: 'tasks', roles: ['super_admin', 'company_admin', 'manager', 'marketing_manager'] },
+    ],
+  },
+  {
+    // ── العملاء (CRM: clients + sales/marketing) ──
+    title: 'العملاء',
     icon: Users,
     hubPath: '/clients-hub',
     color: 'text-blue-400',
@@ -69,41 +98,38 @@ const menuSections: MenuSection[] = [
       { path: '/clients', label: 'العملاء', icon: Users, permission: 'clients' },
       { path: '/contracts', label: 'العقود', icon: FileText, permission: 'contracts' },
       { path: '/quotations', label: 'عروض الأسعار', icon: ClipboardList, permission: 'sales' },
-    ],
-  },
-  {
-    title: 'المبيعات والتسويق',
-    icon: Target,
-    hubPath: '/sales-hub',
-    hubPermission: 'sales',
-    color: 'text-orange-400',
-    items: [
-      { path: '/leads', label: 'العملاء المحتملين', icon: UserPlus, permission: 'sales' },
+      { path: '/leads', label: 'العملاء المحتملين', icon: UserPlus, permission: 'sales', dividerBefore: true },
       { path: '/tickets', label: 'تذاكر الدعم', icon: Ticket, permission: 'clients' },
       { path: '/email', label: 'البريد الإلكتروني', icon: Mail, permission: 'sales' },
     ],
   },
   {
-    title: 'المهام والمشاريع',
-    icon: CheckSquare,
-    hubPath: '/tasks-hub',
-    hubPermission: 'tasks',
-    color: 'text-teal-400',
+    // ── الحسابات (Finance: everyday first, advanced accounting + reports after dividers) ──
+    title: 'الحسابات',
+    icon: Landmark,
+    hubPath: '/finance-hub',
+    hubPermission: 'treasury',
+    color: 'text-emerald-400',
     items: [
-      { path: '/personal-todos', label: 'مهامي الشخصية', icon: ClipboardList, permission: null },
-      { path: '/account-manager', label: 'لوحة مدير الحساب', icon: LayoutList, permission: 'tasks', roles: ['super_admin', 'company_admin', 'manager', 'marketing_manager'] },
-      { path: '/weekly-report', label: 'التقرير الأسبوعي', icon: BarChart3, permission: 'tasks', roles: ['super_admin', 'company_admin', 'manager', 'marketing_manager'] },
-      { path: '/client-report', label: 'تقرير العميل', icon: Users, permission: 'tasks', roles: ['super_admin', 'company_admin', 'manager', 'marketing_manager'] },
-      { path: '/projects', label: 'المشاريع', icon: FolderKanban, permission: 'projects' },
-      { path: '/tasks', label: 'المهام', icon: CheckSquare, permission: 'tasks' },
-      { path: '/tasks/board', label: 'لوحة كانبان', icon: Kanban, permission: 'tasks' },
-      { path: '/calendar', label: 'التقويم', icon: CalendarDays, permission: 'tasks', dividerBefore: true },
-      { path: '/meetings', label: 'الاجتماعات', icon: Video, permission: 'tasks' },
-      { path: '/gantt', label: 'مخطط جانت', icon: GanttChartSquare, permission: 'projects', dividerBefore: true },
-      { path: '/kpi', label: 'لوحة الأداء', icon: Target, permission: null },
+      { path: '/invoices', label: 'الفواتير', icon: Receipt, permission: 'invoices' },
+      { path: '/treasury', label: 'الخزينة', icon: Wallet, permission: 'treasury' },
+      { path: '/expenses', label: 'المصروفات', icon: CreditCard, permission: 'expenses' },
+      { path: '/partners', label: 'الشركاء', icon: Handshake, permission: 'treasury' },
+      // ── محاسبة متقدّمة ──
+      { path: '/chart-of-accounts', label: 'دليل الحسابات', icon: FolderTree, permission: 'treasury', roles: ACCOUNTING_ROLES, dividerBefore: true },
+      { path: '/journal-entries', label: 'قيود اليومية', icon: BookOpenCheck, permission: 'treasury', roles: ACCOUNTING_ROLES },
+      { path: '/cost-centers', label: 'مراكز التكلفة', icon: GitBranch, permission: 'treasury', roles: ACCOUNTING_ROLES },
+      { path: '/budgets', label: 'الموازنات', icon: Calculator, permission: 'treasury', roles: ACCOUNTING_ROLES },
+      { path: '/bank-accounts', label: 'الحسابات البنكية', icon: Landmark, permission: 'treasury', roles: ACCOUNTING_ROLES },
+      { path: '/fixed-assets', label: 'الأصول الثابتة', icon: Box, permission: 'treasury', roles: ACCOUNTING_ROLES },
+      // ── تقارير مالية ──
+      { path: '/accounts-receivable', label: 'الذمم المدينة', icon: Clock, permission: 'treasury', roles: ACCOUNTING_ROLES, dividerBefore: true },
+      { path: '/balance-sheet', label: 'الميزانية العمومية', icon: Scale, permission: 'treasury', roles: ACCOUNTING_ROLES },
+      { path: '/financial-kpis', label: 'مؤشرات الأداء المالي', icon: TrendingUp, permission: 'treasury', roles: ACCOUNTING_ROLES },
     ],
   },
   {
+    // ── الموارد البشرية ──
     title: 'الموارد البشرية',
     icon: UserCog,
     hubPath: '/hr-hub',
@@ -115,66 +141,37 @@ const menuSections: MenuSection[] = [
     ],
   },
   {
-    title: 'المحاسبة والخزينة',
-    icon: Landmark,
-    hubPath: '/finance-hub',
-    hubPermission: 'treasury',
-    color: 'text-emerald-400',
-    items: [
-      { path: '/invoices', label: 'الفواتير', icon: Receipt, permission: 'invoices' },
-      { path: '/treasury', label: 'الخزينة', icon: Wallet, permission: 'treasury' },
-      { path: '/expenses', label: 'المصروفات', icon: CreditCard, permission: 'expenses' },
-      { path: '/partners', label: 'الشركاء', icon: Handshake, permission: 'treasury' },
-      { path: '/chart-of-accounts', label: 'دليل الحسابات', icon: FolderTree, permission: 'treasury', roles: ['super_admin', 'company_admin', 'manager', 'accountant'] },
-      { path: '/journal-entries', label: 'قيود اليومية', icon: BookOpenCheck, permission: 'treasury', roles: ['super_admin', 'company_admin', 'manager', 'accountant'] },
-      { path: '/cost-centers', label: 'مراكز التكلفة', icon: GitBranch, permission: 'treasury', roles: ['super_admin', 'company_admin', 'manager', 'accountant'] },
-      { path: '/budgets', label: 'الموازنات', icon: Calculator, permission: 'treasury', roles: ['super_admin', 'company_admin', 'manager', 'accountant'] },
-      { path: '/bank-accounts', label: 'الحسابات البنكية', icon: Landmark, permission: 'treasury', roles: ['super_admin', 'company_admin', 'manager', 'accountant'] },
-      { path: '/fixed-assets', label: 'الأصول الثابتة', icon: Box, permission: 'treasury', roles: ['super_admin', 'company_admin', 'manager', 'accountant'] },
-    ],
-  },
-  {
-    title: 'التقارير المالية',
-    icon: TrendingUp,
-    color: 'text-cyan-400',
-    items: [
-      { path: '/accounts-receivable', label: 'الذمم المدينة', icon: Clock, permission: 'treasury', roles: ['super_admin', 'company_admin', 'manager', 'accountant'] },
-      { path: '/balance-sheet', label: 'الميزانية العمومية', icon: Scale, permission: 'treasury', roles: ['super_admin', 'company_admin', 'manager', 'accountant'] },
-      { path: '/financial-kpis', label: 'مؤشرات الأداء المالي', icon: TrendingUp, permission: 'treasury', roles: ['super_admin', 'company_admin', 'manager', 'accountant'] },
-    ],
-  },
-  {
-    title: 'التقارير والملفات',
-    icon: BarChart3,
-    color: 'text-amber-400',
+    // ── الإدارة والنظام (reports, files, then system administration after a divider) ──
+    title: 'الإدارة والنظام',
+    icon: Settings,
+    color: 'text-rose-400',
     items: [
       { path: '/reports', label: 'التقارير', icon: BarChart3, permission: 'reports' },
       { path: '/reports/employees', label: 'تقارير الموظفين', icon: Users, permission: 'reports' },
       { path: '/file-manager', label: 'مدير الملفات', icon: HardDrive, permission: null },
-      { path: '/media', label: 'مكتبة الوسائط', icon: ImageIcon, permission: 'users', roles: ['super_admin', 'company_admin', 'manager'] },
-      { path: '/file-templates', label: 'قوالب الملفات', icon: FolderOpen, permission: 'users', roles: ['super_admin', 'company_admin', 'manager'] },
-    ],
-  },
-  {
-    title: 'إدارة النظام',
-    icon: Settings,
-    color: 'text-rose-400',
-    items: [
-      { path: '/users', label: 'المستخدمين', icon: KeyRound, permission: 'users', roles: ['super_admin', 'company_admin', 'manager'] },
-      { path: '/activity-logs', label: 'سجل النشاطات', icon: Activity, permission: 'activity_logs', roles: ['super_admin', 'company_admin', 'manager'] },
-      { path: '/workflows', label: 'الأتمتة', icon: Zap, permission: 'users', roles: ['super_admin', 'company_admin', 'manager'] },
-      { path: '/tags', label: 'العلامات', icon: Tag, permission: 'users', roles: ['super_admin', 'company_admin', 'manager'] },
-      { path: '/api-docs', label: 'توثيق الواجهة البرمجية', icon: BookOpen, permission: 'users', roles: ['super_admin', 'company_admin', 'manager'] },
+      { path: '/media', label: 'مكتبة الوسائط', icon: ImageIcon, permission: 'users', roles: ADMIN_ROLES },
+      { path: '/file-templates', label: 'قوالب الملفات', icon: FolderOpen, permission: 'users', roles: ADMIN_ROLES },
+      { path: '/users', label: 'المستخدمين', icon: KeyRound, permission: 'users', roles: ADMIN_ROLES, dividerBefore: true },
+      { path: '/activity-logs', label: 'سجل النشاطات', icon: Activity, permission: 'activity_logs', roles: ADMIN_ROLES },
+      { path: '/workflows', label: 'الأتمتة', icon: Zap, permission: 'users', roles: ADMIN_ROLES },
+      { path: '/tags', label: 'العلامات', icon: Tag, permission: 'users', roles: ADMIN_ROLES },
+      { path: '/api-docs', label: 'توثيق الواجهة البرمجية', icon: BookOpen, permission: 'users', roles: ADMIN_ROLES },
       { path: '/system-monitor', label: 'مراقبة النظام', icon: Monitor, permission: 'users', roles: ['super_admin'] },
       { path: '/agency-modules', label: 'تبسيط القائمة', icon: PanelRightClose, permission: 'users', roles: ['super_admin'] },
     ],
   },
 ];
 
-// Modules an admin can hide per company (agency mode). System-management items are never hideable.
+// System-administration paths are never hideable via agency mode (they must stay
+// reachable for admins). Everything else — including reports/files — is hideable.
+const SYSTEM_PATHS = new Set([
+  '/users', '/activity-logs', '/workflows', '/tags', '/api-docs', '/system-monitor', '/agency-modules',
+]);
+
+// Modules an admin can hide per company (agency mode).
 export const HIDEABLE_MODULES: { path: string; label: string; section: string }[] = menuSections
-  .filter(s => s.title !== 'إدارة النظام')
-  .flatMap(s => s.items.map(i => ({ path: i.path, label: i.label, section: s.title })));
+  .flatMap(s => s.items.map(i => ({ path: i.path, label: i.label, section: s.title })))
+  .filter(m => !SYSTEM_PATHS.has(m.path));
 
 const HIDEABLE_PATHS = new Set(HIDEABLE_MODULES.map(m => m.path));
 
@@ -202,39 +199,39 @@ const allMenuItems = [
 const superAdminTabs: SidebarTab[] = [
   {
     id: 'team',
-    label: 'التيم',
-    icon: UserCog,
-    sectionTitles: ['المهام والمشاريع', 'الموارد البشرية', 'التقارير والملفات'],
+    label: 'العمل',
+    icon: CheckSquare,
+    sectionTitles: ['العمل', 'الموارد البشرية'],
   },
   {
     id: 'finance',
     label: 'الحسابات',
     icon: Landmark,
-    sectionTitles: ['المحاسبة والخزينة', 'التقارير المالية'],
+    sectionTitles: ['الحسابات'],
   },
   {
     id: 'clients',
     label: 'العملاء',
     icon: Users,
-    sectionTitles: ['إدارة العملاء', 'المبيعات والتسويق'],
+    sectionTitles: ['العملاء'],
   },
   {
     id: 'system',
     label: 'الإدارة',
     icon: Settings,
-    sectionTitles: ['إدارة النظام'],
+    sectionTitles: ['الإدارة والنظام'],
   },
 ];
 
-// Role-based section ordering — each role sees their most relevant sections first
+// Role-based section ordering — each role sees their most relevant domains first
 const roleSectionOrder: Record<string, string[]> = {
-  super_admin: ['المهام والمشاريع', 'إدارة العملاء', 'المحاسبة والخزينة', 'المبيعات والتسويق', 'الموارد البشرية', 'التقارير المالية', 'التقارير والملفات', 'إدارة النظام'],
-  company_admin: ['المهام والمشاريع', 'إدارة العملاء', 'المحاسبة والخزينة', 'المبيعات والتسويق', 'الموارد البشرية', 'التقارير المالية', 'التقارير والملفات', 'إدارة النظام'],
-  manager: ['المهام والمشاريع', 'إدارة العملاء', 'المبيعات والتسويق', 'الموارد البشرية', 'المحاسبة والخزينة', 'التقارير المالية', 'التقارير والملفات', 'إدارة النظام'],
-  marketing_manager: ['المهام والمشاريع', 'إدارة العملاء', 'المبيعات والتسويق', 'التقارير والملفات', 'المحاسبة والخزينة', 'الموارد البشرية', 'التقارير المالية', 'إدارة النظام'],
-  accountant: ['المحاسبة والخزينة', 'التقارير المالية', 'المهام والمشاريع', 'إدارة العملاء', 'التقارير والملفات', 'المبيعات والتسويق', 'الموارد البشرية', 'إدارة النظام'],
-  sales: ['إدارة العملاء', 'المبيعات والتسويق', 'المهام والمشاريع', 'المحاسبة والخزينة', 'التقارير والملفات', 'التقارير المالية', 'الموارد البشرية', 'إدارة النظام'],
-  employee: ['المهام والمشاريع', 'إدارة العملاء', 'الموارد البشرية', 'التقارير والملفات', 'المبيعات والتسويق', 'المحاسبة والخزينة', 'التقارير المالية', 'إدارة النظام'],
+  super_admin:       ['العمل', 'العملاء', 'الحسابات', 'الموارد البشرية', 'الإدارة والنظام'],
+  company_admin:     ['العمل', 'العملاء', 'الحسابات', 'الموارد البشرية', 'الإدارة والنظام'],
+  manager:           ['العمل', 'العملاء', 'الحسابات', 'الموارد البشرية', 'الإدارة والنظام'],
+  marketing_manager: ['العمل', 'العملاء', 'الحسابات', 'الموارد البشرية', 'الإدارة والنظام'],
+  accountant:        ['الحسابات', 'العمل', 'العملاء', 'الموارد البشرية', 'الإدارة والنظام'],
+  sales:             ['العملاء', 'العمل', 'الحسابات', 'الموارد البشرية', 'الإدارة والنظام'],
+  employee:          ['العمل', 'العملاء', 'الموارد البشرية', 'الإدارة والنظام', 'الحسابات'],
 };
 
 const SIDEBAR_PINNED_KEY = 'erpflex_sidebar_pinned';

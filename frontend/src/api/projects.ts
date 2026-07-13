@@ -1,5 +1,5 @@
 import api from './axios';
-import type { ApiResponse, PaginatedResponse, Project, ProjectFile, EmployeeReportData } from '../types';
+import type { ApiResponse, PaginatedResponse, Project, ProjectFile, EmployeeReportData, ChatChannel } from '../types';
 
 export const projectsApi = {
   getAll: (params?: Record<string, unknown>) =>
@@ -35,6 +35,9 @@ export const projectsApi = {
 
   clientProfile: (slug: string) =>
     api.get<ApiResponse<unknown>>(`/projects/${slug}/client-profile`),
+
+  getChannel: (slug: string) =>
+    api.get<ApiResponse<ChatChannel>>(`/projects/${slug}/channel`),
 
   employeeReport: (params: { month: number; year: number }) =>
     api.get<ApiResponse<EmployeeReportData>>('/reports/employees', { params }),
