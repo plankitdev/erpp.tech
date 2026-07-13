@@ -21,18 +21,23 @@ class UserController extends Controller
      */
     public function list(Request $request): JsonResponse
     {
-        $query = User::select('id', 'name', 'email', 'role', 'avatar')
-            ->where('is_active', true);
+        // Return ALL active users — this list feeds task assignees, chat, quick
+        // create, etc. Each row carries `employee_id` so the employee-link form
+        // can flag (and disable) users already linked to another employee,
+        // instead of hiding them from every user picker in the app.
+        $users = User::where('is_active', true)
+            ->with('employee:id,user_id')
+            ->get(['id', 'name', 'email', 'role', 'avatar'])
+            ->map(fn($u) => [
+                'id'          => $u->id,
+                'name'        => $u->name,
+                'email'       => $u->email,
+                'role'        => $u->role,
+                'avatar'      => $u->avatar,
+                'employee_id' => $u->employee?->id,
+            ]);
 
-        // Exclude users already linked to an employee, except the one being edited
-        $query->where(function ($q) use ($request) {
-            $q->whereDoesntHave('employee');
-            if ($exceptUserId = $request->input('include_user_id')) {
-                $q->orWhere('id', $exceptUserId);
-            }
-        });
-
-        return $this->successResponse($query->get());
+        return $this->successResponse($users);
     }
 
     public function index(): JsonResponse

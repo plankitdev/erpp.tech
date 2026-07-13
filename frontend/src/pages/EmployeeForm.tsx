@@ -32,8 +32,7 @@ export default function EmployeeForm() {
   const navigate = useNavigate();
   const editId = id ? parseInt(id) : 0;
   const { data: employee } = useEmployee(editId);
-  const currentUserId = employee?.user?.id;
-  const { data: usersListData } = useUsersList(currentUserId ? { include_user_id: currentUserId } : undefined);
+  const { data: usersListData } = useUsersList();
   const users = usersListData?.data || [];
   const [file, setFile] = useState<File | null>(null);
 
@@ -113,12 +112,18 @@ export default function EmployeeForm() {
           <label className="input-label">حساب المستخدم *</label>
           <select {...register('user_id')} className="input">
             <option value="">— اختر مستخدم —</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
-            ))}
+            {users.map((u) => {
+              // Disable users already linked to a *different* employee (one user = one employee).
+              const linkedElsewhere = !!u.employee_id && u.employee_id !== editId;
+              return (
+                <option key={u.id} value={u.id} disabled={linkedElsewhere}>
+                  {u.name} ({u.email}){linkedElsewhere ? ' — مرتبط بموظف آخر' : ''}
+                </option>
+              );
+            })}
           </select>
           {errors.user_id && <p className="text-red-500 text-xs mt-1">{errors.user_id.message}</p>}
-          <p className="text-xs text-gray-400 mt-1">يجب إنشاء حساب مستخدم أولاً من صفحة المستخدمين ثم ربطه هنا</p>
+          <p className="text-xs text-gray-400 mt-1">كل الحسابات ظاهرة — المرتبط بموظف آخر يظهر معطّلاً. يجب إنشاء الحساب من صفحة المستخدمين أولاً.</p>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
