@@ -83,6 +83,16 @@ export default function Settings() {
     onError: () => toast.error('حدث خطأ'),
   });
 
+  // Toggle email notifications preference
+  const toggleEmailNotifications = useMutation({
+    mutationFn: (value: boolean) => api.put('/auth/profile', { name: user?.name, email_notifications: value }),
+    onSuccess: () => {
+      toast.success('تم تحديث تفضيلات الإشعارات');
+      fetchUser();
+    },
+    onError: () => toast.error('حدث خطأ'),
+  });
+
   // Change password
   const changePassword = useMutation({
     mutationFn: (data: Record<string, unknown>) => api.post('/auth/change-password', data),
@@ -335,6 +345,36 @@ export default function Settings() {
               {updateProfile.isPending ? 'جاري الحفظ...' : 'تحديث البيانات'}
             </button>
           </form>
+
+          {/* Email notifications preference */}
+          <div className="mt-6 pt-6 border-t border-gray-100">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-primary-50 flex items-center justify-center shrink-0">
+                  <Bell size={18} className="text-primary-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-900">إشعارات البريد الإلكتروني</p>
+                  <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">استقبل إيميل على {user?.email} عند أي تحديث يخصّك (مهمة جديدة، مراجعة، اجتماع، راتب...).</p>
+                </div>
+              </div>
+              {(() => {
+                const on = user?.email_notifications !== false;
+                return (
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={on}
+                    disabled={toggleEmailNotifications.isPending}
+                    onClick={() => toggleEmailNotifications.mutate(!on)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${on ? 'bg-primary-600' : 'bg-gray-300'}`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${on ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </button>
+                );
+              })()}
+            </div>
+          </div>
         </div>
       )}
 

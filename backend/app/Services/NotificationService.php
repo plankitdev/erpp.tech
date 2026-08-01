@@ -2,14 +2,18 @@
 
 namespace App\Services;
 
+use App\Mail\SystemNotificationMail;
+use App\Models\Company;
 use App\Models\Notification;
 use App\Models\User;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class NotificationService
 {
     public static function notify(int $companyId, int $userId, string $type, string $title, ?string $body = null, ?string $link = null): Notification
     {
-        return Notification::create([
+        $notification = Notification::create([
             'company_id' => $companyId,
             'user_id' => $userId,
             'type' => $type,
@@ -17,6 +21,33 @@ class NotificationService
             'body' => $body,
             'link' => $link,
         ]);
+
+        self::emailNotification($notification, $companyId, $userId);
+
+        return $notification;
+    }
+
+    /**
+     * Queue an email copy of an in-app notification to the recipient.
+     * Silently skipped when the user has no email or opted out; a mail
+     * failure must never break the notification flow (wrapped in try/catch).
+     */
+    protected static function emailNotification(Notification $notification, int $companyId, int $userId): void
+    {
+        try {
+            $user = User::find($userId);
+            if (! $user || ! $user->email || ! $user->email_notifications) {
+                return;
+            }
+
+            $companyName = Company::where('id', $companyId)->value('name');
+            Mail::to($user->email)->queue(new SystemNotificationMail($notification, $companyName));
+        } catch (\Throwable $e) {
+            Log::warning('Notification email dispatch failed: ' . $e->getMessage(), [
+                'notification_id' => $notification->id ?? null,
+                'user_id' => $userId,
+            ]);
+        }
     }
 
     public static function notifyRoles(int $companyId, array $roles, string $type, string $title, ?string $body = null, ?string $link = null): int

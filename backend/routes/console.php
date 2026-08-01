@@ -49,3 +49,9 @@ Schedule::command('drive:sync')->hourly();
 
 // إعادة تعيين ليلية: تسجيل خروج تلقائي + إلغاء التوكنات
 Schedule::command('attendance:midnight-reset')->dailyAt('00:00');
+
+// تفريغ طابور المهام (إيميلات الإشعارات...) كل دقيقة — بديل خفيف عن worker دائم.
+// يعتمد على تشغيل `php artisan schedule:run` عبر cron كل دقيقة.
+Schedule::command('queue:work --stop-when-empty --max-time=55 --tries=3')
+    ->everyMinute()
+    ->withoutOverlapping();

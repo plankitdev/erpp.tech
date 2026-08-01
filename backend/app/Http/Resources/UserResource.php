@@ -18,6 +18,7 @@ class UserResource extends JsonResource
             'phone'      => $this->phone,
             'avatar'     => $this->avatar ? asset('storage/' . $this->avatar) : null,
             'is_active'  => $this->is_active,
+            'email_notifications' => (bool) $this->email_notifications,
             'company_id' => $this->company_id,
             'company'    => new CompanyResource($this->whenLoaded('company')),
             'last_login_at' => $this->last_login_at?->format('Y-m-d H:i'),

@@ -85,10 +85,15 @@ class AuthController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            'email_notifications' => 'sometimes|boolean',
         ]);
 
         $user = $request->user();
-        $user->update(['name' => $request->name]);
+        $payload = ['name' => $request->name];
+        if ($request->has('email_notifications')) {
+            $payload['email_notifications'] = $request->boolean('email_notifications');
+        }
+        $user->update($payload);
 
         return $this->successResponse(
             new UserResource($user->load('company')),

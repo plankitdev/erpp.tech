@@ -46,6 +46,7 @@ export interface User {
   phone: string | null;
   avatar: string | null;
   is_active: boolean;
+  email_notifications?: boolean;
   company: Company | null;
   last_login_at: string | null;
   created_at: string;

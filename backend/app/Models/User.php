@@ -18,7 +18,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name', 'email', 'password', 'company_id',
         'role', 'permissions', 'phone', 'avatar', 'is_active', 'last_login_at',
-        'force_password_change', 'last_announcement_read_at',
+        'force_password_change', 'last_announcement_read_at', 'email_notifications',
     ];
 
     protected $hidden = [
@@ -35,6 +35,7 @@ class User extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
             'force_password_change' => 'boolean',
+            'email_notifications' => 'boolean',
             'permissions' => 'array',
         ];
     }
