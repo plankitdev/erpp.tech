@@ -28,7 +28,7 @@ export default function OverdueBanner() {
       </div>
       <div className="flex items-center gap-3 flex-shrink-0">
         <Link
-          to="/tasks?statusFilter=all&priorityFilter=all"
+          to="/tasks?overdueFilter=1"
           className="text-xs bg-white/20 hover:bg-white/30 rounded-lg px-3 py-1 font-medium transition-colors"
         >
           عرض المهام
