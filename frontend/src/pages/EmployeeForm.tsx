@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useEmployee } from '../hooks/useEmployees';
 import { useUsersList } from '../hooks/useUsers';
 import { employeesApi } from '../api/employees';
+import Breadcrumbs from '../components/Breadcrumbs';
 import toast from 'react-hot-toast';
 
 const employeeSchema = z.object({
@@ -33,7 +34,7 @@ export default function EmployeeForm() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const editId = id ? parseInt(id) : 0;
-  const { data: employee } = useEmployee(editId);
+  const { data: employee, isLoading: loadingEmployee } = useEmployee(editId);
   const { data: usersListData } = useUsersList();
   const users = usersListData?.data || [];
   const [file, setFile] = useState<File | null>(null);
@@ -95,8 +96,19 @@ export default function EmployeeForm() {
     }
   };
 
+  if (editId && loadingEmployee) {
+    return (
+      <div className="page-container max-w-2xl mx-auto">
+        <div className="flex items-center justify-center py-20">
+          <div className="animate-spin w-8 h-8 border-2 border-primary-600 border-t-transparent rounded-full" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="page-container max-w-2xl mx-auto">
+      <Breadcrumbs items={[{ label: 'الموارد البشرية' }, { label: 'الموظفين', href: '/employees' }, { label: editId ? 'تعديل موظف' : 'إضافة موظف' }]} />
       <h1 className="page-title mb-6">{editId ? 'تعديل موظف' : 'إضافة موظف'}</h1>
       <form onSubmit={handleSubmit(onSubmit)} className="card card-body space-y-4">
         <h2 className="text-sm font-semibold text-primary-600 mb-2">البيانات الأساسية</h2>
@@ -114,7 +126,7 @@ export default function EmployeeForm() {
         </div>
         <div>
           <label className="input-label">حساب المستخدم *</label>
-          <select {...register('user_id')} className="input">
+          <select {...register('user_id')} className="select">
             <option value="">— اختر مستخدم —</option>
             {users.map((u) => {
               // Disable users already linked to a *different* employee (one user = one employee).

@@ -69,8 +69,11 @@ export default function MeetingForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.title || !form.start_time || !form.end_time) {
-      toast.error('يرجى ملء الحقول المطلوبة');
+    if (!form.title.trim()) { toast.error('عنوان الاجتماع مطلوب'); return; }
+    if (!form.start_time) { toast.error('وقت البداية مطلوب'); return; }
+    if (!form.end_time) { toast.error('وقت النهاية مطلوب'); return; }
+    if (new Date(form.end_time) <= new Date(form.start_time)) {
+      toast.error('وقت النهاية يجب أن يكون بعد وقت البداية');
       return;
     }
     try {

@@ -1,13 +1,10 @@
 import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useCalendarEvents } from '../hooks/useCalendar';
-import { useCreateMeeting } from '../hooks/useMeetings';
 import { formatDate } from '../utils';
-import { useAuthStore } from '../store/authStore';
 import type { CalendarEvent } from '../types';
-import toast from 'react-hot-toast';
 import {
-  ChevronRight, ChevronLeft, CalendarDays, Plus, X, Clock,
-  CheckSquare, Users as UsersIcon, Video,
+  ChevronRight, ChevronLeft, CalendarDays, Plus, Clock,
 } from 'lucide-react';
 
 const DAYS_AR = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
@@ -32,7 +29,7 @@ const eventColors: Record<string, { bg: string; text: string; dot: string }> = {
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [showMeetingModal, setShowMeetingModal] = useState(false);
+  const navigate = useNavigate();
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -41,7 +38,6 @@ export default function CalendarPage() {
   const endDate = `${year}-${String(month + 1).padStart(2, '0')}-${getDaysInMonth(year, month)}`;
 
   const { data: events = [], isLoading } = useCalendarEvents(startDate, endDate);
-  const createMeeting = useCreateMeeting();
 
   const eventsByDate = useMemo(() => {
     const map: Record<string, CalendarEvent[]> = {};
@@ -79,28 +75,6 @@ export default function CalendarPage() {
 
   const selectedEvents = selectedDate ? (eventsByDate[selectedDate] || []) : [];
 
-  const [meetingForm, setMeetingForm] = useState({
-    title: '', description: '', start_time: '', end_time: '', type: 'team' as const, location: '',
-  });
-
-  const handleCreateMeeting = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await createMeeting.mutateAsync({
-        title: meetingForm.title,
-        description: meetingForm.description || undefined,
-        start_time: meetingForm.start_time,
-        end_time: meetingForm.end_time,
-        type: meetingForm.type,
-        location: meetingForm.location || undefined,
-      } as any);
-      setShowMeetingModal(false);
-      setMeetingForm({ title: '', description: '', start_time: '', end_time: '', type: 'team', location: '' });
-      toast.success('تم إنشاء الاجتماع');
-    } catch {
-      toast.error('حدث خطأ');
-    }
-  };
 
   return (
     <div className="page-container">
@@ -110,7 +84,7 @@ export default function CalendarPage() {
           <h1 className="page-title">التقويم</h1>
           <p className="page-subtitle">المهام والاجتماعات</p>
         </div>
-        <button onClick={() => setShowMeetingModal(true)} className="btn-primary">
+        <button onClick={() => navigate('/meetings/create')} className="btn-primary">
           <Plus size={18} />
           اجتماع جديد
         </button>
@@ -270,84 +244,6 @@ export default function CalendarPage() {
         </div>
       </div>
 
-      {/* Create Meeting Modal */}
-      {showMeetingModal && (
-        <div className="modal-overlay">
-          <div className="modal-backdrop" onClick={() => setShowMeetingModal(false)} />
-          <div className="modal-content">
-            <div className="modal-header">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center text-white">
-                  <Video size={20} />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-gray-800">اجتماع جديد</h2>
-                  <p className="text-xs text-gray-400">جدول اجتماع مع فريقك أو عملائك</p>
-                </div>
-              </div>
-              <button onClick={() => setShowMeetingModal(false)} className="text-gray-400 hover:text-gray-600 p-1"><X size={20} /></button>
-            </div>
-            <form id="meeting-form" onSubmit={handleCreateMeeting} className="modal-body space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">عنوان الاجتماع *</label>
-                <input type="text" required value={meetingForm.title}
-                  onChange={e => setMeetingForm({ ...meetingForm, title: e.target.value })}
-                  placeholder="مثال: اجتماع متابعة المشروع"
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">الوصف</label>
-                <textarea value={meetingForm.description}
-                  onChange={e => setMeetingForm({ ...meetingForm, description: e.target.value })}
-                  placeholder="تفاصيل الاجتماع..." rows={2}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-primary-500/20" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">وقت البداية *</label>
-                  <input type="datetime-local" required value={meetingForm.start_time}
-                    onChange={e => setMeetingForm({ ...meetingForm, start_time: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500/20" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">وقت النهاية *</label>
-                  <input type="datetime-local" required value={meetingForm.end_time}
-                    onChange={e => setMeetingForm({ ...meetingForm, end_time: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500/20" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">النوع</label>
-                  <select value={meetingForm.type}
-                    onChange={e => setMeetingForm({ ...meetingForm, type: e.target.value as any })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500/20">
-                    <option value="team">اجتماع فريق</option>
-                    <option value="sales">اجتماع مبيعات</option>
-                    <option value="client">اجتماع عميل</option>
-                    <option value="other">أخرى</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">المكان</label>
-                  <input type="text" value={meetingForm.location}
-                    onChange={e => setMeetingForm({ ...meetingForm, location: e.target.value })}
-                    placeholder="مثال: قاعة الاجتماعات"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500/20" />
-                </div>
-              </div>
-            </form>
-            <div className="modal-footer">
-              <button type="submit" form="meeting-form" disabled={createMeeting.isPending}
-                className="btn-primary flex-1">
-                {createMeeting.isPending ? 'جاري الإنشاء...' : 'إنشاء الاجتماع'}
-              </button>
-              <button type="button" onClick={() => setShowMeetingModal(false)}
-                className="btn-secondary">إلغاء</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -25,7 +25,7 @@ export default function ContractForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const editId = id ? parseInt(id) : 0;
-  const { data: contract } = useContract(editId);
+  const { data: contract, isLoading: loadingContract } = useContract(editId);
   const createMutation = useCreateContract();
   const updateMutation = useUpdateContract();
   const [clients, setClients] = useState<Client[]>([]);
@@ -68,13 +68,23 @@ export default function ContractForm() {
     }
   };
 
+  if (editId && loadingContract) {
+    return (
+      <div className="page-container max-w-2xl mx-auto">
+        <div className="flex items-center justify-center py-20">
+          <div className="animate-spin w-8 h-8 border-2 border-primary-600 border-t-transparent rounded-full" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="page-container max-w-2xl mx-auto">
       <Breadcrumbs items={[{ label: 'العقود', href: '/contracts' }, { label: editId ? 'تعديل عقد' : 'عقد جديد' }]} />
       <h1 className="page-title mb-6">{editId ? 'تعديل عقد' : 'عقد جديد'}</h1>
       <form onSubmit={handleSubmit(onSubmit)} className="card card-body space-y-4">
         <div>
-          <label className="input-label">الشركة / العميل</label>
+          <label className="input-label">الشركة / العميل <span className="text-red-400">*</span></label>
           <select {...register('client_id')} className="select">
             <option value="">اختر الشركة</option>
             {clients.map(c => <option key={c.id} value={c.id}>{c.company_name || c.name}{c.company_name ? ` (${c.name})` : ''}</option>)}
@@ -83,7 +93,7 @@ export default function ContractForm() {
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="input-label">القيمة</label>
+            <label className="input-label">القيمة <span className="text-red-400">*</span></label>
             <input type="number" step="0.01" {...register('value')} className="input" />
             {errors.value && <p className="text-red-500 text-xs mt-1">{errors.value.message}</p>}
           </div>
@@ -98,7 +108,7 @@ export default function ContractForm() {
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="input-label">تاريخ البداية</label>
+            <label className="input-label">تاريخ البداية <span className="text-red-400">*</span></label>
             <input type="date" {...register('start_date')} className="input" />
             {errors.start_date && <p className="text-red-500 text-xs mt-1">{errors.start_date.message}</p>}
           </div>

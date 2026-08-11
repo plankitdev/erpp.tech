@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useClient, useCreateClient, useUpdateClient } from '../hooks/useClients';
 import { useAuthStore } from '../store/authStore';
+import Breadcrumbs from '../components/Breadcrumbs';
 import toast from 'react-hot-toast';
 
 const clientSchema = z.object({
@@ -35,7 +36,7 @@ export default function ClientForm() {
   const { id: slug } = useParams();
   const navigate = useNavigate();
   const editSlug = slug || '';
-  const { data: client } = useClient(editSlug);
+  const { data: client, isLoading: loadingClient } = useClient(editSlug);
   const createMutation = useCreateClient();
   const updateMutation = useUpdateClient();
   const user = useAuthStore(s => s.user);
@@ -80,12 +81,23 @@ export default function ClientForm() {
     }
   };
 
+  if (editSlug && loadingClient) {
+    return (
+      <div className="page-container max-w-2xl mx-auto">
+        <div className="flex items-center justify-center py-20">
+          <div className="animate-spin w-8 h-8 border-2 border-primary-600 border-t-transparent rounded-full" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="page-container max-w-2xl mx-auto">
+      <Breadcrumbs items={[{ label: 'العملاء', href: '/clients' }, { label: editSlug ? 'تعديل عميل' : 'إضافة عميل جديد' }]} />
       <h1 className="page-title mb-6">{editSlug ? 'تعديل عميل' : 'إضافة عميل جديد'}</h1>
       <form onSubmit={handleSubmit(onSubmit)} className="card card-body space-y-4">
         <div>
-          <label className="input-label">اسم العميل</label>
+          <label className="input-label">اسم العميل <span className="text-red-400">*</span></label>
           <input type="text" {...register('name')} className="input" />
           {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
         </div>

@@ -327,7 +327,7 @@ export default function Users() {
 
             {/* Modal Body */}
             <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-              <div className="p-6 space-y-5 overflow-y-auto flex-1 sidebar-scroll">
+              <div className="p-6 space-y-5 overflow-y-auto flex-1 min-h-0 sidebar-scroll">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="input-label">الاسم *</label>

@@ -36,7 +36,7 @@ export default function InvoiceForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const editId = id ? parseInt(id) : 0;
-  const { data: invoice } = useInvoice(editId);
+  const { data: invoice, isLoading: loadingInvoice } = useInvoice(editId);
   const createMutation = useCreateInvoice();
   const updateMutation = useUpdateInvoice();
   const [contracts, setContracts] = useState<Contract[]>([]);
@@ -105,13 +105,23 @@ export default function InvoiceForm() {
     }
   };
 
+  if (editId && loadingInvoice) {
+    return (
+      <div className="page-container max-w-2xl mx-auto">
+        <div className="flex items-center justify-center py-20">
+          <div className="animate-spin w-8 h-8 border-2 border-primary-600 border-t-transparent rounded-full" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="page-container max-w-2xl mx-auto">
       <Breadcrumbs items={[{ label: 'الفواتير', href: '/invoices' }, { label: editId ? 'تعديل فاتورة' : 'فاتورة جديدة' }]} />
       <h1 className="page-title mb-6">{editId ? 'تعديل فاتورة' : 'فاتورة جديدة'}</h1>
       <form onSubmit={handleSubmit(onSubmit)} className="card card-body space-y-4">
         <div>
-          <label className="input-label">العقد</label>
+          <label className="input-label">العقد <span className="text-red-400">*</span></label>
           <select {...register('contract_id')} className="select">
             <option value="">اختر العقد</option>
             {contracts.map(c => (
@@ -189,7 +199,7 @@ export default function InvoiceForm() {
         </div>
 
         <div>
-          <label className="input-label">تاريخ الاستحقاق</label>
+          <label className="input-label">تاريخ الاستحقاق <span className="text-red-400">*</span></label>
           <input type="date" {...register('due_date')} className="input" />
           {errors.due_date && <p className="text-red-500 text-xs mt-1">{errors.due_date.message}</p>}
         </div>
