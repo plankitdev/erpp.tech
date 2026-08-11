@@ -7,6 +7,9 @@ import { useContract, useCreateContract, useUpdateContract } from '../hooks/useC
 import { clientsApi } from '../api/clients';
 import type { Client } from '../types';
 import Breadcrumbs from '../components/Breadcrumbs';
+import FormHeader from '../components/FormHeader';
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
+import { FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const contractSchema = z.object({
@@ -30,10 +33,12 @@ export default function ContractForm() {
   const updateMutation = useUpdateContract();
   const [clients, setClients] = useState<Client[]>([]);
 
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<ContractFormData>({
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting, isDirty } } = useForm<ContractFormData>({
     resolver: zodResolver(contractSchema) as any,
     defaultValues: { currency: 'EGP', payment_type: 'monthly', status: 'active' },
   });
+
+  useUnsavedChanges(isDirty && !isSubmitting);
 
   useEffect(() => {
     clientsApi.getAll({ per_page: 1000 }).then(res => setClients(res.data.data));
@@ -81,7 +86,7 @@ export default function ContractForm() {
   return (
     <div className="page-container max-w-2xl mx-auto">
       <Breadcrumbs items={[{ label: 'العقود', href: '/contracts' }, { label: editId ? 'تعديل عقد' : 'عقد جديد' }]} />
-      <h1 className="page-title mb-6">{editId ? 'تعديل عقد' : 'عقد جديد'}</h1>
+      <FormHeader icon={FileText} title={editId ? 'تعديل عقد' : 'عقد جديد'} subtitle={editId ? 'تحديث بيانات العقد' : 'إنشاء عقد جديد لعميل'} backTo="/contracts" gradient="from-amber-500 to-orange-600" />
       <form onSubmit={handleSubmit(onSubmit)} className="card card-body space-y-4">
         <div>
           <label className="input-label">الشركة / العميل <span className="text-red-400">*</span></label>

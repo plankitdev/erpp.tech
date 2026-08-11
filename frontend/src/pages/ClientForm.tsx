@@ -6,6 +6,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useClient, useCreateClient, useUpdateClient } from '../hooks/useClients';
 import { useAuthStore } from '../store/authStore';
 import Breadcrumbs from '../components/Breadcrumbs';
+import FormHeader from '../components/FormHeader';
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
+import { UserPlus } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const clientSchema = z.object({
@@ -42,10 +45,12 @@ export default function ClientForm() {
   const user = useAuthStore(s => s.user);
   const isEmployee = user?.role === 'employee';
 
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<ClientFormData>({
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting, isDirty } } = useForm<ClientFormData>({
     resolver: zodResolver(clientSchema) as any,
     defaultValues: { status: 'active' },
   });
+
+  useUnsavedChanges(isDirty && !isSubmitting);
 
   useEffect(() => {
     if (client) {
@@ -94,7 +99,7 @@ export default function ClientForm() {
   return (
     <div className="page-container max-w-2xl mx-auto">
       <Breadcrumbs items={[{ label: 'العملاء', href: '/clients' }, { label: editSlug ? 'تعديل عميل' : 'إضافة عميل جديد' }]} />
-      <h1 className="page-title mb-6">{editSlug ? 'تعديل عميل' : 'إضافة عميل جديد'}</h1>
+      <FormHeader icon={UserPlus} title={editSlug ? 'تعديل عميل' : 'إضافة عميل جديد'} subtitle={editSlug ? 'تحديث بيانات العميل' : 'إضافة عميل جديد للنظام'} backTo="/clients" gradient="from-blue-500 to-indigo-600" />
       <form onSubmit={handleSubmit(onSubmit)} className="card card-body space-y-4">
         <div>
           <label className="input-label">اسم العميل <span className="text-red-400">*</span></label>

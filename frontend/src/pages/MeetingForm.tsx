@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMeeting, useCreateMeeting, useUpdateMeeting } from '../hooks/useMeetings';
 import { useUsersList } from '../hooks/useUsers';
@@ -6,10 +6,18 @@ import { useAuthStore } from '../store/authStore';
 import type { Meeting } from '../types';
 import toast from 'react-hot-toast';
 import Breadcrumbs from '../components/Breadcrumbs';
+import FormHeader from '../components/FormHeader';
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
 import {
-  Video, ArrowRight, Clock, MapPin, Link2, Users, FileText,
+  Video, Clock, MapPin, Link2, Users, FileText,
   CalendarDays, Search, Check, X,
 } from 'lucide-react';
+
+const EMPTY_MEETING = {
+  title: '', description: '', start_time: '', end_time: '',
+  location: '', meeting_link: '', type: 'team', status: 'scheduled',
+  notes: '', participant_ids: [] as number[],
+};
 
 const typeOptions = [
   { value: 'team', label: 'فريق العمل', color: 'bg-blue-100 text-blue-700 border-blue-200', icon: '👥' },
@@ -37,22 +45,12 @@ export default function MeetingForm() {
   const { user } = useAuthStore();
   const [participantSearch, setParticipantSearch] = useState('');
 
-  const [form, setForm] = useState({
-    title: '',
-    description: '',
-    start_time: '',
-    end_time: '',
-    location: '',
-    meeting_link: '',
-    type: 'team',
-    status: 'scheduled',
-    notes: '',
-    participant_ids: [] as number[],
-  });
+  const [form, setForm] = useState(EMPTY_MEETING);
+  const baselineRef = useRef(JSON.stringify(EMPTY_MEETING));
 
   useEffect(() => {
     if (meeting && isEdit) {
-      setForm({
+      const loaded = {
         title: meeting.title || '',
         description: meeting.description || '',
         start_time: meeting.start_time?.slice(0, 16) || '',
@@ -63,9 +61,15 @@ export default function MeetingForm() {
         status: meeting.status || 'scheduled',
         notes: meeting.notes || '',
         participant_ids: meeting.participants?.map((p: any) => p.id) || [],
-      });
+      };
+      setForm(loaded);
+      baselineRef.current = JSON.stringify(loaded);
     }
   }, [meeting, isEdit]);
+
+  useUnsavedChanges(
+    JSON.stringify(form) !== baselineRef.current && !createMutation.isPending && !updateMutation.isPending
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,21 +126,13 @@ export default function MeetingForm() {
         { label: isEdit ? 'تعديل الاجتماع' : 'اجتماع جديد' },
       ]} />
 
-      <div className="page-header mb-6">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/meetings')}
-            className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-all">
-            <ArrowRight size={18} className="text-gray-500" />
-          </button>
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-purple-200">
-            <Video size={22} />
-          </div>
-          <div>
-            <h1 className="page-title">{isEdit ? 'تعديل الاجتماع' : 'اجتماع جديد'}</h1>
-            <p className="text-sm text-gray-400">{isEdit ? 'تحديث بيانات الاجتماع' : 'إنشاء اجتماع جديد وإضافة المشاركين'}</p>
-          </div>
-        </div>
-      </div>
+      <FormHeader
+        icon={Video}
+        title={isEdit ? 'تعديل الاجتماع' : 'اجتماع جديد'}
+        subtitle={isEdit ? 'تحديث بيانات الاجتماع' : 'إنشاء اجتماع جديد وإضافة المشاركين'}
+        backTo="/meetings"
+        gradient="from-purple-500 to-indigo-600"
+      />
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Info Card */}

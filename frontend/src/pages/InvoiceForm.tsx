@@ -3,12 +3,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Receipt } from 'lucide-react';
 import { useInvoice, useCreateInvoice, useUpdateInvoice } from '../hooks/useInvoices';
 import { contractsApi } from '../api/contracts';
 import type { Contract } from '../types';
 import { formatCurrency } from '../utils';
 import Breadcrumbs from '../components/Breadcrumbs';
+import FormHeader from '../components/FormHeader';
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
 import toast from 'react-hot-toast';
 
 const itemSchema = z.object({
@@ -41,10 +43,12 @@ export default function InvoiceForm() {
   const updateMutation = useUpdateInvoice();
   const [contracts, setContracts] = useState<Contract[]>([]);
 
-  const { register, handleSubmit, reset, control, formState: { errors, isSubmitting } } = useForm<InvoiceFormData>({
+  const { register, handleSubmit, reset, control, formState: { errors, isSubmitting, isDirty } } = useForm<InvoiceFormData>({
     resolver: zodResolver(invoiceSchema) as any,
     defaultValues: { currency: 'EGP', status: 'pending', is_paid: false, items: [] },
   });
+
+  useUnsavedChanges(isDirty && !isSubmitting);
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
   const watchedItems = useWatch({ control, name: 'items' }) || [];
@@ -118,7 +122,7 @@ export default function InvoiceForm() {
   return (
     <div className="page-container max-w-2xl mx-auto">
       <Breadcrumbs items={[{ label: 'الفواتير', href: '/invoices' }, { label: editId ? 'تعديل فاتورة' : 'فاتورة جديدة' }]} />
-      <h1 className="page-title mb-6">{editId ? 'تعديل فاتورة' : 'فاتورة جديدة'}</h1>
+      <FormHeader icon={Receipt} title={editId ? 'تعديل فاتورة' : 'فاتورة جديدة'} subtitle={editId ? 'تحديث بيانات الفاتورة' : 'إنشاء فاتورة جديدة'} backTo="/invoices" gradient="from-emerald-500 to-teal-600" />
       <form onSubmit={handleSubmit(onSubmit)} className="card card-body space-y-4">
         <div>
           <label className="input-label">العقد <span className="text-red-400">*</span></label>
