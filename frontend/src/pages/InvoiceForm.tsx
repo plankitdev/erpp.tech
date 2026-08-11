@@ -125,8 +125,8 @@ export default function InvoiceForm() {
       <FormHeader icon={Receipt} title={editId ? 'تعديل فاتورة' : 'فاتورة جديدة'} subtitle={editId ? 'تحديث بيانات الفاتورة' : 'إنشاء فاتورة جديدة'} backTo="/invoices" gradient="from-emerald-500 to-teal-600" />
       <form onSubmit={handleSubmit(onSubmit)} className="card card-body space-y-4">
         <div>
-          <label className="input-label">العقد <span className="text-red-400">*</span></label>
-          <select {...register('contract_id')} className="select">
+          <label htmlFor="contract_id" className="input-label">العقد <span className="text-red-400">*</span></label>
+          <select id="contract_id" {...register('contract_id')} className="select">
             <option value="">اختر العقد</option>
             {contracts.map(c => (
               <option key={c.id} value={c.id}>{c.client?.company_name || c.client?.name} - {formatCurrency(c.value ?? 0, c.currency)}</option>
@@ -182,19 +182,19 @@ export default function InvoiceForm() {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="input-label">المبلغ {hasItems && <span className="text-xs text-gray-400">(محسوب من البنود)</span>}</label>
+            <label htmlFor="amount" className="input-label">المبلغ {hasItems && <span className="text-xs text-gray-400">(محسوب من البنود)</span>}</label>
             {hasItems ? (
               <input type="number" value={itemsTotal.toFixed(2)} readOnly className="input bg-gray-50 cursor-not-allowed" />
             ) : (
               <>
-                <input type="number" step="0.01" {...register('amount')} className="input" />
+                <input id="amount" type="number" step="0.01" {...register('amount')} className="input" />
                 {errors.amount && <p className="text-red-500 text-xs mt-1">{errors.amount.message}</p>}
               </>
             )}
           </div>
           <div>
-            <label className="input-label">العملة</label>
-            <select {...register('currency')} className="select">
+            <label htmlFor="currency" className="input-label">العملة</label>
+            <select id="currency" {...register('currency')} className="select">
               <option value="EGP">جنيه مصري</option>
               <option value="USD">دولار</option>
               <option value="SAR">ريال</option>
@@ -203,16 +203,16 @@ export default function InvoiceForm() {
         </div>
 
         <div>
-          <label className="input-label">تاريخ الاستحقاق <span className="text-red-400">*</span></label>
-          <input type="date" {...register('due_date')} className="input" />
+          <label htmlFor="due_date" className="input-label">تاريخ الاستحقاق <span className="text-red-400">*</span></label>
+          <input id="due_date" type="date" {...register('due_date')} className="input" />
           {errors.due_date && <p className="text-red-500 text-xs mt-1">{errors.due_date.message}</p>}
         </div>
 
         {!editId && (
           <>
             <div>
-              <label className="input-label">الحالة</label>
-              <select {...register('status')} className="select">
+              <label htmlFor="status" className="input-label">الحالة</label>
+              <select id="status" {...register('status')} className="select">
                 <option value="pending">معلقة</option>
                 <option value="draft">مسودة</option>
                 <option value="sent">مُرسلة</option>

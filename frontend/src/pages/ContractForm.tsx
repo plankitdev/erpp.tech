@@ -89,8 +89,8 @@ export default function ContractForm() {
       <FormHeader icon={FileText} title={editId ? 'تعديل عقد' : 'عقد جديد'} subtitle={editId ? 'تحديث بيانات العقد' : 'إنشاء عقد جديد لعميل'} backTo="/contracts" gradient="from-amber-500 to-orange-600" />
       <form onSubmit={handleSubmit(onSubmit)} className="card card-body space-y-4">
         <div>
-          <label className="input-label">الشركة / العميل <span className="text-red-400">*</span></label>
-          <select {...register('client_id')} className="select">
+          <label htmlFor="client_id" className="input-label">الشركة / العميل <span className="text-red-400">*</span></label>
+          <select id="client_id" {...register('client_id')} className="select">
             <option value="">اختر الشركة</option>
             {clients.map(c => <option key={c.id} value={c.id}>{c.company_name || c.name}{c.company_name ? ` (${c.name})` : ''}</option>)}
           </select>
@@ -98,13 +98,13 @@ export default function ContractForm() {
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="input-label">القيمة <span className="text-red-400">*</span></label>
-            <input type="number" step="0.01" {...register('value')} className="input" />
+            <label htmlFor="value" className="input-label">القيمة <span className="text-red-400">*</span></label>
+            <input id="value" type="number" step="0.01" {...register('value')} className="input" />
             {errors.value && <p className="text-red-500 text-xs mt-1">{errors.value.message}</p>}
           </div>
           <div>
-            <label className="input-label">العملة</label>
-            <select {...register('currency')} className="select">
+            <label htmlFor="currency" className="input-label">العملة</label>
+            <select id="currency" {...register('currency')} className="select">
               <option value="EGP">جنيه مصري</option>
               <option value="USD">دولار أمريكي</option>
               <option value="SAR">ريال سعودي</option>
@@ -113,27 +113,27 @@ export default function ContractForm() {
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="input-label">تاريخ البداية <span className="text-red-400">*</span></label>
-            <input type="date" {...register('start_date')} className="input" />
+            <label htmlFor="start_date" className="input-label">تاريخ البداية <span className="text-red-400">*</span></label>
+            <input id="start_date" type="date" {...register('start_date')} className="input" />
             {errors.start_date && <p className="text-red-500 text-xs mt-1">{errors.start_date.message}</p>}
           </div>
           <div>
-            <label className="input-label">تاريخ النهاية</label>
-            <input type="date" {...register('end_date')} className="input" />
+            <label htmlFor="end_date" className="input-label">تاريخ النهاية</label>
+            <input id="end_date" type="date" {...register('end_date')} className="input" />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="input-label">نوع الدفع</label>
-            <select {...register('payment_type')} className="select">
+            <label htmlFor="payment_type" className="input-label">نوع الدفع</label>
+            <select id="payment_type" {...register('payment_type')} className="select">
               <option value="monthly">شهري</option>
               <option value="installments">أقساط</option>
               <option value="one_time">دفعة واحدة</option>
             </select>
           </div>
           <div>
-            <label className="input-label">الحالة</label>
-            <select {...register('status')} className="select">
+            <label htmlFor="status" className="input-label">الحالة</label>
+            <select id="status" {...register('status')} className="select">
               <option value="active">ساري</option>
               <option value="completed">مكتمل</option>
               <option value="cancelled">ملغي</option>

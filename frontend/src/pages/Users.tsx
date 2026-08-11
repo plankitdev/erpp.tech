@@ -330,13 +330,13 @@ export default function Users() {
               <div className="p-6 space-y-5 overflow-y-auto flex-1 min-h-0 sidebar-scroll">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="input-label">الاسم *</label>
-                  <input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
+                  <label htmlFor="user_name" className="input-label">الاسم *</label>
+                  <input id="user_name" type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
                     className="input" required />
                 </div>
                 <div>
-                  <label className="input-label">البريد الإلكتروني *</label>
-                  <input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
+                  <label htmlFor="user_email" className="input-label">البريد الإلكتروني *</label>
+                  <input id="user_email" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
                     className="input" required />
                 </div>
               </div>
@@ -351,8 +351,8 @@ export default function Users() {
                     required={!editingUser} placeholder={editingUser ? '••••••••' : ''} />
                 </div>
                 <div>
-                  <label className="input-label">الدور *</label>
-                  <select value={form.role} onChange={e => { setForm({ ...form, role: e.target.value }); }}
+                  <label htmlFor="user_role" className="input-label">الدور *</label>
+                  <select id="user_role" value={form.role} onChange={e => { setForm({ ...form, role: e.target.value }); }}
                     className="select">
                     <option value="super_admin">مدير النظام</option>
                     <option value="company_admin">أدمن الشركة</option>
@@ -364,8 +364,8 @@ export default function Users() {
                   </select>
                 </div>
                 <div>
-                  <label className="input-label">الشركة *</label>
-                  <select value={form.company_id} onChange={e => setForm({ ...form, company_id: e.target.value })}
+                  <label htmlFor="user_company" className="input-label">الشركة *</label>
+                  <select id="user_company" value={form.company_id} onChange={e => setForm({ ...form, company_id: e.target.value })}
                     className="select" required>
                     <option value="">اختر الشركة</option>
                     {companies.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}

@@ -119,19 +119,19 @@ export default function EmployeeForm() {
         <h2 className="text-sm font-semibold text-primary-600 mb-2">البيانات الأساسية</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="input-label">الاسم *</label>
-            <input type="text" {...register('name')} className="input" />
+            <label htmlFor="name" className="input-label">الاسم *</label>
+            <input id="name" type="text" {...register('name')} className="input" />
             {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
           </div>
           <div>
-            <label className="input-label">المسمى الوظيفي *</label>
-            <input type="text" {...register('position')} className="input" />
+            <label htmlFor="position" className="input-label">المسمى الوظيفي *</label>
+            <input id="position" type="text" {...register('position')} className="input" />
             {errors.position && <p className="text-red-500 text-xs mt-1">{errors.position.message}</p>}
           </div>
         </div>
         <div>
-          <label className="input-label">حساب المستخدم *</label>
-          <select {...register('user_id')} className="select">
+          <label htmlFor="user_id" className="input-label">حساب المستخدم *</label>
+          <select id="user_id" {...register('user_id')} className="select">
             <option value="">— اختر مستخدم —</option>
             {users.map((u) => {
               // Disable users already linked to a *different* employee (one user = one employee).
@@ -148,69 +148,69 @@ export default function EmployeeForm() {
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="input-label">الهاتف</label>
-            <input type="text" {...register('phone')} className="input" />
+            <label htmlFor="phone" className="input-label">الهاتف</label>
+            <input id="phone" type="text" {...register('phone')} className="input" />
           </div>
           <div>
-            <label className="input-label">البريد الإلكتروني</label>
-            <input type="email" {...register('email')} className="input" />
+            <label htmlFor="email" className="input-label">البريد الإلكتروني</label>
+            <input id="email" type="email" {...register('email')} className="input" />
             {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="input-label">رقم الهوية</label>
-            <input type="text" {...register('national_id')} className="input" />
+            <label htmlFor="national_id" className="input-label">رقم الهوية</label>
+            <input id="national_id" type="text" {...register('national_id')} className="input" />
           </div>
           <div>
-            <label className="input-label">العنوان</label>
-            <input type="text" {...register('address')} className="input" />
+            <label htmlFor="address" className="input-label">العنوان</label>
+            <input id="address" type="text" {...register('address')} className="input" />
           </div>
         </div>
 
         <h2 className="text-sm font-semibold text-primary-600 mt-4 mb-2">البيانات المالية</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="input-label">الراتب الأساسي *</label>
-            <input type="number" {...register('base_salary')} className="input" />
+            <label htmlFor="base_salary" className="input-label">الراتب الأساسي *</label>
+            <input id="base_salary" type="number" {...register('base_salary')} className="input" />
             {errors.base_salary && <p className="text-red-500 text-xs mt-1">{errors.base_salary.message}</p>}
           </div>
           <div>
-            <label className="input-label">تاريخ التعيين *</label>
-            <input type="date" {...register('join_date')} className="input" />
+            <label htmlFor="join_date" className="input-label">تاريخ التعيين *</label>
+            <input id="join_date" type="date" {...register('join_date')} className="input" />
             {errors.join_date && <p className="text-red-500 text-xs mt-1">{errors.join_date.message}</p>}
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="input-label">اسم البنك</label>
-            <input type="text" {...register('bank_name')} className="input" />
+            <label htmlFor="bank_name" className="input-label">اسم البنك</label>
+            <input id="bank_name" type="text" {...register('bank_name')} className="input" />
           </div>
           <div>
-            <label className="input-label">رقم الحساب البنكي</label>
-            <input type="text" {...register('bank_account')} className="input" />
+            <label htmlFor="bank_account" className="input-label">رقم الحساب البنكي</label>
+            <input id="bank_account" type="text" {...register('bank_account')} className="input" />
           </div>
         </div>
 
         <h2 className="text-sm font-semibold text-primary-600 mt-4 mb-2">بيانات العقد</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="input-label">بداية العقد</label>
-            <input type="date" {...register('contract_start')} className="input" />
+            <label htmlFor="contract_start" className="input-label">بداية العقد</label>
+            <input id="contract_start" type="date" {...register('contract_start')} className="input" />
           </div>
           <div>
-            <label className="input-label">نهاية العقد</label>
-            <input type="date" {...register('contract_end')} className="input" />
+            <label htmlFor="contract_end" className="input-label">نهاية العقد</label>
+            <input id="contract_end" type="date" {...register('contract_end')} className="input" />
           </div>
         </div>
         <div>
-          <label className="input-label">عقد العمل (PDF)</label>
-          <input type="file" accept=".pdf,.doc,.docx" onChange={e => setFile(e.target.files?.[0] ?? null)}
+          <label htmlFor="contract_file" className="input-label">عقد العمل (PDF)</label>
+          <input id="contract_file" type="file" accept=".pdf,.doc,.docx" onChange={e => setFile(e.target.files?.[0] ?? null)}
             className="input" />
         </div>
         <div>
-          <label className="input-label">ملاحظات</label>
-          <textarea {...register('notes')} rows={3} className="input resize-none" />
+          <label htmlFor="notes" className="input-label">ملاحظات</label>
+          <textarea id="notes" {...register('notes')} rows={3} className="input resize-none" />
         </div>
         <div className="flex gap-3">
           <button type="submit" disabled={isSubmitting} className="btn-primary">
