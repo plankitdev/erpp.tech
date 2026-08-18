@@ -41,7 +41,7 @@ class NotificationService
             }
 
             $companyName = Company::where('id', $companyId)->value('name');
-            Mail::to($user->email)->queue(new SystemNotificationMail($notification, $companyName));
+            Mail::to($user->email)->queue(new SystemNotificationMail($notification, $companyName, $user->name));
         } catch (\Throwable $e) {
             Log::warning('Notification email dispatch failed: ' . $e->getMessage(), [
                 'notification_id' => $notification->id ?? null,
