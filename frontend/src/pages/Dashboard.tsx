@@ -448,7 +448,7 @@ function ManagerDashboard({ stats }: { stats: Record<string, any> }) {
     { label: 'صافي الربح', value: formatCurrency(stats.net_profit || 0), icon: Wallet, iconBg: 'bg-teal-500' },
     { label: 'المشاريع النشطة', value: stats.active_projects || 0, icon: FolderKanban, iconBg: 'bg-violet-500', link: '/projects' },
     { label: 'إجمالي المهام', value: stats.total_tasks || 0, icon: CheckCircle2, iconBg: 'bg-blue-500', link: '/tasks/board' },
-    { label: 'مهام متأخرة', value: stats.overdue_tasks || 0, icon: AlertTriangle, iconBg: 'bg-red-500', link: '/tasks' },
+    { label: 'مهام متأخرة', value: stats.overdue_tasks || 0, icon: AlertTriangle, iconBg: 'bg-red-500', link: '/tasks?overdueFilter=1' },
     { label: 'فواتير متأخرة', value: stats.overdue_invoices || 0, icon: Receipt, iconBg: 'bg-amber-500', link: '/invoices' },
     { label: 'أعضاء الفريق', value: stats.team_count || 0, icon: Users, iconBg: 'bg-indigo-500', link: '/employees' },
   ];
@@ -551,7 +551,7 @@ function ManagerOpsDashboard({ stats }: { stats: Record<string, any> }) {
   const cards: StatCard[] = [
     { label: 'المشاريع النشطة', value: stats.active_projects || 0, icon: FolderKanban, iconBg: 'bg-violet-500', link: '/projects' },
     { label: 'إجمالي المهام', value: stats.total_tasks || 0, icon: CheckCircle2, iconBg: 'bg-blue-500', link: '/tasks/board' },
-    { label: 'مهام متأخرة', value: stats.overdue_tasks || 0, icon: AlertTriangle, iconBg: 'bg-red-500', link: '/tasks' },
+    { label: 'مهام متأخرة', value: stats.overdue_tasks || 0, icon: AlertTriangle, iconBg: 'bg-red-500', link: '/tasks?overdueFilter=1' },
     { label: 'مهام مكتملة', value: stats.completed_tasks || 0, icon: CheckCircle2, iconBg: 'bg-emerald-500' },
     { label: 'العملاء', value: stats.clients_count || 0, icon: Users, iconBg: 'bg-blue-500', link: '/clients' },
     { label: 'أعضاء الفريق', value: stats.team_count || 0, icon: UserCheck, iconBg: 'bg-indigo-500' },

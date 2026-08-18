@@ -23,10 +23,11 @@ export const tasksApi = {
   reorder: (ids: number[]) =>
     api.post<ApiResponse<null>>('/tasks/reorder', { ids }),
 
-  addComment: (taskId: number, data: { comment: string; attachment?: File }) => {
+  addComment: (taskId: number, data: { comment: string; attachment?: File; mentioned_ids?: number[] }) => {
     const formData = new FormData();
     formData.append('comment', data.comment);
     if (data.attachment) formData.append('attachment', data.attachment);
+    (data.mentioned_ids || []).forEach(id => formData.append('mentioned_ids[]', String(id)));
     return api.post<ApiResponse<TaskComment>>(`/tasks/${taskId}/comments`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });

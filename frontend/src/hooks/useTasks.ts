@@ -53,7 +53,7 @@ export function useBatchDeleteTasks() {
 export function useAddComment() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ taskId, data }: { taskId: number; data: { comment: string; attachment?: File } }) =>
+    mutationFn: ({ taskId, data }: { taskId: number; data: { comment: string; attachment?: File; mentioned_ids?: number[] } }) =>
       tasksApi.addComment(taskId, data).then(r => r.data),
     onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['tasks', vars.taskId] }),
   });

@@ -57,6 +57,8 @@ export default function TaskDetail() {
     start_date: '', due_date: '', assignee_ids: [] as number[],
   });
   const fileRef = useRef<HTMLInputElement>(null);
+  const [mentionedIds, setMentionedIds] = useState<number[]>([]);
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
 
   const isTimerRunning = runningTimer && runningTimer.task_id === taskId;
 
@@ -139,6 +141,15 @@ export default function TaskDetail() {
     }
   };
 
+  const handleDateChange = async (field: 'start_date' | 'due_date', value: string) => {
+    try {
+      await updateTask.mutateAsync({ id: task.id, data: { [field]: value || null } as Partial<Task> });
+      toast.success('تم تحديث التاريخ');
+    } catch {
+      toast.error('حدث خطأ');
+    }
+  };
+
   const openEditModal = () => {
     setEditForm({
       title: task.title,
@@ -177,16 +188,38 @@ export default function TaskDetail() {
     e.preventDefault();
     if (!comment.trim()) return;
     try {
+      // Only send mentions whose @Name still appears in the final text.
+      const activeMentions = mentionedIds.filter(id => {
+        const u = allUsers.find((x: any) => x.id === id);
+        return u && comment.includes(`@${u.name}`);
+      });
       await addComment.mutateAsync({
         taskId: task.id,
-        data: { comment, attachment: attachment || undefined },
+        data: { comment, attachment: attachment || undefined, mentioned_ids: activeMentions },
       });
       setComment('');
       setAttachment(null);
+      setMentionedIds([]);
+      setMentionQuery(null);
       toast.success('تم إضافة التعليق');
     } catch {
       toast.error('حدث خطأ');
     }
+  };
+
+  // @mention autocomplete: track the "@query" being typed at the cursor.
+  const onCommentChange = (val: string) => {
+    setComment(val);
+    const m = val.match(/@([\p{L}\w.\-]*)$/u);
+    setMentionQuery(m ? m[1] : null);
+  };
+  const mentionCandidates = mentionQuery !== null
+    ? allUsers.filter((u: any) => u.name?.toLowerCase().includes(mentionQuery.toLowerCase())).slice(0, 6)
+    : [];
+  const pickMention = (u: { id: number; name: string }) => {
+    setComment(prev => prev.replace(/@([\p{L}\w.\-]*)$/u, `@${u.name} `));
+    setMentionedIds(ids => ids.includes(u.id) ? ids : [...ids, u.id]);
+    setMentionQuery(null);
   };
 
   const handleAddChecklist = async (e: React.FormEvent) => {
@@ -630,8 +663,8 @@ export default function TaskDetail() {
             <form onSubmit={handleComment} className="border-t border-gray-100 pt-4">
               <div className="flex gap-2">
                 <div className="flex-1 relative">
-                  <input type="text" value={comment} onChange={e => setComment(e.target.value)}
-                    placeholder="اكتب تعليق..."
+                  <input type="text" value={comment} onChange={e => onCommentChange(e.target.value)}
+                    placeholder="اكتب تعليق... اكتب @ للإشارة لشخص"
                     className="w-full px-4 py-2.5 pr-4 pl-10 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500" />
                   <button type="button" onClick={() => fileRef.current?.click()}
                     className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -639,12 +672,31 @@ export default function TaskDetail() {
                   </button>
                   <input ref={fileRef} type="file" className="hidden"
                     onChange={e => setAttachment(e.target.files?.[0] || null)} />
+
+                  {/* @mention dropdown */}
+                  {mentionCandidates.length > 0 && (
+                    <div className="absolute bottom-full mb-1 inset-x-0 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-10 max-h-52 overflow-y-auto">
+                      {mentionCandidates.map((u: any) => (
+                        <button key={u.id} type="button" onClick={() => pickMention(u)}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-right hover:bg-primary-50 transition-colors">
+                          <span className="w-6 h-6 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-[10px] font-bold flex-shrink-0">{u.name?.charAt(0)}</span>
+                          <span className="text-sm text-gray-700 truncate">{u.name}</span>
+                          <span className="text-[10px] text-gray-400 mr-auto flex-shrink-0">{u.email}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <button type="submit" disabled={addComment.isPending || !comment.trim()}
                   className="bg-primary-600 text-white px-4 py-2.5 rounded-xl hover:bg-primary-700 disabled:opacity-50 transition-colors">
                   <Send size={16} />
                 </button>
               </div>
+              {mentionedIds.length > 0 && (
+                <p className="text-[11px] text-primary-600 mt-2">
+                  سيتم إشعار: {mentionedIds.map(id => allUsers.find((u: any) => u.id === id)?.name).filter(Boolean).join('، ')}
+                </p>
+              )}
               {attachment && (
                 <p className="text-xs text-gray-500 mt-2">📎 {attachment.name}</p>
               )}
@@ -726,16 +778,28 @@ export default function TaskDetail() {
               <div className="h-px bg-gray-100" />
               <div className="flex items-center gap-3">
                 <Calendar size={16} className="text-gray-400 flex-shrink-0" />
-                <div>
+                <div className="flex-1">
                   <p className="text-[11px] text-gray-400">تاريخ البداية</p>
-                  <p className="text-sm font-medium text-gray-800">{task.start_date ? formatDate(task.start_date) : 'غير محدد'}</p>
+                  <input
+                    type="date"
+                    value={task.start_date?.slice(0, 10) || ''}
+                    onChange={e => handleDateChange('start_date', e.target.value)}
+                    className="text-sm font-medium text-gray-800 bg-transparent border-0 p-0 focus:ring-0 cursor-pointer w-full"
+                    title="اضغط لتغيير تاريخ البداية"
+                  />
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <Calendar size={16} className="text-gray-400 flex-shrink-0" />
-                <div>
+                <div className="flex-1">
                   <p className="text-[11px] text-gray-400">تاريخ التسليم</p>
-                  <p className="text-sm font-medium text-gray-800">{task.due_date ? formatDate(task.due_date) : 'غير محدد'}</p>
+                  <input
+                    type="date"
+                    value={task.due_date?.slice(0, 10) || ''}
+                    onChange={e => handleDateChange('due_date', e.target.value)}
+                    className="text-sm font-medium text-gray-800 bg-transparent border-0 p-0 focus:ring-0 cursor-pointer w-full"
+                    title="اضغط لتغيير تاريخ التسليم"
+                  />
                 </div>
               </div>
               <div className="flex items-center gap-3">

@@ -255,8 +255,10 @@ class TaskController extends Controller
     public function addComment(Request $request, Task $task): JsonResponse
     {
         $request->validate([
-            'comment'    => 'required|string',
-            'attachment' => 'nullable|file|max:10240',
+            'comment'         => 'required|string',
+            'attachment'      => 'nullable|file|max:10240',
+            'mentioned_ids'   => 'nullable|array',
+            'mentioned_ids.*' => 'integer|exists:users,id',
         ]);
 
         $data = [
@@ -270,6 +272,24 @@ class TaskController extends Controller
         }
 
         $comment = $task->comments()->create($data);
+
+        // Notify anyone @mentioned in the comment (never the author themselves).
+        $author = $request->user();
+        collect($request->input('mentioned_ids', []))
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->reject(fn ($id) => $id === $author->id)
+            ->each(function ($userId) use ($task, $author) {
+                NotificationService::notify(
+                    $task->company_id,
+                    $userId,
+                    \App\Models\Notification::TYPE_CHAT_MENTION,
+                    'تمت الإشارة إليك في تعليق',
+                    "{$author->name} أشار إليك في مهمة: {$task->title}",
+                    "/tasks/{$task->id}"
+                );
+            });
+
         return $this->successResponse(new TaskCommentResource($comment->load('user')), 'تم إضافة التعليق', 201);
     }
 
